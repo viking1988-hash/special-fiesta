@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Автохирург-Jarvis</title>
+<style>
+body{font-family:Arial,sans-serif;background:#111;color:#fff;display:grid;place-items:center;min-height:100vh;margin:0}
+.card{width:min(680px,90vw);padding:32px;border:1px solid #333;border-radius:20px;background:#1a1a1a;text-align:center}
+button{font-size:20px;padding:16px 28px;border:0;border-radius:12px;cursor:pointer}
+#status{margin:18px 0;color:#aaa;min-height:24px}
+#log{white-space:pre-wrap;text-align:left;background:#0b0b0b;padding:16px;border-radius:12px;min-height:100px}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>Автохирург-Jarvis</h1>
+<p>Голосовой интерфейс</p>
+<button id="start">🎙 Запустить Jarvis</button>
+<div id="status">Готов к запуску</div>
+<div id="log"></div>
+</div>
+<script>
+let pc,dc,stream;
+const statusEl=document.querySelector("#status"),log=document.querySelector("#log"),btn=document.querySelector("#start");
+function status(t){statusEl.textContent=t}
+function logEvent(t){log.textContent += t+"\n"}
+async function start(){
+  btn.disabled=true; status("Запрашиваю микрофон…");
+  stream=await navigator.mediaDevices.getUserMedia({audio:true});
+  pc=new RTCPeerConnection();
+  const audio=document.createElement("audio"); audio.autoplay=true; document.body.appendChild(audio);
+  pc.ontrack=e=>{audio.srcObject=e.streams[0]};
+  stream.getTracks().forEach(t=>pc.addTrack(t,stream));
+  dc=pc.createDataChannel("oai-events");
+  dc.onmessage=e=>{
+    try{
+      const ev=JSON.parse(e.data);
+      if(ev.type==="session.started"){status("🟢 Jarvis онлайн — говорите");}
+      if(ev.type==="response.output_text.delta" && ev.delta) logEvent(ev.delta);
+      if(ev.type==="error"){status("Ошибка"); logEvent(JSON.stringify(ev));}
+    }catch{}
+  };
+  const offer=await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  const answer=await fetch("/api/session",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sdp:offer.sdp})});
+  if(!answer.ok) throw new Error(await answer.text());
+  const data=await answer.json();
+  await pc.setRemoteDescription({type:"answer",sdp:data.transport.sdp});
+}
+btn.onclick=()=>start().catch(e=>{status("Ошибка запуска");logEvent(e.message);btn.disabled=false});
+</script>
+</body>
+</html>
