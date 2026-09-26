@@ -1,42 +1,58 @@
 import express from "express";
-import OpenAI from "openai";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
-app.use(express.json({limit:"2mb"}));
-app.use(express.static(path.join(__dirname,"public")));
+app.use(express.json({ limit: "2mb" }));
+app.use(express.static(path.join(__dirname, "public")));
 
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+app.get("/health", (_req, res) =>
+  res.json({ ok: true, service: "avtohirurg-jarvis-voice" })
+);
 
-app.get("/health", (_req,res) => res.json({ok:true,service:"avtohirurg-jarvis-voice"}));
+app.post("/api/session", async (req, res) => {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) return res.status(503).json({ error: "OPENAI_API_KEY is not configured" });
 
-app.post("/api/session", async (req,res) => {
-  if (!process.env.OPENAI_API_KEY) {
-    return res.status(503).json({error:"OPENAI_API_KEY is not configured"});
+  const sdp = req.body?.sdp;
+  if (typeof sdp !== "string" || !sdp.trim()) {
+    return res.status(400).json({ error: "SDP offer is required" });
   }
-  if (typeof req.body?.sdp !== "string" || !req.body.sdp.trim()) {
-    return res.status(400).json({error:"SDP offer is required"});
-  }
+
   try {
-    const live = await client.live.create({
-      session: {
-        model: "gpt-live-1",
-        instructions:
-          "Ты Автохирург-Jarvis — голосовой AI-помощник бизнеса Автохирург. " +
-          "Говори по-русски, кратко и уверенно. Не выдумывай факты. " +
-          "Для диагностических и рабочих задач опирайся на проверенные данные. " +
-          "Если действие меняет сайт, данные или настройки, сначала запроси подтверждение владельца."
+    const response = await fetch("https://api.openai.com/v1/live/sessions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
       },
-      transport: { type: "webrtc", sdp: req.body.sdp }
+      body: JSON.stringify({
+        session: {
+          model: "gpt-live-1",
+          instructions:
+            "Ты Автохирург-Jarvis — голосовой AI-помощник бизнеса Автохирург. " +
+            "Говори по-русски, кратко и уверенно. Не выдумывай факты. " +
+            "Для диагностических и рабочих задач опирайся на проверенные данные. " +
+            "Если действие меняет сайт, данные или настройки, сначала запроси подтверждение владельца."
+        },
+        transport: { type: "webrtc", sdp }
+      })
     });
-    res.json({session:live.session,transport:live.transport});
+
+    const data = await response.json();
+    if (!response.ok) {
+      console.error("OpenAI Live error:", data);
+      return res.status(response.status).json(data);
+    }
+    res.status(201).json(data);
   } catch (err) {
     console.error(err);
-    res.status(500).json({error:"Failed to create Live session"});
+    res.status(500).json({ error: "Failed to create Live session" });
   }
 });
 
 const port = Number(process.env.PORT || 3000);
-app.listen(port, "0.0.0.0", () => console.log("Jarvis voice listening on "+port));
+app.listen(port, "0.0.0.0", () =>
+  console.log("Jarvis voice listening on " + port)
+);
