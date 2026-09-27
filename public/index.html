@@ -28,11 +28,14 @@ const waitIce=()=>new Promise(resolve=>{
 async function start(){
  try{
   btn.disabled=true; status("Запрашиваю микрофон…");
-  stream=await navigator.mediaDevices.getUserMedia({audio:true});
+  stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+  const audioTrack=stream.getAudioTracks()[0];
+  if(!audioTrack) throw new Error("Микрофон не вернул аудиодорожку");
   pc=new RTCPeerConnection();
-  const audio=document.createElement("audio"); audio.autoplay=true; document.body.appendChild(audio);
-  pc.ontrack=e=>{audio.srcObject=e.streams[0]};
-  stream.getTracks().forEach(t=>pc.addTrack(t,stream));
+  const audio=document.createElement("audio"); audio.autoplay=true; audio.playsInline=true; document.body.appendChild(audio);
+  pc.ontrack=e=>{audio.srcObject=e.streams[0]; audio.play().catch(()=>{})};
+  const audioTransceiver=pc.addTransceiver("audio",{direction:"sendrecv"});
+  await audioTransceiver.sender.replaceTrack(audioTrack);
   dc=pc.createDataChannel("oai-events");
   let inputTranscript="";
   let transcriptTimer=null;
@@ -82,9 +85,11 @@ async function start(){
     if(ev.type==="error"){status("Ошибка Live");logEvent(JSON.stringify(ev))}
    }catch(error){logEvent("Event error: "+(error.message||String(error)))}
   };
-  const offer=await pc.createOffer();
+  const offer=await pc.createOffer({offerToReceiveAudio:true});
   await pc.setLocalDescription(offer);
   await waitIce();
+  const localSdp=pc.localDescription?.sdp||"";
+  if(!/m=audio\s/i.test(localSdp)) throw new Error("WebRTC не сформировал audio media section");
   const answer=await fetch("/api/session",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sdp:pc.localDescription.sdp})});
   const data=await answer.json();
   if(!answer.ok) throw new Error(data.error?.message||data.error||JSON.stringify(data));
