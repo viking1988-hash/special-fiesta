@@ -277,6 +277,100 @@ class AvtohirurgMcpClient {
 const mcpClient = new AvtohirurgMcpClient();
 const liveSessions = new Map();
 
+function normalizeTranscript(text) {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/[«»"']/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function routeTranscriptTask(text) {
+  const t = normalizeTranscript(text);
+  if (!t) return null;
+
+  if (
+    /(проверь|проверить|проверьте).*(состояние )?(wordpress|вордпресс|сайт)/i.test(t) ||
+    /(состояние|доступность).*(wordpress|вордпресс)/i.test(t)
+  ) {
+    return { name: "wordpress_health", args: {} };
+  }
+
+  if (
+    /(проверь|проверить|проверьте).*(авторизац|пользовател).*(wordpress|вордпресс)/i.test(t)
+  ) {
+    return { name: "wordpress_current_user", args: {} };
+  }
+
+  const pageMatch = t.match(/(?:страниц|page)\D{0,20}(\d{1,8})/i);
+  if (
+    /(проверь|проверить|проверьте|прочитай|прочитать).*(страниц|page).*(wordpress|вордпресс)?/i.test(t) &&
+    pageMatch
+  ) {
+    return { name: "wordpress_get_page", args: { page_id: Number(pageMatch[1]) } };
+  }
+
+  if (/(12[- ]?пункт|двенадцат).*(диагност|протокол)/i.test(t)) {
+    return { name: "diagnostic_12_points", args: { symptom: text } };
+  }
+
+  if (/(срочност|насколько срочно|можно ли ездить)/i.test(t)) {
+    return { name: "repair_urgency", args: { symptom: text } };
+  }
+
+  if (/(разбери симптом|разобрать симптом|проведи диагностику|диагностируй)/i.test(t)) {
+    return { name: "diagnose_symptom", args: { symptom: text } };
+  }
+
+  return null;
+}
+
+async function routeTranscriptTaskToMcp(sessionId, ws, text) {
+  const task = routeTranscriptTask(text);
+  if (!task) return false;
+
+  const entry = liveSessions.get(sessionId);
+  if (!entry || entry.lastRoutedText === text) return false;
+  entry.lastRoutedText = text;
+
+  console.log("[JARVIS_TRANSCRIPT_ROUTE]", task.name, text);
+
+  try {
+    const output = await executeTool(task.name, task.args);
+    const compact = String(output).slice(0, 1800);
+    sendSideband(ws, {
+      type: "session.commentary.append",
+      event_id: "route_" + crypto.randomUUID(),
+      delegation_id: null,
+      content: "Результат проверки: " + compact
+    });
+    console.log("[JARVIS_TRANSCRIPT_RESULT]", task.name);
+  } catch (error) {
+    console.error("[JARVIS_TRANSCRIPT_ERROR]", task.name, error.message);
+    sendSideband(ws, {
+      type: "session.commentary.append",
+      event_id: "route_error_" + crypto.randomUUID(),
+      delegation_id: null,
+      content: "Не удалось выполнить проверку через backend: " + error.message
+    });
+  }
+  return true;
+}
+
+function scheduleTranscriptRoute(sessionId, ws) {
+  const entry = liveSessions.get(sessionId);
+  if (!entry) return;
+
+  clearTimeout(entry.transcriptTimer);
+  entry.transcriptTimer = setTimeout(() => {
+    const current = liveSessions.get(sessionId);
+    if (!current || !current.inputTranscript) return;
+    routeTranscriptTaskToMcp(sessionId, ws, current.inputTranscript).catch((error) => {
+      console.error("[JARVIS_TRANSCRIPT_ROUTE_ERROR]", error.message);
+    });
+  }, 1200);
+}
+
 function closeSideband(sessionId) {
   const entry = liveSessions.get(sessionId);
   if (!entry) return;
@@ -314,7 +408,12 @@ function attachSideband(sessionId, apiKey) {
 
     ws.on("open", () => {
       clearTimeout(timeout);
-      liveSessions.set(sessionId, { ws });
+      liveSessions.set(sessionId, {
+        ws,
+        inputTranscript: "",
+        transcriptTimer: null,
+        lastRoutedText: ""
+      });
       console.log(`[JARVIS_SIDEBAND] attached ${sessionId}`);
       resolve(true);
     });
@@ -331,6 +430,20 @@ function attachSideband(sessionId, apiKey) {
       if (!event) return;
 
       console.log("[JARVIS_SIDEBAND_EVENT]", event.type);
+
+      if (event.type === "session.input_transcript.delta") {
+        const entry = liveSessions.get(sessionId);
+        if (entry) {
+          entry.inputTranscript = (entry.inputTranscript || "") + (event.delta || "");
+          console.log("[JARVIS_INPUT_TRANSCRIPT]", event.delta || "");
+          scheduleTranscriptRoute(sessionId, ws);
+        }
+        return;
+      }
+
+      if (event.type === "session.delegation.created") {
+        console.log("[JARVIS_DELEGATION_CREATED]", safeJson(event.delegation || {}));
+      }
 
       // GPT-Live/Responses can surface function calls either as a completed
       // output item or as the final function-call-arguments event.
@@ -398,6 +511,8 @@ function attachSideband(sessionId, apiKey) {
 
     ws.on("close", () => {
       clearTimeout(timeout);
+      const entry = liveSessions.get(sessionId);
+      if (entry?.transcriptTimer) clearTimeout(entry.transcriptTimer);
       liveSessions.delete(sessionId);
       console.log(`[JARVIS_SIDEBAND] closed ${sessionId}`);
     });
