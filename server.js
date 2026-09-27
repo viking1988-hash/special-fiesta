@@ -134,8 +134,7 @@ function buildDelegatedTools() {
     type: "function",
     name,
     description: TOOL_SCHEMAS[name].description,
-    parameters: TOOL_SCHEMAS[name].parameters,
-    strict: true
+    parameters: TOOL_SCHEMAS[name].parameters
   }));
 }
 
