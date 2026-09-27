@@ -519,6 +519,42 @@ function attachSideband(sessionId, apiKey) {
   });
 }
 
+app.post("/api/route-transcript", async (req, res) => {
+  const origin = req.get("origin");
+  const host = req.get("host");
+  if (origin && origin !== `https://${host}`) {
+    return res.status(403).json({ error: "Unexpected request origin" });
+  }
+
+  const text = String(req.body?.text || "").trim();
+  if (!text) {
+    return res.status(400).json({ error: "Transcript text is required" });
+  }
+
+  const task = routeTranscriptTask(text);
+  if (!task) {
+    return res.status(204).end();
+  }
+
+  try {
+    const output = await executeTool(task.name, task.args);
+    console.log("[JARVIS_BROWSER_TRANSCRIPT_ROUTE]", task.name, text);
+    console.log("[JARVIS_BROWSER_TRANSCRIPT_RESULT]", task.name);
+    return res.json({
+      ok: true,
+      tool: task.name,
+      result: String(output).slice(0, 1800)
+    });
+  } catch (error) {
+    console.error("[JARVIS_BROWSER_TRANSCRIPT_ERROR]", task.name, error.message);
+    return res.status(502).json({
+      ok: false,
+      tool: task.name,
+      error: error.message
+    });
+  }
+});
+
 app.get("/health", (_req, res) =>
   res.json({
     ok: true,
@@ -552,16 +588,6 @@ app.post("/api/session", async (req, res) => {
       body: JSON.stringify({
         session: {
           model: "gpt-live-1",
-          audio: {
-            input: {
-              transcription: {
-                model: "gpt-live-transcribe",
-                languages: ["ru"],
-                prompt:
-                  "Русская речь. Тематика: Автохирург, WordPress, сайт, диагностика автомобилей, MCP, Jarvis. Сохраняй названия инструментов и технические термины."
-              }
-            }
-          },
           instructions:
             JARVIS_CORE +
             `\n\nГолосовой runtime: говори кратко и естественно.

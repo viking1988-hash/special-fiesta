@@ -34,12 +34,53 @@ async function start(){
   pc.ontrack=e=>{audio.srcObject=e.streams[0]};
   stream.getTracks().forEach(t=>pc.addTrack(t,stream));
   dc=pc.createDataChannel("oai-events");
+  let inputTranscript="";
+  let transcriptTimer=null;
+  let lastRoutedTranscript="";
+  const routeTranscript=async()=>{
+   const text=inputTranscript.trim();
+   if(!text || text===lastRoutedTranscript) return;
+   lastRoutedTranscript=text;
+   logEvent("🎙 "+text);
+   try{
+    const r=await fetch("/api/route-transcript",{
+     method:"POST",
+     headers:{"Content-Type":"application/json"},
+     body:JSON.stringify({text})
+    });
+    if(r.status===204) return;
+    const data=await r.json();
+    if(!r.ok) throw new Error(data.error||"Backend task failed");
+    if(data.ok){
+     logEvent("🔧 "+data.tool);
+     logEvent("✅ "+data.result);
+     if(dc.readyState==="open"){
+      dc.send(JSON.stringify({
+       type:"session.commentary.append",
+       event_id:"browser_result_"+crypto.randomUUID(),
+       delegation_id:null,
+       content:"Результат проверки: "+data.result
+      }));
+     }
+    }
+   }catch(error){
+    logEvent("❌ "+(error.message||String(error)));
+   }
+  };
   dc.onmessage=e=>{
    try{
     const ev=JSON.parse(e.data);
     if(ev.type==="session.started") status("🟢 Jarvis онлайн — говорите");
+    if(ev.type==="session.input_transcript.delta"){
+     inputTranscript+=(ev.delta||"");
+     clearTimeout(transcriptTimer);
+     transcriptTimer=setTimeout(routeTranscript,900);
+    }
+    if(ev.type==="session.output_transcript.delta"){
+     // Assistant transcript is intentionally not routed to the task backend.
+    }
     if(ev.type==="error"){status("Ошибка Live");logEvent(JSON.stringify(ev))}
-   }catch{}
+   }catch(error){logEvent("Event error: "+(error.message||String(error)))}
   };
   const offer=await pc.createOffer();
   await pc.setLocalDescription(offer);
