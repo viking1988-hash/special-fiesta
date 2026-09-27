@@ -552,6 +552,16 @@ app.post("/api/session", async (req, res) => {
       body: JSON.stringify({
         session: {
           model: "gpt-live-1",
+          audio: {
+            input: {
+              transcription: {
+                model: "gpt-live-transcribe",
+                languages: ["ru"],
+                prompt:
+                  "Русская речь. Тематика: Автохирург, WordPress, сайт, диагностика автомобилей, MCP, Jarvis. Сохраняй названия инструментов и технические термины."
+              }
+            }
+          },
           instructions:
             JARVIS_CORE +
             `\n\nГолосовой runtime: говори кратко и естественно.
