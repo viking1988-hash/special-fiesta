@@ -303,9 +303,7 @@ function attachSideband(sessionId, apiKey) {
   return new Promise((resolve) => {
     const url = `wss://api.openai.com/v1/live/sessions/${encodeURIComponent(sessionId)}/attach`;
     const ws = new WebSocket(url, {
-      headers: {
-        Authorization: `Bearer ${apiKey}`
-      }
+      headers: { Authorization: `Bearer ${apiKey}` }
     });
 
     const timeout = setTimeout(() => {
@@ -332,46 +330,64 @@ function attachSideband(sessionId, apiKey) {
       const event = envelope?.type === "response.event" ? envelope.event : envelope;
       if (!event) return;
 
-      if (event.type === "response.output_item.done" && event.item?.type === "function_call") {
-        const callId = event.item.call_id;
-        const name = event.item.name;
-        let args = {};
-        try {
-          args = event.item.arguments ? JSON.parse(event.item.arguments) : {};
-        } catch (error) {
-          const output = safeJson({ ok: false, error: `Invalid tool arguments: ${error.message}` });
-          sendSideband(ws, {
-            type: "response.item.create",
-            item: { type: "function_call_output", call_id: callId, output }
-          });
-          sendSideband(ws, { type: "response.create" });
-          return;
-        }
+      console.log("[JARVIS_SIDEBAND_EVENT]", event.type);
 
-        try {
-          const output = await executeTool(name, args);
-          sendSideband(ws, {
-            type: "response.item.create",
-            item: {
-              type: "function_call_output",
-              call_id: callId,
-              output
-            }
-          });
-        } catch (error) {
-          console.error("[JARVIS_TOOL_ERROR]", name, error.message);
-          sendSideband(ws, {
-            type: "response.item.create",
-            item: {
-              type: "function_call_output",
-              call_id: callId,
-              output: safeJson({ ok: false, error: error.message })
-            }
-          });
-        }
+      // GPT-Live/Responses can surface function calls either as a completed
+      // output item or as the final function-call-arguments event.
+      const item = event.item?.type === "function_call" ? event.item : null;
+      const isFunctionCallItem = event.type === "response.output_item.done" && item;
+      const isFunctionCallArgumentsDone =
+        event.type === "response.function_call_arguments.done" &&
+        event.call_id &&
+        event.name;
 
+      if (!isFunctionCallItem && !isFunctionCallArgumentsDone) return;
+
+      const callId = item?.call_id || event.call_id;
+      const name = item?.name || event.name;
+      const rawArguments = item?.arguments ?? event.arguments ?? "{}";
+
+      let args = {};
+      try {
+        args = typeof rawArguments === "string"
+          ? JSON.parse(rawArguments || "{}")
+          : (rawArguments || {});
+      } catch (error) {
+        const output = safeJson({
+          ok: false,
+          error: `Invalid tool arguments: ${error.message}`
+        });
+        sendSideband(ws, {
+          type: "response.item.create",
+          item: { type: "function_call_output", call_id: callId, output }
+        });
         sendSideband(ws, { type: "response.create" });
+        return;
       }
+
+      try {
+        const output = await executeTool(name, args);
+        sendSideband(ws, {
+          type: "response.item.create",
+          item: {
+            type: "function_call_output",
+            call_id: callId,
+            output
+          }
+        });
+      } catch (error) {
+        console.error("[JARVIS_TOOL_ERROR]", name, error.message);
+        sendSideband(ws, {
+          type: "response.item.create",
+          item: {
+            type: "function_call_output",
+            call_id: callId,
+            output: safeJson({ ok: false, error: error.message })
+          }
+        });
+      }
+
+      sendSideband(ws, { type: "response.create" });
     });
 
     ws.on("error", (error) => {
