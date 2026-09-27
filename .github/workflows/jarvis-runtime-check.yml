@@ -1,0 +1,24 @@
+name: Jarvis voice runtime check
+
+on:
+  push:
+    branches:
+      - jarvis-core-integration
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install dependencies
+        run: npm install
+      - name: Check server syntax
+        run: node --check server.js

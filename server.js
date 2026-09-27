@@ -1,5 +1,6 @@
 import express from "express";
 import path from "node:path";
+import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -7,8 +8,13 @@ const app = express();
 app.use(express.json({ limit: "2mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
+const JARVIS_CORE = fs.readFileSync(
+  path.join(__dirname, "jarvis_core.md"),
+  "utf8"
+);
+
 app.get("/health", (_req, res) =>
-  res.json({ ok: true, service: "avtohirurg-jarvis-voice" })
+  res.json({ ok: true, service: "avtohirurg-jarvis-voice", core_loaded: true })
 );
 
 app.post("/api/session", async (req, res) => {
@@ -31,10 +37,8 @@ app.post("/api/session", async (req, res) => {
         session: {
           model: "gpt-live-1",
           instructions:
-            "Ты Автохирург-Jarvis — голосовой AI-помощник бизнеса Автохирург. " +
-            "Говори по-русски, кратко и уверенно. Не выдумывай факты. " +
-            "Для диагностических и рабочих задач опирайся на проверенные данные. " +
-            "Если действие меняет сайт, данные или настройки, сначала запроси подтверждение владельца."
+            JARVIS_CORE +
+            "\n\nДополнительное правило голосового runtime: если действие меняет сайт, данные или настройки, сначала запроси подтверждение владельца."
         },
         transport: { type: "webrtc", sdp }
       })
