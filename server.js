@@ -13,8 +13,47 @@ const JARVIS_CORE = fs.readFileSync(
   "utf8"
 );
 
+const MCP_READ_TOOLS = [
+  "wordpress_health",
+  "wordpress_current_user",
+  "wordpress_get_page",
+  "diagnose",
+  "diagnose_symptom",
+  "repair_urgency",
+  "avtohirurg_protocol",
+  "diagnostic_12_points",
+  "client_conclusion",
+  "checklist"
+];
+
+function buildMcpToolConfig() {
+  const serverUrl = (process.env.AVTOHIRURG_MCP_URL || "").trim();
+  if (!serverUrl) return [];
+
+  const tool = {
+    type: "mcp",
+    server_label: "avtohirurg",
+    server_url: serverUrl,
+    allowed_tools: MCP_READ_TOOLS,
+    require_approval: "never"
+  };
+
+  const token = (process.env.AVTOHIRURG_MCP_TOKEN || "").trim();
+  if (token) {
+    tool.headers = { Authorization: `Bearer ${token}` };
+  }
+
+  return [tool];
+}
+
 app.get("/health", (_req, res) =>
-  res.json({ ok: true, service: "avtohirurg-jarvis-voice", core_loaded: true })
+  res.json({
+    ok: true,
+    service: "avtohirurg-jarvis-voice",
+    core_loaded: true,
+    mcp_configured: Boolean((process.env.AVTOHIRURG_MCP_URL || "").trim()),
+    mcp_read_tools: MCP_READ_TOOLS
+  })
 );
 
 app.post("/api/session", async (req, res) => {
@@ -38,7 +77,9 @@ app.post("/api/session", async (req, res) => {
           model: "gpt-live-1",
           instructions:
             JARVIS_CORE +
-            "\n\nДополнительное правило голосового runtime: если действие меняет сайт, данные или настройки, сначала запроси подтверждение владельца."
+            "\n\nДополнительные правила голосового runtime: если действие меняет сайт, данные или настройки, сначала запроси подтверждение владельца. Если подключён MCP Автохирурга — используй его инструменты для проверки и фактов, не выдумывай результаты. На этом этапе доступны только read-only/диагностические инструменты.",
+          tool_choice: "auto",
+          tools: buildMcpToolConfig()
         },
         transport: { type: "webrtc", sdp }
       })
