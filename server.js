@@ -100,3 +100,4 @@ const port = Number(process.env.PORT || 3000);
 app.listen(port, "0.0.0.0", () =>
   console.log("Jarvis voice listening on " + port)
 );
+// Railway redeploy trigger: MCP Live session compatibility fix is on main.
