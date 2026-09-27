@@ -3,6 +3,7 @@ name: Jarvis voice runtime check
 on:
   push:
     branches:
+      - main
       - jarvis-core-integration
   pull_request:
     branches:
