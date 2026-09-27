@@ -439,7 +439,7 @@ app.post("/api/session", async (req, res) => {
           model: "gpt-live-1",
           instructions:
             JARVIS_CORE +
-            "\n\nГолосовой runtime: говори кратко и естественно.
+            `\n\nГолосовой runtime: говори кратко и естественно.
 
 Delegation policy:
 - Делегируй backend задачу, если пользователь просит проверить WordPress, сайт, страницу или авторизацию.
@@ -448,7 +448,7 @@ Delegation policy:
 - Делегируй ДО ответа, зависящего от backend. Не угадывай результат и не говори «проверено/готово», пока backend не вернул результат.
 - Если backend недоступен или вернул ошибку, сообщи об этом прямо.
 Backend tools: wordpress_health, wordpress_current_user, wordpress_get_page, diagnose, diagnose_symptom, repair_urgency, avtohirurg_protocol, diagnostic_12_points, client_conclusion, checklist.
-Для диагностики сначала используй диагностические инструменты. Для WordPress используй read-only инструменты. Любое изменение сайта, данных или настроек требует явного подтверждения владельца до выполнения.",
+Для диагностики сначала используй диагностические инструменты. Для WordPress используй read-only инструменты. Любое изменение сайта, данных или настроек требует явного подтверждения владельца до выполнения.`,
           delegation: {
             type: "responses",
             responses: {
