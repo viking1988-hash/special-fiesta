@@ -447,6 +447,17 @@ Delegation policy:
 - Делегируй backend задачу, если ответ требует фактической проверки через MCP.
 - Делегируй ДО ответа, зависящего от backend. Не угадывай результат и не говори «проверено/готово», пока backend не вернул результат.
 - Если backend недоступен или вернул ошибку, сообщи об этом прямо.
+Backend capabilities:
+  * Проверка WordPress: состояние REST API, текущий пользователь, чтение страницы.
+  * Автодиагностика: предварительный анализ симптома, срочность, 12-пунктный протокол, протокол Автохирурга, клиентское заключение.
+  * Чек-лист Автохирурга.
+MANDATORY examples:
+  * «проверь состояние WordPress» / «проверь сайт» → delegate to wordpress_health.
+  * «проверь авторизацию WordPress» → delegate to wordpress_current_user.
+  * «проверь страницу WordPress» → delegate to wordpress_get_page when page ID is known; otherwise ask for the ID.
+  * «запусти 12-пунктную диагностику» → delegate to diagnostic_12_points.
+  * «разбери симптом» / «проведи диагностику» → delegate to diagnose_symptom.
+For these requests, do not answer from general knowledge and do not ask the user to perform the check themselves unless the backend reports an error.
 Backend tools: wordpress_health, wordpress_current_user, wordpress_get_page, diagnose, diagnose_symptom, repair_urgency, avtohirurg_protocol, diagnostic_12_points, client_conclusion, checklist.
 Для диагностики сначала используй диагностические инструменты. Для WordPress используй read-only инструменты. Любое изменение сайта, данных или настроек требует явного подтверждения владельца до выполнения.`,
           delegation: {
