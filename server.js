@@ -620,19 +620,6 @@ MANDATORY examples:
 For these requests, do not answer from general knowledge and do not ask the user to perform the check themselves unless the backend reports an error.
 Backend tools: wordpress_health, wordpress_current_user, wordpress_get_page, diagnose, diagnose_symptom, repair_urgency, avtohirurg_protocol, diagnostic_12_points, client_conclusion, checklist.
 Для диагностики сначала используй диагностические инструменты. Для WordPress используй read-only инструменты. Любое изменение сайта, данных или настроек требует явного подтверждения владельца до выполнения.`,
-          delegation: {
-            type: "responses",
-            responses: {
-              model: env("JARVIS_BACKEND_MODEL") || "gpt-6-luna",
-              max_output_tokens: 2048,
-              instructions:
-                JARVIS_CORE +
-                "\n\nBackend-инструкции: используй только доступные read-only инструменты Автохирурга. Не утверждай факт без проверки. Для WordPress сначала читай состояние. Никаких изменений сайта через эти инструменты. Возвращай краткий проверяемый результат. MCP-секрет никогда не передавай модели или клиенту.",
-              tools: buildDelegatedTools(),
-              tool_choice: "auto",
-              parallel_tool_calls: false
-            }
-          }
         },
         transport: { type: "webrtc", sdp }
       })
