@@ -455,7 +455,9 @@ function attachSideband(sessionId, apiKey) {
         if (entry) {
           entry.inputTranscript = (entry.inputTranscript || "") + (event.delta || "");
           console.log("[JARVIS_INPUT_TRANSCRIPT]", event.delta || "");
-          scheduleTranscriptRoute(sessionId, ws);
+          // Browser /api/route-transcript is the single MCP executor.
+          // Sideband only observes transcript and carries Live audio/events,
+          // preventing one spoken command from calling the same MCP tool twice.
         }
         return;
       }
