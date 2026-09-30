@@ -40,12 +40,48 @@ async function start(){
   let inputTranscript="";
   let transcriptTimer=null;
   let lastRoutedTranscript="";
+  let pendingApprovalId="";
+  const speakResult=(content)=>{
+   if(dc.readyState==="open"){
+    dc.send(JSON.stringify({
+     type:"session.commentary.append",
+     event_id:"browser_result_"+crypto.randomUUID(),
+     delegation_id:null,
+     content
+    }));
+   }
+  };
   const routeTranscript=async()=>{
    const text=inputTranscript.trim();
    if(!text || text===lastRoutedTranscript) return;
    lastRoutedTranscript=text;
    logEvent("🎙 "+text);
    try{
+    if(pendingApprovalId && /^(джарвис[ ,]*)?(подтверждаю|подтвердить|да подтверждаю)/i.test(text)){
+     const r=await fetch("/api/approval/confirm",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({approval_id:pendingApprovalId})
+     });
+     const data=await r.json();
+     if(!r.ok) throw new Error(data.error||"Approval failed");
+     pendingApprovalId="";
+     const message=data.result||"Подтверждение принято.";
+     logEvent("✅ "+message);
+     speakResult(message);
+     return;
+    }
+    if(pendingApprovalId && /^(джарвис[ ,]*)?(отмена|отменить|не подтверждаю)/i.test(text)){
+     await fetch("/api/approval/cancel",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({approval_id:pendingApprovalId})
+     });
+     pendingApprovalId="";
+     logEvent("⛔ Действие отменено.");
+     speakResult("Действие отменено.");
+     return;
+    }
     const r=await fetch("/api/route-transcript",{
      method:"POST",
      headers:{"Content-Type":"application/json"},
@@ -55,16 +91,15 @@ async function start(){
     const data=await r.json();
     if(!r.ok) throw new Error(data.error||"Backend task failed");
     if(data.ok){
-     logEvent("🔧 "+data.tool);
-     logEvent("✅ "+data.result);
-     if(dc.readyState==="open"){
-      dc.send(JSON.stringify({
-       type:"session.commentary.append",
-       event_id:"browser_result_"+crypto.randomUUID(),
-       delegation_id:null,
-       content:"Результат проверки: "+data.result
-      }));
+     if(data.approval_required){
+      pendingApprovalId=data.approval_id;
+      logEvent("⚠️ "+data.result);
+      speakResult(data.result+" Скажите: подтверждаю, или: отмена.");
+      return;
      }
+     if(data.tool) logEvent("🔧 "+data.tool);
+     logEvent("✅ "+data.result);
+     speakResult("Результат проверки: "+data.result);
     }
    }catch(error){
     logEvent("❌ "+(error.message||String(error)));
