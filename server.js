@@ -289,6 +289,15 @@ function routeTranscriptTask(text) {
   const t = normalizeTranscript(text);
   if (!t) return null;
 
+  // Connectivity check is handled directly by the MCP client. This avoids
+  // sending a large delegated Responses request just to verify the backend.
+  if (
+    /(проверь|проверить|проверьте).*(подключени|связь|соединени).*(mcp|мсп|эмси)/i.test(t) ||
+    /(mcp|мсп|эмси).*(подключен|доступен|работает|связь)/i.test(t)
+  ) {
+    return { name: "checklist", args: {} };
+  }
+
   if (
     /(проверь|проверить|проверьте).*(состояние )?(wordpress|вордпресс|сайт)/i.test(t) ||
     /(состояние|доступность).*(wordpress|вордпресс)/i.test(t)
