@@ -390,7 +390,20 @@ function routeTranscriptTask(text) {
     return { name: "avtohirurg_protocol", args: { symptom: text } };
   }
 
-  if (/(тестов.*(диагностическ.*заключени|pdf)|(диагностическ.*заключени|pdf).*тестов)/i.test(t)) {\n    const data = {\n      complaint: "Стук в передней подвеске на неровностях, сильнее на малой скорости.",\n      report: { number: "TEST-TIGUAN-001", date: "30.09.2026", datetime: "30.09.2026 17:00" },\n      vehicle: { make_model: "Volkswagen Tiguan", plate: "ТЕСТ", vin: "TEST-VIN", mileage: "128 450 км" },\n      diagnostic: Object.fromEntries(Array.from({ length: 12 }, (_, i) => ["p" + (i + 1), { result: i === 6 ? "Выявлен люфт правой передней стойки стабилизатора" : "Проверено", evidence: i === 10 ? "Механическая нагрузка воспроизвела характерный стук" : "Тестовый протокол Автохирурга" }])),\n      conclusion: { confirmed_fault: "Люфт правой передней стойки стабилизатора", evidence: "Механическая нагрузка воспроизвела характерный стук", repair_now: "Заменить правую переднюю стойку стабилизатора", can_wait: "Остальные элементы передней подвески по текущей проверке замены не требуют", urgency: "Плановый ремонт", recommendation: "Заменить подтверждённо неисправную деталь и выполнить контрольную проверку", summary: "Неисправность подтверждена тестом. Замена остальных деталей без доказательства не требуется." },\n      media: { url: "", note: "Тестовый документ — не является заключением по реальному автомобилю" },\n      specialist: { name: "Автохирург — тест" }\n    };\n    return { name: "generate_client_diagnostic_pdf", args: { data_json: JSON.stringify(data), report_name: "Avtohirurg_Tiguan_TEST.pdf" } };\n  }\n\n  if (/(заключени.*клиент|клиентск.*заключени|сформируй заключени|составь заключени)/i.test(t)) {
+  if (/(тестов.*(диагностическ.*заключени|pdf)|(диагностическ.*заключени|pdf).*тестов)/i.test(t)) {
+    const data = {
+      complaint: "Стук в передней подвеске на неровностях, сильнее на малой скорости.",
+      report: { number: "TEST-TIGUAN-001", date: "30.09.2026", datetime: "30.09.2026 17:00" },
+      vehicle: { make_model: "Volkswagen Tiguan", plate: "ТЕСТ", vin: "TEST-VIN", mileage: "128 450 км" },
+      diagnostic: Object.fromEntries(Array.from({ length: 12 }, (_, i) => ["p" + (i + 1), { result: i === 6 ? "Выявлен люфт правой передней стойки стабилизатора" : "Проверено", evidence: i === 10 ? "Механическая нагрузка воспроизвела характерный стук" : "Тестовый протокол Автохирурга" }])),
+      conclusion: { confirmed_fault: "Люфт правой передней стойки стабилизатора", evidence: "Механическая нагрузка воспроизвела характерный стук", repair_now: "Заменить правую переднюю стойку стабилизатора", can_wait: "Остальные элементы передней подвески по текущей проверке замены не требуют", urgency: "Плановый ремонт", recommendation: "Заменить подтверждённо неисправную деталь и выполнить контрольную проверку", summary: "Неисправность подтверждена тестом. Замена остальных деталей без доказательства не требуется." },
+      media: { url: "", note: "Тестовый документ — не является заключением по реальному автомобилю" },
+      specialist: { name: "Автохирург — тест" }
+    };
+    return { name: "generate_client_diagnostic_pdf", args: { data_json: JSON.stringify(data), report_name: "Avtohirurg_Tiguan_TEST.pdf" } };
+  }
+
+  if (/(заключени.*клиент|клиентск.*заключени|сформируй заключени|составь заключени)/i.test(t)) {
     return { name: "client_conclusion", args: { symptom: text } };
   }
 
