@@ -758,6 +758,7 @@ app.get("/health", (_req, res) =>
     delegated_tools: buildDelegatedTools().map((tool) => tool.name),
     approval_write_tools: MCP_APPROVAL_TOOLS,
     approval_gate: true,
+    approval_self_test: "GET /api/approval/test",
     approval_ttl_seconds: APPROVAL_TTL_MS / 1000,
     pending_approvals: pendingApprovals.size,
     sideband: true
