@@ -308,6 +308,7 @@ function createApprovalProposal(action, args = {}) {
   purgeExpiredApprovals();
   const id = crypto.randomBytes(3).toString("hex").toUpperCase();
   pendingApprovals.set(id, { action, args, createdAt: Date.now() });
+  console.log("[JARVIS_APPROVAL_CREATED]", id, action, args?.page_id || "");
   return id;
 }
 
@@ -316,12 +317,19 @@ function consumeApprovalProposal(id) {
   const proposal = pendingApprovals.get(key);
   if (!proposal) return null;
   pendingApprovals.delete(key);
-  if (Date.now() - proposal.createdAt > APPROVAL_TTL_MS) return null;
+  if (Date.now() - proposal.createdAt > APPROVAL_TTL_MS) {
+    console.log("[JARVIS_APPROVAL_EXPIRED]", key, proposal.action);
+    return null;
+  }
+  console.log("[JARVIS_APPROVAL_CONSUMED]", key, proposal.action, proposal.args?.page_id || "");
   return proposal;
 }
 
 function cancelApprovalProposal(id) {
-  return pendingApprovals.delete(String(id || "").toUpperCase());
+  const key = String(id || "").toUpperCase();
+  const removed = pendingApprovals.delete(key);
+  if (removed) console.log("[JARVIS_APPROVAL_CANCELLED]", key);
+  return removed;
 }
 
 function normalizeTranscript(text) {
