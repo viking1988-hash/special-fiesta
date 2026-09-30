@@ -764,7 +764,9 @@ app.post("/api/route-transcript", async (req, res) => {
       approval_required: true,
       approval_id: approvalId,
       expires_in_seconds: APPROVAL_TTL_MS / 1000,
-      result: task.action === "wordpress_update_page"\n        ? `Подготовлено изменение страницы ${task.args.page_id}: ${JSON.stringify(task.args.fields)}. Ничего не изменено. Для выполнения подтвердите: ${approvalId}`\n        : `Действие изменяет данные и не выполнено. Для продолжения требуется подтверждение: ${approvalId}`
+      result: task.action === "wordpress_update_page"
+        ? `Подготовлено изменение страницы ${task.args.page_id}: ${JSON.stringify(task.args.fields)}. Ничего не изменено. Для выполнения подтвердите: ${approvalId}`
+        : `Действие изменяет данные и не выполнено. Для продолжения требуется подтверждение: ${approvalId}`
     });
   }
 
