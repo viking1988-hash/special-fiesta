@@ -379,10 +379,30 @@ function routeTranscriptTask(text) {
 
   const updatePageMatch = t.match(/(?:страниц|page)\D{0,20}(\d{1,8})/i);
   if (/(измени|обнови).*(страниц|page)/i.test(t) && updatePageMatch) {
+    const pageId = Number(updatePageMatch[1]);
+    const titleMatch = text.match(/(?:заголовок|title).*?(?:на|=)\s*[«"']?(.+?)[»"']?\s*$/i);
+    const statusMatch = text.match(/(?:статус|status).*?(?:на|=)\s*(draft|pending|private|publish|черновик|опубликован(?:о|ный)?|приватн(?:ый|о)|на рассмотрении)\s*$/i);
+    const statusMap = {
+      "черновик": "draft",
+      "опубликовано": "publish",
+      "опубликованный": "publish",
+      "приватный": "private",
+      "приватно": "private",
+      "на рассмотрении": "pending"
+    };
+    let fields = null;
+    if (titleMatch) fields = { title: titleMatch[1].trim() };
+    if (statusMatch) {
+      const rawStatus = statusMatch[1].toLowerCase();
+      fields = { status: statusMap[rawStatus] || rawStatus };
+    }
+    if (!fields) {
+      return { approval_required: true, action: "unsupported_write_request", args: { page_id: pageId, request: text } };
+    }
     return {
       approval_required: true,
       action: "wordpress_update_page",
-      args: { page_id: Number(updatePageMatch[1]), request: text }
+      args: { page_id: pageId, fields, request: text }
     };
   }
 
@@ -639,9 +659,10 @@ app.post("/api/approval/confirm", async (req, res) => {
     return res.status(409).json({ ok: false, error: "write_action_not_supported", action: proposal.action });
   }
 
-  const fields = req.body?.fields;
+  // Execute exactly the fields captured before approval. Confirmation cannot alter the proposal.
+  const fields = proposal.args?.fields;
   if (!fields || typeof fields !== "object" || Array.isArray(fields)) {
-    return res.status(400).json({ ok: false, error: "fields_object_required" });
+    return res.status(400).json({ ok: false, error: "approved_fields_missing" });
   }
 
   const allowedFields = ["title", "content", "excerpt", "status", "slug"];
@@ -725,7 +746,7 @@ app.post("/api/route-transcript", async (req, res) => {
       approval_required: true,
       approval_id: approvalId,
       expires_in_seconds: APPROVAL_TTL_MS / 1000,
-      result: `Действие изменяет данные и не выполнено. Для продолжения требуется подтверждение: ${approvalId}`
+      result: task.action === "wordpress_update_page"\n        ? `Подготовлено изменение страницы ${task.args.page_id}: ${JSON.stringify(task.args.fields)}. Ничего не изменено. Для выполнения подтвердите: ${approvalId}`\n        : `Действие изменяет данные и не выполнено. Для продолжения требуется подтверждение: ${approvalId}`
     });
   }
 
