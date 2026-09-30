@@ -25,7 +25,8 @@ const MCP_READ_TOOLS = [
   "avtohirurg_protocol",
   "diagnostic_12_points",
   "client_conclusion",
-  "checklist"
+  "checklist",
+  "generate_client_diagnostic_pdf"
 ];
 
 const MCP_APPROVAL_TOOLS = ["wordpress_update_page"];
@@ -128,6 +129,18 @@ const TOOL_SCHEMAS = {
   checklist: {
     description: "Возвращает 12-пунктный чек-лист Автохирурга.",
     parameters: { type: "object", properties: {}, additionalProperties: false }
+  },
+  generate_client_diagnostic_pdf: {
+    description: "Формирует клиентский PDF по боевому шаблону Carbone V2 из структурированного JSON диагностики Автохирурга.",
+    parameters: {
+      type: "object",
+      properties: {
+        data_json: { type: "string", description: "JSON-строка с complaint, report, vehicle, diagnostic p1-p12, conclusion, media и specialist." },
+        report_name: { type: "string", description: "Имя PDF-файла, например AH-2026-0001.pdf." }
+      },
+      required: ["data_json"],
+      additionalProperties: false
+    }
   }
 };
 
@@ -295,7 +308,6 @@ function createApprovalProposal(action, args = {}) {
   purgeExpiredApprovals();
   const id = crypto.randomBytes(3).toString("hex").toUpperCase();
   pendingApprovals.set(id, { action, args, createdAt: Date.now() });
-  console.log("[JARVIS_APPROVAL_CREATED]", id, action, args?.page_id || "");
   return id;
 }
 
