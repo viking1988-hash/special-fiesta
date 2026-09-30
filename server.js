@@ -669,6 +669,19 @@ app.post("/api/approval/confirm", async (req, res) => {
   }
 });
 
+app.get("/api/approval/test", (_req, res) => {
+  const approvalId = createApprovalProposal("approval_gate_test", { source: "internal_get_test" });
+  const proposal = consumeApprovalProposal(approvalId);
+  const singleUse = consumeApprovalProposal(approvalId) === null;
+  const ok = Boolean(proposal && proposal.action === "approval_gate_test" && singleUse);
+  return res.status(ok ? 200 : 500).json({
+    ok,
+    mutation: false,
+    single_use: singleUse,
+    result: ok ? "Approval gate self-test passed without WordPress mutation." : "Approval gate self-test failed."
+  });
+});
+
 app.post("/api/approval/test", (req, res) => {
   const approvalId = createApprovalProposal("approval_gate_test", { source: "internal_test" });
   const proposal = consumeApprovalProposal(approvalId);
