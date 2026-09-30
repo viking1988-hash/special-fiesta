@@ -758,6 +758,13 @@ app.post("/api/approval/confirm", async (req, res) => {
   }
 });
 
+function runApprovalSelfTest(source = "internal") {
+  const approvalId = createApprovalProposal("approval_gate_test", { source });
+  const proposal = consumeApprovalProposal(approvalId);
+  const singleUse = consumeApprovalProposal(approvalId) === null;
+  return { ok: Boolean(proposal && proposal.action === "approval_gate_test" && singleUse), mutation: false, single_use: singleUse };
+}
+
 app.get("/api/approval/test", (_req, res) => {
   const approvalId = createApprovalProposal("approval_gate_test", { source: "internal_get_test" });
   const proposal = consumeApprovalProposal(approvalId);
@@ -939,3 +946,5 @@ const port = Number(process.env.PORT || 3000);
 app.listen(port, "0.0.0.0", () =>
   console.log("Jarvis voice listening on " + port)
 );
+const startupApprovalTest = runApprovalSelfTest("startup");
+console.log("[JARVIS_APPROVAL_SELF_TEST]", JSON.stringify(startupApprovalTest));
