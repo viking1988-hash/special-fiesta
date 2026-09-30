@@ -277,6 +277,28 @@ class AvtohirurgMcpClient {
 const mcpClient = new AvtohirurgMcpClient();
 const liveSessions = new Map();
 
+const pendingApprovals = new Map();
+const APPROVAL_TTL_MS = 5 * 60 * 1000;
+
+function createApprovalProposal(action, args = {}) {
+  const id = crypto.randomBytes(3).toString("hex").toUpperCase();
+  pendingApprovals.set(id, { action, args, createdAt: Date.now() });
+  return id;
+}
+
+function consumeApprovalProposal(id) {
+  const key = String(id || "").toUpperCase();
+  const proposal = pendingApprovals.get(key);
+  if (!proposal) return null;
+  pendingApprovals.delete(key);
+  if (Date.now() - proposal.createdAt > APPROVAL_TTL_MS) return null;
+  return proposal;
+}
+
+function cancelApprovalProposal(id) {
+  return pendingApprovals.delete(String(id || "").toUpperCase());
+}
+
 function normalizeTranscript(text) {
   return String(text || "")
     .toLowerCase()
@@ -341,6 +363,10 @@ function routeTranscriptTask(text) {
 
   if (/(чек[- ]?лист автохирург|покажи чек[- ]?лист|запусти чек[- ]?лист)/i.test(t)) {
     return { name: "checklist", args: {} };
+  }
+
+  if (/(измени|обнови|удали|опубликуй|создай|запиши).*(wordpress|вордпресс|сайт|страниц)/i.test(t)) {
+    return { approval_required: true, action: "wordpress_write", args: { request: text } };
   }
 
   return null;
@@ -564,6 +590,23 @@ function formatBrowserToolResult(task, output, transcript) {
   return String(candidate).replace(/\\n/g, "\n").slice(0, 1200);
 }
 
+app.post("/api/approval/confirm", (req, res) => {
+  const proposal = consumeApprovalProposal(req.body?.approval_id);
+  if (!proposal) return res.status(404).json({ ok: false, error: "approval_not_found_or_expired" });
+  return res.json({
+    ok: true,
+    approved: true,
+    action: proposal.action,
+    args: proposal.args,
+    execution: "blocked_until_write_tool_is_connected"
+  });
+});
+
+app.post("/api/approval/cancel", (req, res) => {
+  const cancelled = cancelApprovalProposal(req.body?.approval_id);
+  return res.json({ ok: true, cancelled });
+});
+
 app.post("/api/route-transcript", async (req, res) => {
   const origin = req.get("origin");
   const host = req.get("host");
@@ -579,6 +622,17 @@ app.post("/api/route-transcript", async (req, res) => {
   const task = routeTranscriptTask(text);
   if (!task) {
     return res.status(204).end();
+  }
+
+  if (task.approval_required) {
+    const approvalId = createApprovalProposal(task.action, task.args);
+    return res.json({
+      ok: true,
+      approval_required: true,
+      approval_id: approvalId,
+      expires_in_seconds: APPROVAL_TTL_MS / 1000,
+      result: `Действие изменяет данные и не выполнено. Для продолжения требуется подтверждение: ${approvalId}`
+    });
   }
 
   try {
