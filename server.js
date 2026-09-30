@@ -691,6 +691,21 @@ app.post("/api/approval/confirm", async (req, res) => {
       page_id: proposal.args.page_id,
       fields_json: JSON.stringify(safeFields)
     }, { approved: true });
+
+    // Verify-after-write: do not report success unless the page is readable after mutation.
+    let after;
+    try {
+      after = await mcpClient.call("wordpress_get_page", { page_id: proposal.args.page_id });
+    } catch (verifyError) {
+      console.error("[JARVIS_APPROVED_WRITE_VERIFY_ERROR]", proposal.args.page_id, verifyError.message);
+      return res.status(502).json({
+        ok: false,
+        approved: true,
+        executed: true,
+        verified: false,
+        error: "post_write_verification_failed"
+      });
+    }
     console.log("[JARVIS_APPROVED_WRITE]", proposal.action, proposal.args.page_id, Object.keys(safeFields));
     return res.json({
       ok: true,
@@ -700,6 +715,7 @@ app.post("/api/approval/confirm", async (req, res) => {
       page_id: proposal.args.page_id,
       fields: safeFields,
       preflight_verified: Boolean(before),
+      post_write_verified: Boolean(after),
       result: parseMaybeJson(output)
     });
   } catch (error) {
