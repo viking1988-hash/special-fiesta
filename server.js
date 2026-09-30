@@ -378,6 +378,14 @@ function routeTranscriptTask(text) {
     };
   }
 
+  if (/(проверь|проверить|тест).*(подтверждени|approval|аппрув).*(запис|измен|wordpress|вордпресс)/i.test(t)) {
+    return {
+      approval_required: true,
+      action: "approval_gate_test",
+      args: { request: text }
+    };
+  }
+
   if (/(измени|обнови|удали|опубликуй|создай|запиши).*(wordpress|вордпресс|сайт|страниц)/i.test(t)) {
     return { approval_required: true, action: "unsupported_write_request", args: { request: text } };
   }
@@ -607,6 +615,18 @@ app.post("/api/approval/confirm", async (req, res) => {
   const proposal = consumeApprovalProposal(req.body?.approval_id);
   if (!proposal) return res.status(404).json({ ok: false, error: "approval_not_found_or_expired" });
 
+  if (proposal.action === "approval_gate_test") {
+    console.log("[JARVIS_APPROVAL_GATE_TEST]", "confirmed_without_mutation");
+    return res.json({
+      ok: true,
+      approved: true,
+      executed: false,
+      mutation: false,
+      action: proposal.action,
+      result: "Контур подтверждения работает. Данные WordPress не изменялись."
+    });
+  }
+
   if (proposal.action !== "wordpress_update_page") {
     return res.status(409).json({ ok: false, error: "write_action_not_supported", action: proposal.action });
   }
@@ -695,6 +715,8 @@ app.get("/health", (_req, res) =>
     mcp_configured: mcpClient.configured,
     mcp_read_tools: MCP_READ_TOOLS,
     delegated_tools: buildDelegatedTools().map((tool) => tool.name),
+    approval_write_tools: MCP_APPROVAL_TOOLS,
+    approval_gate: true,
     sideband: true
   })
 );
