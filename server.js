@@ -331,6 +331,18 @@ function routeTranscriptTask(text) {
     return { name: "diagnose_symptom", args: { symptom: text } };
   }
 
+  if (/(протокол автохирург|протокол проверки|сформируй протокол|составь протокол)/i.test(t)) {
+    return { name: "avtohirurg_protocol", args: { symptom: text } };
+  }
+
+  if (/(заключени.*клиент|клиентск.*заключени|сформируй заключени|составь заключени)/i.test(t)) {
+    return { name: "client_conclusion", args: { symptom: text } };
+  }
+
+  if (/(чек[- ]?лист автохирург|покажи чек[- ]?лист|запусти чек[- ]?лист)/i.test(t)) {
+    return { name: "checklist", args: {} };
+  }
+
   return null;
 }
 
