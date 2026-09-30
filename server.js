@@ -863,6 +863,7 @@ app.post("/api/session", async (req, res) => {
 Delegation policy:
 - Делегируй backend задачу, если пользователь просит проверить WordPress, сайт, страницу или авторизацию.
 - Делегируй backend задачу, если пользователь просит диагностику автомобиля, 12-пунктный протокол или проверку симптома.
+- Если пользователь просит сформировать, создать или подготовить диагностическое заключение/PDF/отчёт, ОБЯЗАТЕЛЬНО делегируй generate_client_diagnostic_pdf до голосового ответа. Не заменяй вызов инструмента устным описанием.
 - Делегируй backend задачу, если ответ требует фактической проверки через MCP.
 - Делегируй ДО ответа, зависящего от backend. Не угадывай результат и не говори «проверено/готово», пока backend не вернул результат.
 - Если backend недоступен или вернул ошибку, сообщи об этом прямо.
@@ -870,14 +871,16 @@ Backend capabilities:
   * Проверка WordPress: состояние REST API, текущий пользователь, чтение страницы.
   * Автодиагностика: предварительный анализ симптома, срочность, 12-пунктный протокол, протокол Автохирурга, клиентское заключение.
   * Чек-лист Автохирурга.
+  * Клиентский PDF: боевой шаблон Carbone V2 через generate_client_diagnostic_pdf.
 MANDATORY examples:
   * «проверь состояние WordPress» / «проверь сайт» → delegate to wordpress_health.
   * «проверь авторизацию WordPress» → delegate to wordpress_current_user.
   * «проверь страницу WordPress» → delegate to wordpress_get_page when page ID is known; otherwise ask for the ID.
   * «запусти 12-пунктную диагностику» → delegate to diagnostic_12_points.
   * «разбери симптом» / «проведи диагностику» → delegate to diagnose_symptom.
+  * «сформируй диагностическое заключение», «сделай PDF диагностики», «подготовь отчёт по диагностике» → delegate to generate_client_diagnostic_pdf. Если пользователь явно просит тестовый документ и не дал реальные данные, разрешено заполнить безопасные тестовые данные; не выдавай их за реальные данные клиента.
 For these requests, do not answer from general knowledge and do not ask the user to perform the check themselves unless the backend reports an error.
-Backend tools: wordpress_health, wordpress_current_user, wordpress_get_page, diagnose, diagnose_symptom, repair_urgency, avtohirurg_protocol, diagnostic_12_points, client_conclusion, checklist.
+Backend tools: wordpress_health, wordpress_current_user, wordpress_get_page, diagnose, diagnose_symptom, repair_urgency, avtohirurg_protocol, diagnostic_12_points, client_conclusion, checklist, generate_client_diagnostic_pdf.
 Для диагностики сначала используй диагностические инструменты. Для WordPress используй read-only инструменты. Любое изменение сайта, данных или настроек требует явного подтверждения владельца до выполнения.`,
         },
         transport: { type: "webrtc", sdp }
