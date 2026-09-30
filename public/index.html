@@ -55,6 +55,9 @@ async function start(){
    const text=inputTranscript.trim();
    if(!text || text===lastRoutedTranscript) return;
    lastRoutedTranscript=text;
+   // Treat each debounce as a completed command. This prevents words from a
+   // previous utterance (for example "Стоп") from re-triggering an old tool.
+   inputTranscript="";
    logEvent("🎙 "+text);
    try{
     if(pendingApprovalId && /^(джарвис[ ,]*)?(подтверждаю|подтвердить|да подтверждаю)/i.test(text)){
