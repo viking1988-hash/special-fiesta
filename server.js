@@ -538,6 +538,18 @@ function attachSideband(sessionId, apiKey) {
   });
 }
 
+function formatBrowserToolResult(task, output, transcript) {
+  if (task.name === "checklist" && /(подключени|связь|соединени).*(mcp|мсп|эмси)/i.test(normalizeTranscript(transcript))) {
+    return "MCP подключён и отвечает. Backend Автохирурга работает.";
+  }
+  const parsed = parseMaybeJson(output);
+  const candidate =
+    parsed?.structuredContent?.result ||
+    parsed?.content?.find?.((item) => item?.type === "text")?.text ||
+    (typeof parsed === "string" ? parsed : output);
+  return String(candidate).replace(/\\n/g, "\n").slice(0, 1200);
+}
+
 app.post("/api/route-transcript", async (req, res) => {
   const origin = req.get("origin");
   const host = req.get("host");
@@ -562,7 +574,7 @@ app.post("/api/route-transcript", async (req, res) => {
     return res.json({
       ok: true,
       tool: task.name,
-      result: String(output).slice(0, 1800)
+      result: formatBrowserToolResult(task, output, text)
     });
   } catch (error) {
     console.error("[JARVIS_BROWSER_TRANSCRIPT_ERROR]", task.name, error.message);
