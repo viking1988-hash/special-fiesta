@@ -678,12 +678,30 @@ app.post("/api/approval/confirm", async (req, res) => {
   }
 
   try {
+    // Read-before-write: refuse to mutate a page we cannot verify immediately before execution.
+    let before;
+    try {
+      before = await mcpClient.call("wordpress_get_page", { page_id: proposal.args.page_id });
+    } catch (readError) {
+      console.error("[JARVIS_APPROVED_WRITE_PREFLIGHT_ERROR]", proposal.args.page_id, readError.message);
+      return res.status(502).json({ ok: false, approved: true, executed: false, error: "preflight_read_failed" });
+    }
+
     const output = await mcpClient.call("wordpress_update_page", {
       page_id: proposal.args.page_id,
       fields_json: JSON.stringify(safeFields)
     }, { approved: true });
     console.log("[JARVIS_APPROVED_WRITE]", proposal.action, proposal.args.page_id, Object.keys(safeFields));
-    return res.json({ ok: true, approved: true, executed: true, action: proposal.action, result: parseMaybeJson(output) });
+    return res.json({
+      ok: true,
+      approved: true,
+      executed: true,
+      action: proposal.action,
+      page_id: proposal.args.page_id,
+      fields: safeFields,
+      preflight_verified: Boolean(before),
+      result: parseMaybeJson(output)
+    });
   } catch (error) {
     console.error("[JARVIS_APPROVED_WRITE_ERROR]", proposal.action, error.message);
     return res.status(502).json({ ok: false, approved: true, executed: false, error: error.message });
