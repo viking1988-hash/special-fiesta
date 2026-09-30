@@ -390,7 +390,7 @@ function routeTranscriptTask(text) {
     return { name: "avtohirurg_protocol", args: { symptom: text } };
   }
 
-  if (/(тестов.*(диагностическ.*заключени|pdf)|(диагностическ.*заключени|pdf).*тестов)/i.test(t)) {
+  if (/(тестов.*(?:диагностическ.*заключени|pdf)|(?:диагностическ.*заключени|pdf).*тестов)/i.test(t)) {
     const data = {
       complaint: "Стук в передней подвеске на неровностях, сильнее на малой скорости.",
       report: { number: "TEST-TIGUAN-001", date: "30.09.2026", datetime: "30.09.2026 17:00" },
