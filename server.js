@@ -615,6 +615,7 @@ Backend tools: wordpress_health, wordpress_current_user, wordpress_get_page, dia
             type: "responses",
             responses: {
               model: env("JARVIS_BACKEND_MODEL") || "gpt-6-luna",
+              max_output_tokens: 2048,
               instructions:
                 JARVIS_CORE +
                 "\n\nBackend-инструкции: используй только доступные read-only инструменты Автохирурга. Не утверждай факт без проверки. Для WordPress сначала читай состояние. Никаких изменений сайта через эти инструменты. Возвращай краткий проверяемый результат. MCP-секрет никогда не передавай модели или клиенту.",
