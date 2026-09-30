@@ -28,6 +28,8 @@ const MCP_READ_TOOLS = [
   "checklist"
 ];
 
+const MCP_APPROVAL_TOOLS = ["wordpress_update_page"];
+
 const TOOL_SCHEMAS = {
   wordpress_health: {
     description: "Проверяет доступность WordPress REST API без изменения сайта.",
@@ -258,9 +260,11 @@ class AvtohirurgMcpClient {
     return this.initPromise;
   }
 
-  async call(name, args) {
-    if (!MCP_READ_TOOLS.includes(name)) {
-      throw new Error(`Tool is not allowed: ${name}`);
+  async call(name, args, { approved = false } = {}) {
+    const readAllowed = MCP_READ_TOOLS.includes(name);
+    const approvalAllowed = approved && MCP_APPROVAL_TOOLS.includes(name);
+    if (!readAllowed && !approvalAllowed) {
+      throw new Error(`Tool is not allowed without approval: ${name}`);
     }
     await this.initialize();
     const result = await this.request("tools/call", {
@@ -365,8 +369,17 @@ function routeTranscriptTask(text) {
     return { name: "checklist", args: {} };
   }
 
+  const updatePageMatch = t.match(/(?:страниц|page)\D{0,20}(\d{1,8})/i);
+  if (/(измени|обнови).*(страниц|page)/i.test(t) && updatePageMatch) {
+    return {
+      approval_required: true,
+      action: "wordpress_update_page",
+      args: { page_id: Number(updatePageMatch[1]), request: text }
+    };
+  }
+
   if (/(измени|обнови|удали|опубликуй|создай|запиши).*(wordpress|вордпресс|сайт|страниц)/i.test(t)) {
-    return { approval_required: true, action: "wordpress_write", args: { request: text } };
+    return { approval_required: true, action: "unsupported_write_request", args: { request: text } };
   }
 
   return null;
@@ -590,16 +603,36 @@ function formatBrowserToolResult(task, output, transcript) {
   return String(candidate).replace(/\\n/g, "\n").slice(0, 1200);
 }
 
-app.post("/api/approval/confirm", (req, res) => {
+app.post("/api/approval/confirm", async (req, res) => {
   const proposal = consumeApprovalProposal(req.body?.approval_id);
   if (!proposal) return res.status(404).json({ ok: false, error: "approval_not_found_or_expired" });
-  return res.json({
-    ok: true,
-    approved: true,
-    action: proposal.action,
-    args: proposal.args,
-    execution: "blocked_until_write_tool_is_connected"
-  });
+
+  if (proposal.action !== "wordpress_update_page") {
+    return res.status(409).json({ ok: false, error: "write_action_not_supported", action: proposal.action });
+  }
+
+  const fields = req.body?.fields;
+  if (!fields || typeof fields !== "object" || Array.isArray(fields)) {
+    return res.status(400).json({ ok: false, error: "fields_object_required" });
+  }
+
+  const allowedFields = ["title", "content", "excerpt", "status", "slug"];
+  const safeFields = Object.fromEntries(Object.entries(fields).filter(([key]) => allowedFields.includes(key)));
+  if (!Object.keys(safeFields).length) {
+    return res.status(400).json({ ok: false, error: "no_allowed_fields" });
+  }
+
+  try {
+    const output = await mcpClient.call("wordpress_update_page", {
+      page_id: proposal.args.page_id,
+      fields_json: JSON.stringify(safeFields)
+    }, { approved: true });
+    console.log("[JARVIS_APPROVED_WRITE]", proposal.action, proposal.args.page_id, Object.keys(safeFields));
+    return res.json({ ok: true, approved: true, executed: true, action: proposal.action, result: parseMaybeJson(output) });
+  } catch (error) {
+    console.error("[JARVIS_APPROVED_WRITE_ERROR]", proposal.action, error.message);
+    return res.status(502).json({ ok: false, approved: true, executed: false, error: error.message });
+  }
 });
 
 app.post("/api/approval/cancel", (req, res) => {
