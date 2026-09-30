@@ -284,7 +284,15 @@ const liveSessions = new Map();
 const pendingApprovals = new Map();
 const APPROVAL_TTL_MS = 5 * 60 * 1000;
 
+function purgeExpiredApprovals() {
+  const now = Date.now();
+  for (const [id, proposal] of pendingApprovals) {
+    if (now - proposal.createdAt > APPROVAL_TTL_MS) pendingApprovals.delete(id);
+  }
+}
+
 function createApprovalProposal(action, args = {}) {
+  purgeExpiredApprovals();
   const id = crypto.randomBytes(3).toString("hex").toUpperCase();
   pendingApprovals.set(id, { action, args, createdAt: Date.now() });
   return id;
@@ -638,6 +646,12 @@ app.post("/api/approval/confirm", async (req, res) => {
 
   const allowedFields = ["title", "content", "excerpt", "status", "slug"];
   const safeFields = Object.fromEntries(Object.entries(fields).filter(([key]) => allowedFields.includes(key)));
+  if ("status" in safeFields && !["draft", "pending", "private", "publish"].includes(String(safeFields.status))) {
+    return res.status(400).json({ ok: false, error: "invalid_status" });
+  }
+  if (Object.values(safeFields).some((value) => typeof value !== "string")) {
+    return res.status(400).json({ ok: false, error: "field_values_must_be_strings" });
+  }
   if (!Object.keys(safeFields).length) {
     return res.status(400).json({ ok: false, error: "no_allowed_fields" });
   }
@@ -717,6 +731,8 @@ app.get("/health", (_req, res) =>
     delegated_tools: buildDelegatedTools().map((tool) => tool.name),
     approval_write_tools: MCP_APPROVAL_TOOLS,
     approval_gate: true,
+    approval_ttl_seconds: APPROVAL_TTL_MS / 1000,
+    pending_approvals: pendingApprovals.size,
     sideband: true
   })
 );
