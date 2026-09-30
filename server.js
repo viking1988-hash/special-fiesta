@@ -791,8 +791,15 @@ app.post("/api/route-transcript", async (req, res) => {
 
   const task = routeTranscriptTask(text);
   if (!task) {
+    const normalized = normalizeTranscript(text);
+    console.log("[JARVIS_ROUTE_UNMATCHED]", JSON.stringify({
+      length: normalized.length,
+      preview: normalized.slice(0, 160)
+    }));
     return res.status(204).end();
   }
+
+  console.log("[JARVIS_ROUTE_MATCHED]", task.name || task.action || "unknown");
 
   if (task.approval_required) {
     const approvalId = createApprovalProposal(task.action, task.args);
