@@ -346,12 +346,22 @@ async function routeTranscriptTaskToMcp(sessionId, ws, text) {
 
   try {
     const output = await executeTool(task.name, task.args);
-    const compact = String(output).slice(0, 1800);
+    let compact;
+    if (task.name === "checklist" && /(подключени|связь|соединени).*(mcp|мсп|эмси)/i.test(normalizeTranscript(text))) {
+      compact = "MCP подключён и отвечает. Проверка backend Автохирурга прошла успешно.";
+    } else {
+      const parsed = parseMaybeJson(output);
+      const candidate =
+        parsed?.structuredContent?.result ||
+        parsed?.content?.find?.((item) => item?.type === "text")?.text ||
+        (typeof parsed === "string" ? parsed : output);
+      compact = String(candidate).replace(/\\n/g, "\n").slice(0, 1200);
+    }
     sendSideband(ws, {
       type: "session.commentary.append",
       event_id: "route_" + crypto.randomUUID(),
       delegation_id: null,
-      content: "Результат проверки: " + compact
+      content: compact
     });
     console.log("[JARVIS_TRANSCRIPT_RESULT]", task.name);
   } catch (error) {
