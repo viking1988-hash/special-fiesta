@@ -295,6 +295,7 @@ function createApprovalProposal(action, args = {}) {
   purgeExpiredApprovals();
   const id = crypto.randomBytes(3).toString("hex").toUpperCase();
   pendingApprovals.set(id, { action, args, createdAt: Date.now() });
+  console.log("[JARVIS_APPROVAL_CREATED]", id, action, args?.page_id || "");
   return id;
 }
 
