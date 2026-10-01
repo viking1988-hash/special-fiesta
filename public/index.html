@@ -61,8 +61,7 @@ async function start(){
    logEvent("🎙 "+text);
    try{
     if(/^(джарвис[ ,]*)?(стоп|остановись|останови|хватит|замолчи)[.! ]*$/i.test(text)){
-     if(dc.readyState==="open") dc.send(JSON.stringify({type:"response.cancel"}));
-     if(audio.srcObject) audio.srcObject.getAudioTracks().forEach(track=>{ track.enabled=true; });
+     if(audio) { audio.pause(); audio.currentTime=0; }
      logEvent("⏹ Ответ Jarvis остановлен");
      return;
     }
