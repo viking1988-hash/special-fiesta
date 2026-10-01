@@ -209,38 +209,7 @@ btn.onclick=start;
 quickButtons.forEach(q=>q.onclick=()=>{
  if(!dc || dc.readyState!=="open"){setQuickEnabled(false);logEvent("⚠️ Сначала запустите Jarvis.");return;}
  let command=q.dataset.command||"";
- const details=[
-  caseFields.approvalRef.value&&"подтверждение согласования "+caseFields.approvalRef.value,
-  caseFields.approvedAmount.value&&"согласованная сумма "+caseFields.approvedAmount.value,
-  caseFields.laborAmount.value&&"стоимость работ "+caseFields.laborAmount.value,
-  caseFields.partsAmount.value&&"стоимость запчастей "+caseFields.partsAmount.value,
-  caseFields.laborHours.value&&"время работ "+caseFields.laborHours.value,
-  caseFields.partsUsed.value&&"запчасти "+caseFields.partsUsed.value,
-  caseFields.arrivalDate.value&&"дата приемки "+caseFields.arrivalDate.value,
-  caseFields.completionDate.value&&"дата завершения "+caseFields.completionDate.value,
-  caseFields.orderNumber.value&&"заказ наряд "+caseFields.orderNumber.value,
-  caseFields.masterName.value&&"мастер "+caseFields.masterName.value,
-  caseFields.clientName.value&&"клиент "+caseFields.clientName.value,
-  caseFields.phone.value&&"телефон "+caseFields.phone.value,
-  caseFields.car.value&&"автомобиль "+caseFields.car.value,
-  caseFields.plate.value&&"госномер "+caseFields.plate.value,
-  caseFields.mileage.value&&"пробег "+caseFields.mileage.value,
-  caseFields.vin.value&&"VIN "+caseFields.vin.value,
-  caseFields.complaint.value&&"жалоба клиента: "+caseFields.complaint.value,
-  caseFields.evidence.value&&"доказательство: "+caseFields.evidence.value,
-  caseFields.finding.value&&"подтверждённая неисправность: "+caseFields.finding.value,
-  caseFields.urgency.value&&"срочность: "+caseFields.urgency.value,
-  caseFields.recommendation.value&&"рекомендация: "+caseFields.recommendation.value,
-  caseFields.repairApproved.checked&&"ремонт согласован: да",
-  caseFields.repairResult.value&&"выполненный ремонт: "+caseFields.repairResult.value,
-  caseFields.controlCheck.value&&"контрольная проверка: "+caseFields.controlCheck.value,
-  caseFields.mediaUrl.value&&"медиа доказательство: "+caseFields.mediaUrl.value,
-  caseFields.nextService.value&&"следующий контроль: "+caseFields.nextService.value,
-  caseFields.warranty.value&&"гарантия: "+caseFields.warranty.value,
-  caseFields.clientHandover.value&&"выдача клиенту: "+caseFields.clientHandover.value,
-  caseFields.finalCheck.checked&&"финальная проверка: пройдена"
- ].filter(Boolean).join(", ");
- inputTranscript=details?command+". Данные: "+details:command;
+ inputTranscript=command;
  clearTimeout(transcriptTimer);
  transcriptTimer=setTimeout(routeTranscript,20);
 });
