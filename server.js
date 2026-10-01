@@ -340,7 +340,7 @@ function normalizeTranscript(text) {
     .trim();
 }
 
-function routeTranscriptTask(text, caseData = null) {
+function fieldCase(caseData, key, fallback = "") {\n  if (!caseData || typeof caseData !== "object" || Array.isArray(caseData)) return String(fallback || "").trim().slice(0, 4000);\n  return String(caseData[key] ?? fallback ?? "").trim().slice(0, 4000);\n}\n\nfunction routeTranscriptTask(text, caseData = null) {
   const t = normalizeTranscript(text);
   if (!t) return null;
 
@@ -457,7 +457,7 @@ function routeTranscriptTask(text, caseData = null) {
   }
 
   if (/(заключени.*клиент|клиентск.*заключени|сформируй заключени|составь заключени)/i.test(t)) {
-    return { name: "client_conclusion", args: { symptom: text } };
+    return { name: "client_conclusion", args: { car: fieldCase(caseData, "car"), symptom: fieldCase(caseData, "complaint", text), confirmed_faults: fieldCase(caseData, "finding"), evidence: fieldCase(caseData, "evidence"), recommended_repairs: fieldCase(caseData, "recommendation"), can_postpone: fieldCase(caseData, "urgency") } };
   }
 
   if (/(чек[- ]?лист автохирург|покажи чек[- ]?лист|запусти чек[- ]?лист)/i.test(t)) {
