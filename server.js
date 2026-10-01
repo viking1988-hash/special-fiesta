@@ -406,7 +406,7 @@ function routeTranscriptTask(text, caseData = null) {
     const plate = field("plate", get("госномер", "пробег|vin|жалоба")).slice(0, 20);
     const mileage = field("mileage", get("пробег", "vin|жалоба")).slice(0, 20);
     const vin = field("vin", get("vin", "жалоба")).toUpperCase().slice(0, 17);
-    const complaint = (text.match(/жалоба клиента:\s*(.+)$/i)?.[1] || "").trim();
+    const complaint = field("complaint", (text.match(/жалоба клиента:\\s*(.+)$/i)?.[1] || "").trim());
     const evidence = field("evidence", get("доказательство", "неисправность|вывод|срочность|рекомендация"));
     const finding = field("finding", get("неисправность", "срочность|рекомендация"));
     const repairApproved = safeCase.repairApproved === true || String(safeCase.repairApproved || "").toLowerCase() === "true";
@@ -431,9 +431,9 @@ function routeTranscriptTask(text, caseData = null) {
       vehicle: { make_model: vehicle || "Не указано", plate: plate || "", vin: vin || "", mileage: mileage || "" },
       diagnostic: {},
       conclusion: {
-        confirmed_fault: "Не заполнено — требуется результат диагностики",
-        evidence: "Не заполнено — требуется доказательство",
-        repair_now: "Ремонт не назначен без подтверждённой неисправности",
+        confirmed_fault: finding || "Не заполнено — требуется результат диагностики",
+        evidence: evidence || "Не заполнено — требуется доказательство",
+        repair_now: repairResult || recommendation || "Ремонт не назначен без подтверждённой неисправности",
         can_wait: "",
         urgency: urgency || "Определяется после диагностики",
         recommendation: recommendation || "Провести проверку и зафиксировать доказательство до ремонта",
