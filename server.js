@@ -880,7 +880,7 @@ app.post("/api/route-transcript", async (req, res) => {
     return res.status(400).json({ error: "Transcript text is required" });
   }
 
-  const task = routeTranscriptTask(text);
+  const task = routeTranscriptTask(text, caseData);
   if (!task) {
     const normalized = normalizeTranscript(text);
     console.log("[JARVIS_ROUTE_UNMATCHED]", JSON.stringify({
