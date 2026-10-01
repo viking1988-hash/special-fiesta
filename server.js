@@ -340,7 +340,7 @@ function normalizeTranscript(text) {
     .trim();
 }
 
-function routeTranscriptTask(text) {
+function routeTranscriptTask(text, caseData = null) {
   const t = normalizeTranscript(text);
   if (!t) return null;
 
@@ -509,7 +509,8 @@ async function routeTranscriptTaskToMcp(sessionId, ws, text) {
         parsed?.structuredContent?.result ||
         parsed?.content?.find?.((item) => item?.type === "text")?.text ||
         (typeof parsed === "string" ? parsed : output);
-      compact = String(candidate).split("\\n").join("\n").slice(0, 1200);
+      compact = String(candidate).split("
+").join("\n").slice(0, 1200);
     }
     sendSideband(ws, {
       type: "session.commentary.append",
@@ -703,7 +704,8 @@ function formatBrowserToolResult(task, output, transcript) {
     parsed?.structuredContent?.result ||
     parsed?.content?.find?.((item) => item?.type === "text")?.text ||
     (typeof parsed === "string" ? parsed : output);
-  return String(candidate).split("\\n").join("\n").slice(0, 1200);
+  return String(candidate).split("
+").join("\n").slice(0, 1200);
 }
 
 app.post("/api/approval/confirm", async (req, res) => {
