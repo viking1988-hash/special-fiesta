@@ -488,7 +488,13 @@ function routeTranscriptTask(text, caseData = null) {
 
 
   if (/(заключени.*клиент|клиентск.*заключени|сформируй заключени|составь заключени)/i.test(t)) {
-    return { name: "client_conclusion", args: { car: fieldCase(caseData, "car"), symptom: fieldCase(caseData, "complaint", text), confirmed_faults: fieldCase(caseData, "finding"), evidence: fieldCase(caseData, "evidence"), recommended_repairs: fieldCase(caseData, "recommendation"), can_postpone: fieldCase(caseData, "urgency") } };
+    const car = fieldCase(caseData, "car");
+    const symptom = fieldCase(caseData, "complaint", text);
+    const confirmedFaults = fieldCase(caseData, "finding");
+    const evidence = fieldCase(caseData, "evidence");
+    if (!car || !symptom) return { error: "Для клиентского заключения заполните автомобиль и жалобу клиента." };
+    if (!confirmedFaults || !evidence) return { error: "Клиентское заключение формируется только после фиксации доказательства и подтверждённой неисправности." };
+    return { name: "client_conclusion", args: { car, symptom, confirmed_faults: confirmedFaults, evidence, recommended_repairs: fieldCase(caseData, "recommendation"), can_postpone: fieldCase(caseData, "urgency") } };
   }
 
   if (/(чек[- ]?лист автохирург|покажи чек[- ]?лист|запусти чек[- ]?лист)/i.test(t)) {
