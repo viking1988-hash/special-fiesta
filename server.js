@@ -511,9 +511,7 @@ async function routeTranscriptTaskToMcp(sessionId, ws, text) {
         parsed?.structuredContent?.result ||
         parsed?.content?.find?.((item) => item?.type === "text")?.text ||
         (typeof parsed === "string" ? parsed : output);
-      compact = String(candidate).split("
-").join("
-").slice(0, 1200);
+      compact = String(candidate).replaceAll(String.fromCharCode(10), " ").slice(0, 1200);
     }
     sendSideband(ws, {
       type: "session.commentary.append",
