@@ -8,7 +8,7 @@ body{font-family:Arial,sans-serif;background:#111;color:#fff;display:grid;place-
 .card{width:min(680px,90vw);padding:32px;border:1px solid #333;border-radius:20px;background:#1a1a1a;text-align:center}
 button{font-size:20px;padding:16px 28px;border:0;border-radius:12px;cursor:pointer}
 button:disabled{opacity:.5}.status{margin:18px 0;color:#aaa;min-height:24px}
-#log{white-space:pre-wrap;text-align:left;background:#0b0b0b;padding:16px;border-radius:12px;min-height:100px}
+#log{white-space:pre-wrap;text-align:left;background:#0b0b0b;padding:16px;border-radius:12px;min-height:100px;line-height:1.5}.tool{display:none}.result{margin:8px 0;padding:10px 12px;background:#151515;border-radius:10px}.command{color:#bbb;margin-top:10px}
 </style></head>
 <body><div class="card">
 <h1>Автохирург-Jarvis</h1><p>Голосовой интерфейс</p>
@@ -19,7 +19,7 @@ button:disabled{opacity:.5}.status{margin:18px 0;color:#aaa;min-height:24px}
 let pc,dc,stream;
 const statusEl=document.querySelector("#status"),log=document.querySelector("#log"),btn=document.querySelector("#start");
 const status=t=>statusEl.textContent=t;
-const logEvent=t=>{log.textContent+=t+"\n"};
+const logEvent=t=>{\n const line=document.createElement("div");\n const s=String(t);\n if(s.startsWith("🔧 ")) line.className="tool";\n else if(s.startsWith("🎙 ")) {line.className="command";line.textContent="Вы: "+s.slice(3);log.appendChild(line);return;}\n else if(s.startsWith("✅ ")) {line.className="result";line.textContent=s.slice(2);log.appendChild(line);return;}\n line.textContent=s; log.appendChild(line);\n};
 const showPdfResult=(raw)=>{
  try{
   const parsed=typeof raw==="string"?JSON.parse(raw):raw;
