@@ -705,9 +705,7 @@ function formatBrowserToolResult(task, output, transcript) {
     parsed?.structuredContent?.result ||
     parsed?.content?.find?.((item) => item?.type === "text")?.text ||
     (typeof parsed === "string" ? parsed : output);
-  return String(candidate).split("
-").join("
-").slice(0, 1200);
+  return String(candidate).replaceAll(String.fromCharCode(10), " ").slice(0, 1200);
 }
 
 app.post("/api/approval/confirm", async (req, res) => {
