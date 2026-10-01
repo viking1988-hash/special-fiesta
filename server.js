@@ -751,6 +751,23 @@ function attachSideband(sessionId, apiKey) {
   });
 }
 
+function extractPdfResource(output) {
+  const parsed = parseMaybeJson(output);
+  const content = parsed?.content || parsed?.result?.content || [];
+  const item = Array.isArray(content) ? content.find((x) => x?.type === "resource" && x?.resource?.blob) : null;
+  if (!item) return null;
+  return {
+    content: [{
+      type: "resource",
+      resource: {
+        uri: item.resource.uri || "file:diagnostic.pdf",
+        mimeType: item.resource.mimeType || "application/pdf",
+        blob: item.resource.blob
+      }
+    }]
+  };
+}
+
 function formatBrowserToolResult(task, output, transcript) {
   if (task.name === "checklist" && /(подключени|связь|соединени).*(mcp|мсп|эмси)/i.test(normalizeTranscript(transcript))) {
     return "MCP подключён и отвечает. Backend Автохирурга работает.";
@@ -945,10 +962,11 @@ app.post("/api/route-transcript", async (req, res) => {
     const output = await executeTool(task.name, task.args);
     console.log("[JARVIS_BROWSER_TRANSCRIPT_ROUTE]", task.name, text);
     console.log("[JARVIS_BROWSER_TRANSCRIPT_RESULT]", task.name);
+    const pdfResource = task.name === "generate_client_diagnostic_pdf" ? extractPdfResource(output) : null;
     return res.json({
       ok: true,
       tool: task.name,
-      result: formatBrowserToolResult(task, output, text)
+      result: pdfResource || formatBrowserToolResult(task, output, text)
     });
   } catch (error) {
     console.error("[JARVIS_BROWSER_TRANSCRIPT_ERROR]", task.name, error.message);
