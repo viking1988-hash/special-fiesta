@@ -34,7 +34,7 @@ const updateCaseQuality=()=>{
  caseState.textContent=caseFields.finalCheck.checked?"Цикл завершён":closeReady?"Готова к финальной проверке":score===100&&vinOk&&mileageOk?"Готова к заключению":filled?"Диагностика в работе":"Черновик";
  return {vinOk,mileageOk,score};
 };
-const setQuickEnabled=enabled=>{quickButtons.forEach(b=>{b.disabled=!enabled;if(enabled&&/Вывод клиенту|Диагностический PDF/.test(b.textContent)){const q=updateCaseQuality();b.disabled=q.score<100||!q.vinOk||!q.mileageOk;}})};
+const setQuickEnabled=enabled=>{const q=updateCaseQuality();quickButtons.forEach(b=>{b.disabled=!enabled;if(enabled&&/Вывод клиенту|Диагностический PDF/.test(b.textContent))b.disabled=q.score<100||!q.vinOk||!q.mileageOk;})};
 setQuickEnabled(false);
 const CASE_KEY="avtohirurg_jarvis_case_v1";
 const saveCase=()=>{const quality=updateCaseQuality();if(quality.score<100){logEvent("⚠️ Для готовой карты заполните автомобиль, жалобу, доказательство и подтверждённую неисправность.");return;}if(!quality.vinOk||!quality.mileageOk){logEvent("⚠️ Проверьте VIN и пробег перед сохранением.");return;}const data=Object.fromEntries(Object.entries(caseFields).map(([k,el])=>[k,el.type==="checkbox"?el.checked:el.value]));localStorage.setItem(CASE_KEY,JSON.stringify(data));logEvent("✅ Карта диагностики сохранена на этом устройстве.");};
