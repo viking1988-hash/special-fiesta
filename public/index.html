@@ -8,7 +8,7 @@ body{font-family:Arial,sans-serif;background:#0d0f12;color:#fff;display:grid;pla
 .card{width:min(680px,90vw);padding:32px;border:1px solid #333;border-radius:20px;background:#1a1a1a;text-align:center}
 button{font-size:20px;padding:16px 28px;border:0;border-radius:12px;cursor:pointer}
 button:disabled{opacity:.5}.status{margin:18px 0;color:#aaa;min-height:24px}
-#log{white-space:pre-wrap;text-align:left;background:#0b0b0b;padding:16px;border-radius:12px;min-height:100px;line-height:1.5}.tool{display:none}.result{margin:8px 0;padding:10px 12px;background:#151515;border-radius:10px}.command{color:#bbb;margin-top:10px}
+#log{white-space:pre-wrap;text-align:left;background:#0b0b0b;padding:16px;border-radius:12px;min-height:100px;line-height:1.5}.tool{display:none}.result{margin:8px 0;padding:12px 14px;background:#151515;border:1px solid #262626;border-radius:12px}.command{color:#bbb;margin-top:12px}.approval{margin:10px 0;padding:12px 14px;background:#211d13;border:1px solid #4a3d1c;border-radius:12px}.error{margin:10px 0;padding:12px 14px;background:#241515;border:1px solid #4a2222;border-radius:12px}.pdf{margin:10px 0;padding:14px;background:#121922;border:1px solid #26374a;border-radius:12px}.pdf a{display:inline-block;margin-top:8px;color:#8fc4ff;font-weight:700;text-decoration:none}
 </style></head>
 <body><div class="card">
 <div class="eyebrow">Автохирург · AI оператор</div><h1>Jarvis</h1><p class="hint">Диагностика, сервисные команды и документы голосом</p>
@@ -21,11 +21,14 @@ const statusEl=document.querySelector("#status"),log=document.querySelector("#lo
 const status=t=>statusEl.textContent=t;
 const logEvent=t=>{
  const line=document.createElement("div");
- const s=String(t);
- if(s.startsWith("🔧 ")) line.className="tool";
- else if(s.startsWith("🎙 ")) {line.className="command";line.textContent="Вы: "+s.slice(3);log.appendChild(line);return;}
- else if(s.startsWith("✅ ")) {line.className="result";line.textContent=s.slice(2);log.appendChild(line);return;}
- line.textContent=s; log.appendChild(line);
+ const v=String(t);
+ if(v.startsWith("🔧 ")) return;
+ if(v.startsWith("🎙 ")) {line.className="command";line.textContent="Вы: "+v.slice(3);}
+ else if(v.startsWith("✅ ")) {line.className="result";line.textContent=v.slice(2);}
+ else if(v.startsWith("⚠️ ")) {line.className="approval";line.textContent=v.slice(2);}
+ else if(v.startsWith("❌ ")) {line.className="error";line.textContent="Ошибка: "+v.slice(2);}
+ else {line.textContent=v;}
+ log.appendChild(line);
 };
 const showPdfResult=(raw)=>{
  try{
@@ -33,8 +36,10 @@ const showPdfResult=(raw)=>{
   const item=parsed?.content?.find?.(x=>x?.type==="resource"&&x?.resource?.blob);
   if(!item) return false;
   const filename=decodeURIComponent((item.resource.uri||"diagnostic.pdf").split(":").pop());
-  const a=document.createElement("a"); a.href="data:"+(item.resource.mimeType||"application/pdf")+";base64,"+item.resource.blob; a.download=filename; a.textContent="📄 Открыть / скачать PDF"; a.style.cssText="display:block;margin-top:12px;color:#7db7ff;font-weight:700;text-decoration:none";
-  log.textContent+="✅ Диагностический PDF создан: "+filename+"\n"; log.appendChild(a); log.appendChild(document.createTextNode("\n")); return true;
+  const box=document.createElement("div"); box.className="pdf";
+  const title=document.createElement("div"); title.textContent="Диагностический PDF создан";
+  const a=document.createElement("a"); a.href="data:"+(item.resource.mimeType||"application/pdf")+";base64,"+item.resource.blob; a.download=filename; a.target="_blank"; a.rel="noopener"; a.textContent="📄 Открыть / скачать "+filename;
+  box.appendChild(title); box.appendChild(a); log.appendChild(box); return true;
  }catch(e){return false;}
 };
 const waitIce=()=>new Promise(resolve=>{
@@ -136,7 +141,7 @@ async function start(){
       speakResult("Диагностический PDF успешно создан.");
      }else{
       logEvent("✅ "+rawResult);
-      const voiceResult=rawResult.length>1200 ? rawResult.slice(0,1200)+"…" : rawResult;
+      const voiceResult=rawResult.length>700 ? rawResult.slice(0,700)+"…" : rawResult;
       speakResult("Результат проверки: "+voiceResult);
      }
     }
