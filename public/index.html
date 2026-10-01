@@ -8,12 +8,12 @@ body{font-family:Arial,sans-serif;background:#0d0f12;color:#fff;display:grid;pla
 .card{width:min(680px,90vw);padding:32px;border:1px solid #333;border-radius:20px;background:#1a1a1a;text-align:center}
 button{font-size:20px;padding:16px 28px;border:0;border-radius:12px;cursor:pointer}
 button:disabled{opacity:.5}.status{margin:18px 0;color:#aaa;min-height:24px}
-#log{white-space:pre-wrap;text-align:left;background:#0b0b0b;padding:16px;border-radius:12px;min-height:100px;line-height:1.5}.tool{display:none}.result{margin:8px 0;padding:12px 14px;background:#151515;border:1px solid #262626;border-radius:12px}.command{color:#bbb;margin-top:12px}.approval{margin:10px 0;padding:12px 14px;background:#211d13;border:1px solid #4a3d1c;border-radius:12px}.error{margin:10px 0;padding:12px 14px;background:#241515;border:1px solid #4a2222;border-radius:12px}.pdf{margin:10px 0;padding:14px;background:#121922;border:1px solid #26374a;border-radius:12px}.pdf a{display:inline-block;margin-top:8px;color:#8fc4ff;font-weight:700;text-decoration:none}
+#log{white-space:pre-wrap;text-align:left;background:#0b0b0b;padding:16px;border-radius:12px;min-height:100px;line-height:1.5}.tool{display:none}.result{margin:8px 0;padding:12px 14px;background:#151515;border:1px solid #262626;border-radius:12px}.command{color:#bbb;margin-top:12px}.approval{margin:10px 0;padding:12px 14px;background:#211d13;border:1px solid #4a3d1c;border-radius:12px}.error{margin:10px 0;padding:12px 14px;background:#241515;border:1px solid #4a2222;border-radius:12px}.pdf{margin:10px 0;padding:14px;background:#121922;border:1px solid #26374a;border-radius:12px}.pdf a{display:inline-block;margin-top:8px;color:#8fc4ff;font-weight:700;text-decoration:none}.quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 16px}.quick button{font-size:14px;padding:11px 10px;background:#24272c;color:#eee;border:1px solid #363a40}.quick button:hover{background:#2d3137}@media(max-width:520px){.quick{grid-template-columns:1fr}.card{padding:22px}}
 </style></head>
 <body><div class="card">
 <div class="eyebrow">Автохирург · AI оператор</div><h1>Jarvis</h1><p class="hint">Диагностика, сервисные команды и документы голосом</p>
 <button id="start">🎙 Запустить Jarvis</button>
-<div id="status" class="status">Готов к запуску</div><div id="log"><div class="hint">Нажмите «Запустить Jarvis» и говорите обычным языком.</div></div>
+<div id="status" class="status">Готов к запуску</div><div class="quick"><button data-command="Проверь подключение MCP">Проверить MCP</button><button data-command="Покажи диагностический чек-лист 12 пунктов">Чек-лист 12 пунктов</button><button data-command="Создай тестовое диагностическое заключение PDF">Тестовый PDF</button><button data-command="Проверь здоровье WordPress">Проверить WordPress</button></div><div id="log"><div class="hint">Нажмите «Запустить Jarvis» и говорите обычным языком.</div></div>
 </div>
 <script>
 let pc,dc,stream;
@@ -179,4 +179,10 @@ async function start(){
  }
 }
 btn.onclick=start;
+document.querySelectorAll(".quick button").forEach(q=>q.onclick=()=>{
+ if(!dc || dc.readyState!=="open"){logEvent("⚠️ Сначала запустите Jarvis.");return;}
+ inputTranscript=q.dataset.command||"";
+ clearTimeout(transcriptTimer);
+ transcriptTimer=setTimeout(routeTranscript,20);
+});
 </script></body></html>
