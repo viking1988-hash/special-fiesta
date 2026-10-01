@@ -43,7 +43,7 @@ async function start(){
   if(!audioTrack) throw new Error("Микрофон не вернул аудиодорожку");
   pc=new RTCPeerConnection();
   const audio=document.createElement("audio"); audio.autoplay=true; audio.playsInline=true; document.body.appendChild(audio);
-  pc.ontrack=e=>{audio.srcObject=e.streams[0]; audio.play().catch(()=>{})};
+  pc.ontrack=e=>{audio.srcObject=e.streams[0]; audio.play().catch(err=>{\n   const msg=err?.message||String(err);\n   if(/not allowed|denied permission|user agent|platform|NotAllowedError/i.test(msg)){\n    logEvent("ℹ️ iPhone временно заблокировал автозапуск звука. Коснитесь экрана и продолжайте говорить.");\n   }else{ logEvent("⚠️ Audio: "+msg); }\n  })};
   const audioTransceiver=pc.addTransceiver("audio",{direction:"sendrecv"});
   await audioTransceiver.sender.replaceTrack(audioTrack);
   dc=pc.createDataChannel("oai-events");
@@ -72,7 +72,7 @@ async function start(){
    try{
     if(/^(джарвис[ ,]*)?(стоп|остановись|останови|хватит|замолчи)[.! ]*$/i.test(text)){
      if(audio) { audio.muted=true; audio.pause(); audio.currentTime=0; }
-     setTimeout(()=>{ if(audio){ audio.muted=false; audio.play().catch(()=>{}); } },350);
+     setTimeout(()=>{ if(audio){ audio.muted=false; audio.play().catch(err=>{ const msg=err?.message||String(err); if(!/not allowed|denied permission|user agent|platform|NotAllowedError/i.test(msg)) logEvent("⚠️ Audio: "+msg); }); } },350);
      logEvent("⏹ Ответ Jarvis остановлен");
      return;
     }
