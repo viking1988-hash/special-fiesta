@@ -431,6 +431,15 @@ function routeTranscriptTask(text, caseData = null) {
     const laborAmount = field("laborAmount").slice(0, 40);
     const partsAmount = field("partsAmount").slice(0, 40);
     const approvalRef = field("approvalRef").slice(0, 300);
+    const money = (value) => {
+      const normalized = String(value || "").replace(/[^0-9.,-]/g, "").replace(",", ".");
+      const parsed = Number.parseFloat(normalized);
+      return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+    };
+    const approvedRub = money(approvedAmount);
+    const actualRub = money(laborAmount) + money(partsAmount);
+    if (approvedRub > 0 && !approvalRef) return { error: "Для согласованной суммы укажите доказательство согласования: звонок, сообщение или номер документа." };
+    if (approvedRub > 0 && actualRub > approvedRub) return { error: "Фактическая сумма " + actualRub + " ₽ превышает согласованные " + approvedRub + " ₽. Требуется новое согласование клиента." };
     const now = new Date();
     const stamp = now.toISOString().slice(0,10).replaceAll("-","");
     const data = {
