@@ -139,7 +139,7 @@ async function start(){
     const r=await fetch("/api/route-transcript",{
      method:"POST",
      headers:{"Content-Type":"application/json"},
-     body:JSON.stringify({text})
+     body:JSON.stringify({text,case:Object.fromEntries(Object.entries(caseFields).map(([k,el])=>[k,el.type==="checkbox"?el.checked:el.value]))})
     });
     if(r.status===204) return;
     const data=await r.json();
