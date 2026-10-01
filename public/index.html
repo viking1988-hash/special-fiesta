@@ -19,7 +19,14 @@ button:disabled{opacity:.5}.status{margin:18px 0;color:#aaa;min-height:24px}
 let pc,dc,stream;
 const statusEl=document.querySelector("#status"),log=document.querySelector("#log"),btn=document.querySelector("#start");
 const status=t=>statusEl.textContent=t;
-const logEvent=t=>{\n const line=document.createElement("div");\n const s=String(t);\n if(s.startsWith("🔧 ")) line.className="tool";\n else if(s.startsWith("🎙 ")) {line.className="command";line.textContent="Вы: "+s.slice(3);log.appendChild(line);return;}\n else if(s.startsWith("✅ ")) {line.className="result";line.textContent=s.slice(2);log.appendChild(line);return;}\n line.textContent=s; log.appendChild(line);\n};
+const logEvent=t=>{
+ const line=document.createElement("div");
+ const s=String(t);
+ if(s.startsWith("🔧 ")) line.className="tool";
+ else if(s.startsWith("🎙 ")) {line.className="command";line.textContent="Вы: "+s.slice(3);log.appendChild(line);return;}
+ else if(s.startsWith("✅ ")) {line.className="result";line.textContent=s.slice(2);log.appendChild(line);return;}
+ line.textContent=s; log.appendChild(line);
+};
 const showPdfResult=(raw)=>{
  try{
   const parsed=typeof raw==="string"?JSON.parse(raw):raw;
