@@ -390,6 +390,39 @@ function routeTranscriptTask(text) {
     return { name: "avtohirurg_protocol", args: { symptom: text } };
   }
 
+  if (/(диагностическ.*pdf|pdf.*диагностическ)/i.test(t) && /данные:/i.test(t)) {
+    const get = (label, next) => {
+      const re = new RegExp(label + "\\s*([^,]+?)" + (next ? "(?=,\\s*(?:" + next + ")\\b|$)" : "(?=,|$)"), "i");
+      return (text.match(re)?.[1] || "").trim();
+    };
+    const vehicle = get("автомобиль", "госномер|пробег|vin|жалоба");
+    const plate = get("госномер", "пробег|vin|жалоба");
+    const mileage = get("пробег", "vin|жалоба");
+    const vin = get("vin", "жалоба");
+    const complaint = (text.match(/жалоба клиента:\s*(.+)$/i)?.[1] || "").trim();
+    const now = new Date();
+    const stamp = now.toISOString().slice(0,10).replaceAll("-","");
+    const data = {
+      complaint: complaint || "Жалоба не указана",
+      report: { number: "JARVIS-" + stamp, date: now.toLocaleDateString("ru-RU"), datetime: now.toLocaleString("ru-RU") },
+      vehicle: { make_model: vehicle || "Не указано", plate: plate || "", vin: vin || "", mileage: mileage || "" },
+      diagnostic: {},
+      conclusion: {
+        confirmed_fault: "Не заполнено — требуется результат диагностики",
+        evidence: "Не заполнено — требуется доказательство",
+        repair_now: "Ремонт не назначен без подтверждённой неисправности",
+        can_wait: "",
+        urgency: "Определяется после диагностики",
+        recommendation: "Провести проверку и зафиксировать доказательство до ремонта",
+        summary: "Черновик диагностического заключения. Сначала доказательство — потом ремонт."
+      },
+      media: { url: "", note: "Черновик сформирован Jarvis из карточки автомобиля" },
+      specialist: { name: "Автохирург" }
+    };
+    const safeName=(vehicle || "vehicle").replace(/[^a-zA-Z0-9А-Яа-я_-]+/g,"_").slice(0,40);
+    return { name: "generate_client_diagnostic_pdf", args: { data_json: JSON.stringify(data), report_name: "Avtohirurg_"+safeName+"_"+stamp+".pdf" } };
+  }
+
   if (/(тестов.*(?:диагностическ.*заключени|pdf)|(?:диагностическ.*заключени|pdf).*тестов)/i.test(t)) {
     const data = {
       complaint: "Стук в передней подвеске на неровностях, сильнее на малой скорости.",
