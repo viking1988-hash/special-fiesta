@@ -8,7 +8,7 @@ body{font-family:Arial,sans-serif;background:#0d0f12;color:#fff;display:grid;pla
 .card{width:min(680px,90vw);padding:32px;border:1px solid #333;border-radius:20px;background:#1a1a1a;text-align:center}
 button{font-size:20px;padding:16px 28px;border:0;border-radius:12px;cursor:pointer}
 button:disabled{opacity:.5}.status{margin:18px 0;color:#aaa;min-height:24px}
-#log{white-space:pre-wrap;text-align:left;background:#0b0b0b;padding:16px;border-radius:12px;min-height:100px;line-height:1.5}.tool{display:none}.result{margin:8px 0;padding:12px 14px;background:#151515;border:1px solid #262626;border-radius:12px}.command{color:#bbb;margin-top:12px}.approval{margin:10px 0;padding:12px 14px;background:#211d13;border:1px solid #4a3d1c;border-radius:12px}.error{margin:10px 0;padding:12px 14px;background:#241515;border:1px solid #4a2222;border-radius:12px}.pdf{margin:10px 0;padding:14px;background:#121922;border:1px solid #26374a;border-radius:12px}.pdf a{display:inline-block;margin-top:8px;color:#8fc4ff;font-weight:700;text-decoration:none}.quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 16px}.quick button{font-size:14px;padding:11px 10px;background:#24272c;color:#eee;border:1px solid #363a40}.quick button:hover{background:#2d3137}@media(max-width:520px){.quick{grid-template-columns:1fr}.card{padding:22px}}
+#log{white-space:pre-wrap;text-align:left;background:#0b0b0b;padding:16px;border-radius:12px;min-height:100px;line-height:1.5}.tool{display:none}.result{margin:8px 0;padding:12px 14px;background:#151515;border:1px solid #262626;border-radius:12px}.command{color:#bbb;margin-top:12px}.approval{margin:10px 0;padding:12px 14px;background:#211d13;border:1px solid #4a3d1c;border-radius:12px}.error{margin:10px 0;padding:12px 14px;background:#241515;border:1px solid #4a2222;border-radius:12px}.pdf{margin:10px 0;padding:14px;background:#121922;border:1px solid #26374a;border-radius:12px}.pdf a{display:inline-block;margin-top:8px;color:#8fc4ff;font-weight:700;text-decoration:none}.quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 16px}.quick button{font-size:14px;padding:11px 10px;background:#24272c;color:#eee;border:1px solid #363a40}.quick button:hover{background:#2d3137}.quick button:disabled{opacity:.35;cursor:not-allowed}@media(max-width:520px){.quick{grid-template-columns:1fr}.card{padding:22px}}
 </style></head>
 <body><div class="card">
 <div class="eyebrow">Автохирург · AI оператор</div><h1>Jarvis</h1><p class="hint">Диагностика, сервисные команды и документы голосом</p>
@@ -17,7 +17,9 @@ button:disabled{opacity:.5}.status{margin:18px 0;color:#aaa;min-height:24px}
 </div>
 <script>
 let pc,dc,stream;
-const statusEl=document.querySelector("#status"),log=document.querySelector("#log"),btn=document.querySelector("#start");
+const statusEl=document.querySelector("#status"),log=document.querySelector("#log"),btn=document.querySelector("#start"),quickButtons=[...document.querySelectorAll(".quick button")];
+const setQuickEnabled=enabled=>quickButtons.forEach(b=>b.disabled=!enabled);
+setQuickEnabled(false);
 const status=t=>statusEl.textContent=t;
 const logEvent=t=>{
  const line=document.createElement("div");
@@ -152,7 +154,7 @@ async function start(){
   dc.onmessage=e=>{
    try{
     const ev=JSON.parse(e.data);
-    if(ev.type==="session.started") status("🟢 Jarvis онлайн — говорите");
+    if(ev.type==="session.started"){status("🟢 Jarvis онлайн — говорите");setQuickEnabled(true);}
     if(ev.type==="session.input_transcript.delta"){
      inputTranscript+=(ev.delta||"");
      clearTimeout(transcriptTimer);
@@ -161,7 +163,7 @@ async function start(){
     if(ev.type==="session.output_transcript.delta"){
      // Assistant transcript is intentionally not routed to the task backend.
     }
-    if(ev.type==="error"){status("Ошибка Live");logEvent(JSON.stringify(ev))}
+    if(ev.type==="error"){status("Ошибка голосового соединения");logEvent("❌ Голосовое соединение прервано. Запустите Jarvis повторно.");console.error("Live error",ev)}
    }catch(error){logEvent("Event error: "+(error.message||String(error)))}
   };
   const offer=await pc.createOffer({offerToReceiveAudio:true});
@@ -175,12 +177,12 @@ async function start(){
   await pc.setRemoteDescription({type:"answer",sdp:data.transport.sdp});
   status("🟡 Подключение Jarvis…");
  }catch(e){
-  status("Ошибка запуска"); logEvent(e.message||String(e)); btn.disabled=false;
+  status("Ошибка запуска"); setQuickEnabled(false); logEvent("❌ Не удалось запустить Jarvis. Попробуйте ещё раз."); console.error(e); btn.disabled=false;
  }
 }
 btn.onclick=start;
-document.querySelectorAll(".quick button").forEach(q=>q.onclick=()=>{
- if(!dc || dc.readyState!=="open"){logEvent("⚠️ Сначала запустите Jarvis.");return;}
+quickButtons.forEach(q=>q.onclick=()=>{
+ if(!dc || dc.readyState!=="open"){setQuickEnabled(false);logEvent("⚠️ Сначала запустите Jarvis.");return;}
  inputTranscript=q.dataset.command||"";
  clearTimeout(transcriptTimer);
  transcriptTimer=setTimeout(routeTranscript,20);
