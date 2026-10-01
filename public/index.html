@@ -35,7 +35,16 @@ const updateCaseQuality=()=>{
  return {vinOk,mileageOk,score};
 };
 const setQuickEnabled=enabled=>{quickButtons.forEach(b=>{b.disabled=!enabled;if(enabled&&/Вывод клиенту|Диагностический PDF/.test(b.textContent)){const q=updateCaseQuality();b.disabled=q.score<100||!q.vinOk||!q.mileageOk;}})};
-setQuickEnabled(false);\nconst CASE_KEY="avtohirurg_jarvis_case_v1";\nconst saveCase=()=>{const quality=updateCaseQuality();if(quality.score<100){logEvent("⚠️ Для готовой карты заполните автомобиль, жалобу, доказательство и подтверждённую неисправность.");return;}if(!quality.vinOk||!quality.mileageOk){logEvent("⚠️ Проверьте VIN и пробег перед сохранением.");return;}const data=Object.fromEntries(Object.entries(caseFields).map(([k,el])=>[k,el.type==="checkbox"?el.checked:el.value]));localStorage.setItem(CASE_KEY,JSON.stringify(data));logEvent("✅ Карта диагностики сохранена на этом устройстве.");};\nconst restoreCase=()=>{try{const data=JSON.parse(localStorage.getItem(CASE_KEY)||"{}");Object.entries(caseFields).forEach(([k,el])=>{if(data[k]!==undefined){if(el.type==="checkbox")el.checked=!!data[k];else if(data[k])el.value=data[k]}});}catch{}};\nconst clearCase=()=>{Object.values(caseFields).forEach(el=>{if(el.type==="checkbox")el.checked=false;else el.value="";el.classList.remove("valid","invalid")});localStorage.removeItem(CASE_KEY);updateCaseQuality();log.replaceChildren();const hint=document.createElement("div");hint.className="hint";hint.textContent="Новая диагностика: заполните автомобиль и жалобу клиента.";log.appendChild(hint);};\ndocument.querySelector("#saveCase").addEventListener("click",saveCase);\ndocument.querySelector("#newCase").addEventListener("click",clearCase);\nObject.values(caseFields).forEach(el=>{const persist=()=>{updateCaseQuality();if(dc?.readyState==="open")setQuickEnabled(true);const data=Object.fromEntries(Object.entries(caseFields).map(([k,x])=>[k,x.type==="checkbox"?x.checked:x.value]));localStorage.setItem(CASE_KEY,JSON.stringify(data));};el.addEventListener("input",persist);el.addEventListener("change",persist);});\nrestoreCase();updateCaseQuality();\n
+setQuickEnabled(false);
+const CASE_KEY="avtohirurg_jarvis_case_v1";
+const saveCase=()=>{const quality=updateCaseQuality();if(quality.score<100){logEvent("⚠️ Для готовой карты заполните автомобиль, жалобу, доказательство и подтверждённую неисправность.");return;}if(!quality.vinOk||!quality.mileageOk){logEvent("⚠️ Проверьте VIN и пробег перед сохранением.");return;}const data=Object.fromEntries(Object.entries(caseFields).map(([k,el])=>[k,el.type==="checkbox"?el.checked:el.value]));localStorage.setItem(CASE_KEY,JSON.stringify(data));logEvent("✅ Карта диагностики сохранена на этом устройстве.");};
+const restoreCase=()=>{try{const data=JSON.parse(localStorage.getItem(CASE_KEY)||"{}");Object.entries(caseFields).forEach(([k,el])=>{if(data[k]!==undefined){if(el.type==="checkbox")el.checked=!!data[k];else if(data[k])el.value=data[k]}});}catch{}};
+const clearCase=()=>{Object.values(caseFields).forEach(el=>{if(el.type==="checkbox")el.checked=false;else el.value="";el.classList.remove("valid","invalid")});localStorage.removeItem(CASE_KEY);updateCaseQuality();log.replaceChildren();const hint=document.createElement("div");hint.className="hint";hint.textContent="Новая диагностика: заполните автомобиль и жалобу клиента.";log.appendChild(hint);};
+document.querySelector("#saveCase").addEventListener("click",saveCase);
+document.querySelector("#newCase").addEventListener("click",clearCase);
+Object.values(caseFields).forEach(el=>{const persist=()=>{updateCaseQuality();if(dc?.readyState==="open")setQuickEnabled(true);const data=Object.fromEntries(Object.entries(caseFields).map(([k,x])=>[k,x.type==="checkbox"?x.checked:x.value]));localStorage.setItem(CASE_KEY,JSON.stringify(data));};el.addEventListener("input",persist);el.addEventListener("change",persist);});
+restoreCase();updateCaseQuality();
+
 const status=(t,state="")=>{stateText.textContent=t;stateDot.className="dot"+(state?" "+state:"");};
 const logEvent=t=>{
  const line=document.createElement("div");
@@ -201,11 +210,35 @@ quickButtons.forEach(q=>q.onclick=()=>{
  if(!dc || dc.readyState!=="open"){setQuickEnabled(false);logEvent("⚠️ Сначала запустите Jarvis.");return;}
  let command=q.dataset.command||"";
  const details=[
-  caseFields.approvalRef.value&&"подтверждение согласования "+caseFields.approvalRef.value,\n  caseFields.approvedAmount.value&&"согласованная сумма "+caseFields.approvedAmount.value,\n  caseFields.laborAmount.value&&"стоимость работ "+caseFields.laborAmount.value,\n  caseFields.partsAmount.value&&"стоимость запчастей "+caseFields.partsAmount.value,\n  caseFields.laborHours.value&&"время работ "+caseFields.laborHours.value,\n  caseFields.partsUsed.value&&"запчасти "+caseFields.partsUsed.value,\n  caseFields.arrivalDate.value&&"дата приемки "+caseFields.arrivalDate.value,\n  caseFields.completionDate.value&&"дата завершения "+caseFields.completionDate.value,\n  caseFields.orderNumber.value&&"заказ наряд "+caseFields.orderNumber.value,\n  caseFields.masterName.value&&"мастер "+caseFields.masterName.value,\n  caseFields.clientName.value&&"клиент "+caseFields.clientName.value,\n  caseFields.phone.value&&"телефон "+caseFields.phone.value,\n  caseFields.car.value&&"автомобиль "+caseFields.car.value,
+  caseFields.approvalRef.value&&"подтверждение согласования "+caseFields.approvalRef.value,
+  caseFields.approvedAmount.value&&"согласованная сумма "+caseFields.approvedAmount.value,
+  caseFields.laborAmount.value&&"стоимость работ "+caseFields.laborAmount.value,
+  caseFields.partsAmount.value&&"стоимость запчастей "+caseFields.partsAmount.value,
+  caseFields.laborHours.value&&"время работ "+caseFields.laborHours.value,
+  caseFields.partsUsed.value&&"запчасти "+caseFields.partsUsed.value,
+  caseFields.arrivalDate.value&&"дата приемки "+caseFields.arrivalDate.value,
+  caseFields.completionDate.value&&"дата завершения "+caseFields.completionDate.value,
+  caseFields.orderNumber.value&&"заказ наряд "+caseFields.orderNumber.value,
+  caseFields.masterName.value&&"мастер "+caseFields.masterName.value,
+  caseFields.clientName.value&&"клиент "+caseFields.clientName.value,
+  caseFields.phone.value&&"телефон "+caseFields.phone.value,
+  caseFields.car.value&&"автомобиль "+caseFields.car.value,
   caseFields.plate.value&&"госномер "+caseFields.plate.value,
   caseFields.mileage.value&&"пробег "+caseFields.mileage.value,
   caseFields.vin.value&&"VIN "+caseFields.vin.value,
-  caseFields.complaint.value&&"жалоба клиента: "+caseFields.complaint.value,\n  caseFields.evidence.value&&"доказательство: "+caseFields.evidence.value,\n  caseFields.finding.value&&"подтверждённая неисправность: "+caseFields.finding.value,\n  caseFields.urgency.value&&"срочность: "+caseFields.urgency.value,\n  caseFields.recommendation.value&&"рекомендация: "+caseFields.recommendation.value,\n  caseFields.repairApproved.checked&&"ремонт согласован: да",\n  caseFields.repairResult.value&&"выполненный ремонт: "+caseFields.repairResult.value,\n  caseFields.controlCheck.value&&"контрольная проверка: "+caseFields.controlCheck.value,\n  caseFields.mediaUrl.value&&"медиа доказательство: "+caseFields.mediaUrl.value,\n  caseFields.nextService.value&&"следующий контроль: "+caseFields.nextService.value,\n  caseFields.warranty.value&&"гарантия: "+caseFields.warranty.value,\n  caseFields.clientHandover.value&&"выдача клиенту: "+caseFields.clientHandover.value,\n  caseFields.finalCheck.checked&&"финальная проверка: пройдена"
+  caseFields.complaint.value&&"жалоба клиента: "+caseFields.complaint.value,
+  caseFields.evidence.value&&"доказательство: "+caseFields.evidence.value,
+  caseFields.finding.value&&"подтверждённая неисправность: "+caseFields.finding.value,
+  caseFields.urgency.value&&"срочность: "+caseFields.urgency.value,
+  caseFields.recommendation.value&&"рекомендация: "+caseFields.recommendation.value,
+  caseFields.repairApproved.checked&&"ремонт согласован: да",
+  caseFields.repairResult.value&&"выполненный ремонт: "+caseFields.repairResult.value,
+  caseFields.controlCheck.value&&"контрольная проверка: "+caseFields.controlCheck.value,
+  caseFields.mediaUrl.value&&"медиа доказательство: "+caseFields.mediaUrl.value,
+  caseFields.nextService.value&&"следующий контроль: "+caseFields.nextService.value,
+  caseFields.warranty.value&&"гарантия: "+caseFields.warranty.value,
+  caseFields.clientHandover.value&&"выдача клиенту: "+caseFields.clientHandover.value,
+  caseFields.finalCheck.checked&&"финальная проверка: пройдена"
  ].filter(Boolean).join(", ");
  inputTranscript=details?command+". Данные: "+details:command;
  clearTimeout(transcriptTimer);
