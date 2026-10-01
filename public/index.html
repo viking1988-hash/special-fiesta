@@ -117,12 +117,13 @@ async function start(){
       return;
      }
      if(data.tool) logEvent("🔧 "+data.tool);
-     logEvent("✅ "+data.result);
      const rawResult=typeof data.result==="string" ? data.result : JSON.stringify(data.result);
      const hasEmbeddedResource=data.tool==="generate_client_diagnostic_pdf" || /"type"\s*:\s*"resource"/i.test(rawResult) || /"blob"\s*:/i.test(rawResult);
      if(hasEmbeddedResource){
+      if(!showPdfResult(data.result)) logEvent("✅ Диагностический PDF создан.");
       speakResult("Диагностический PDF успешно создан.");
      }else{
+      logEvent("✅ "+rawResult);
       const voiceResult=rawResult.length>1200 ? rawResult.slice(0,1200)+"…" : rawResult;
       speakResult("Результат проверки: "+voiceResult);
      }
