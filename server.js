@@ -431,6 +431,13 @@ function routeTranscriptTask(text, caseData = null) {
     const laborAmount = field("laborAmount").slice(0, 40);
     const partsAmount = field("partsAmount").slice(0, 40);
     const approvalRef = field("approvalRef").slice(0, 300);
+    if (!vehicle || !complaint) return { error: "Для диагностического документа заполните автомобиль и жалобу клиента." };
+    if (!evidence || !finding) return { error: "Сначала зафиксируйте доказательство и подтверждённую неисправность." };
+    if (vin && !/^[A-HJ-NPR-Z0-9]{17}$/.test(vin)) return { error: "VIN должен содержать 17 допустимых символов без I, O и Q." };
+    const mileageNumber = Number(String(mileage || "").replace(/[^0-9]/g, ""));
+    if (mileage && (!Number.isFinite(mileageNumber) || mileageNumber < 1 || mileageNumber >= 3000000)) return { error: "Проверьте пробег автомобиля." };
+    const closeReady = repairApproved && Boolean(repairResult) && Boolean(controlCheck);
+    if (finalCheck && !closeReady) return { error: "Финальная проверка доступна только после согласования ремонта, выполненных работ и контрольной проверки." };
     const money = (value) => {
       const normalized = String(value || "").replace(/[^0-9.,-]/g, "").replace(",", ".");
       const parsed = Number.parseFloat(normalized);
