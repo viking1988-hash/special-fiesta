@@ -395,6 +395,19 @@ function routeTranscriptTask(text, caseData = null) {
     return { name: "avtohirurg_protocol", args: { symptom: text } };
   }
 
+  if (/(тестов.*(?:диагностическ.*заключени|pdf)|(?:диагностическ.*заключени|pdf).*тестов)/i.test(t)) {
+    const data = {
+      complaint: "Стук в передней подвеске на неровностях, сильнее на малой скорости.",
+      report: { number: "TEST-TIGUAN-001", date: "30.09.2026", datetime: "30.09.2026 17:00" },
+      vehicle: { make_model: "Volkswagen Tiguan", plate: "ТЕСТ", vin: "TEST-VIN", mileage: "128 450 км" },
+      diagnostic: Object.fromEntries(Array.from({ length: 12 }, (_, i) => ["p" + (i + 1), { result: i === 6 ? "Выявлен люфт правой передней стойки стабилизатора" : "Проверено", evidence: i === 10 ? "Механическая нагрузка воспроизвела характерный стук" : "Тестовый протокол Автохирурга" }])),
+      conclusion: { confirmed_fault: "Люфт правой передней стойки стабилизатора", evidence: "Механическая нагрузка воспроизвела характерный стук", repair_now: "Заменить правую переднюю стойку стабилизатора", can_wait: "Остальные элементы передней подвески по текущей проверке замены не требуют", urgency: "Плановый ремонт", recommendation: "Заменить подтверждённо неисправную деталь и выполнить контрольную проверку", summary: "Неисправность подтверждена тестом. Замена остальных деталей без доказательства не требуется." },
+      media: { url: "", note: "Тестовый документ — не является заключением по реальному автомобилю" },
+      specialist: { name: "Автохирург — тест" }
+    };
+    return { name: "generate_client_diagnostic_pdf", args: { data_json: JSON.stringify(data), report_name: "Avtohirurg_Tiguan_TEST.pdf" } };
+  }
+
   if (/(диагностическ.*pdf|pdf.*диагностическ)/i.test(t) && (/данные:/i.test(t) || (caseData && typeof caseData === "object" && !Array.isArray(caseData)))) {
     const safeCase = caseData && typeof caseData === "object" ? caseData : {};
     const field = (key, fallback = "") => String(safeCase[key] ?? fallback).trim().slice(0, 4000);
@@ -472,18 +485,7 @@ function routeTranscriptTask(text, caseData = null) {
     return { name: "generate_client_diagnostic_pdf", args: { data_json: JSON.stringify(data), report_name: "Avtohirurg_"+safeName+"_"+stamp+".pdf" } };
   }
 
-  if (/(тестов.*(?:диагностическ.*заключени|pdf)|(?:диагностическ.*заключени|pdf).*тестов)/i.test(t)) {
-    const data = {
-      complaint: "Стук в передней подвеске на неровностях, сильнее на малой скорости.",
-      report: { number: "TEST-TIGUAN-001", date: "30.09.2026", datetime: "30.09.2026 17:00" },
-      vehicle: { make_model: "Volkswagen Tiguan", plate: "ТЕСТ", vin: "TEST-VIN", mileage: "128 450 км" },
-      diagnostic: Object.fromEntries(Array.from({ length: 12 }, (_, i) => ["p" + (i + 1), { result: i === 6 ? "Выявлен люфт правой передней стойки стабилизатора" : "Проверено", evidence: i === 10 ? "Механическая нагрузка воспроизвела характерный стук" : "Тестовый протокол Автохирурга" }])),
-      conclusion: { confirmed_fault: "Люфт правой передней стойки стабилизатора", evidence: "Механическая нагрузка воспроизвела характерный стук", repair_now: "Заменить правую переднюю стойку стабилизатора", can_wait: "Остальные элементы передней подвески по текущей проверке замены не требуют", urgency: "Плановый ремонт", recommendation: "Заменить подтверждённо неисправную деталь и выполнить контрольную проверку", summary: "Неисправность подтверждена тестом. Замена остальных деталей без доказательства не требуется." },
-      media: { url: "", note: "Тестовый документ — не является заключением по реальному автомобилю" },
-      specialist: { name: "Автохирург — тест" }
-    };
-    return { name: "generate_client_diagnostic_pdf", args: { data_json: JSON.stringify(data), report_name: "Avtohirurg_Tiguan_TEST.pdf" } };
-  }
+
 
   if (/(заключени.*клиент|клиентск.*заключени|сформируй заключени|составь заключени)/i.test(t)) {
     return { name: "client_conclusion", args: { car: fieldCase(caseData, "car"), symptom: fieldCase(caseData, "complaint", text), confirmed_faults: fieldCase(caseData, "finding"), evidence: fieldCase(caseData, "evidence"), recommended_repairs: fieldCase(caseData, "recommendation"), can_postpone: fieldCase(caseData, "urgency") } };
