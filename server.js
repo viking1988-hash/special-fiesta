@@ -409,11 +409,20 @@ function routeTranscriptTask(text, caseData = null) {
     const controlCheck = field("controlCheck", get("контрольная проверка", "фото|видео|финальная проверка"));
     const mediaUrl = field("mediaUrl", get("фото(?:/видео)?", "финальная проверка|следующий контроль"));
     const finalCheck = safeCase.finalCheck === true || String(safeCase.finalCheck || "").toLowerCase() === "true";
+    const urgency = field("urgency", get("срочность", "рекомендация|ремонт согласован"));
+    const recommendation = field("recommendation", get("рекомендация", "ремонт согласован|выполненный ремонт"));
+    const nextService = field("nextService", get("следующий контроль", "гарантия|выдача клиенту"));
+    const warranty = field("warranty", get("гарантия", "выдача клиенту"));
+    const clientHandover = field("clientHandover", get("выдача клиенту", "дата завершения"));
+    const clientName = field("clientName").slice(0, 120);
+    const phone = field("phone").slice(0, 40);
+    const orderNumber = field("orderNumber").slice(0, 80);
+    const masterName = field("masterName").slice(0, 120);
     const now = new Date();
     const stamp = now.toISOString().slice(0,10).replaceAll("-","");
     const data = {
       complaint: complaint || "Жалоба не указана",
-      report: { number: "JARVIS-" + stamp, date: now.toLocaleDateString("ru-RU"), datetime: now.toLocaleString("ru-RU") },
+      report: { number: orderNumber || "JARVIS-" + stamp, date: now.toLocaleDateString("ru-RU"), datetime: now.toLocaleString("ru-RU") },
       vehicle: { make_model: vehicle || "Не указано", plate: plate || "", vin: vin || "", mileage: mileage || "" },
       diagnostic: {},
       conclusion: {
@@ -421,12 +430,14 @@ function routeTranscriptTask(text, caseData = null) {
         evidence: "Не заполнено — требуется доказательство",
         repair_now: "Ремонт не назначен без подтверждённой неисправности",
         can_wait: "",
-        urgency: "Определяется после диагностики",
-        recommendation: "Провести проверку и зафиксировать доказательство до ремонта",
+        urgency: urgency || "Определяется после диагностики",
+        recommendation: recommendation || "Провести проверку и зафиксировать доказательство до ремонта",
         summary: finalCheck ? "Диагностический цикл завершён: неисправность доказана, ремонт согласован и выполнен, финальная контрольная проверка пройдена." : finding && evidence ? (repairApproved ? (repairResult && controlCheck ? "Неисправность доказана, ремонт согласован и выполнен. Контрольная проверка после ремонта зафиксирована." : "Неисправность и доказательство зафиксированы. Согласование ремонта отмечено в диагностической карте.") : "Неисправность зафиксирована вместе с доказательством. Следующий шаг — согласование ремонта с клиентом.") : "Черновик диагностического заключения. Сначала доказательство — потом ремонт."
       },
       media: { url: mediaUrl || "", note: controlCheck ? "Контрольная проверка после ремонта: " + controlCheck : "Фото/видео-доказательство не приложено" },
-      specialist: { name: "Автохирург" }
+      client: { name: clientName, phone },
+      service: { master: masterName, next_service: nextService, warranty, client_handover: clientHandover },
+      specialist: { name: masterName || "Автохирург" }
     };
     const safeName=(vehicle || "vehicle").replace(/[^a-zA-Z0-9А-Яа-я_-]+/g,"_").slice(0,40);
     return { name: "generate_client_diagnostic_pdf", args: { data_json: JSON.stringify(data), report_name: "Avtohirurg_"+safeName+"_"+stamp+".pdf" } };
