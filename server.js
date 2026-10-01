@@ -909,6 +909,10 @@ app.post("/api/route-transcript", async (req, res) => {
 
   console.log("[JARVIS_ROUTE_MATCHED]", task.name || task.action || "unknown");
 
+  if (task.error) {
+    return res.status(422).json({ ok: false, error: task.error });
+  }
+
   if (task.approval_required) {
     const approvalId = createApprovalProposal(task.action, task.args);
     return res.json({
