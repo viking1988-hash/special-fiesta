@@ -391,7 +391,7 @@ function routeTranscriptTask(text) {
   }
 
   if (/(диагностическ.*pdf|pdf.*диагностическ)/i.test(t) && /данные:/i.test(t)) {
-    const get = (label, next) => {
+    const safeCase = caseData && typeof caseData === "object" ? caseData : {};\n    const field = (key, fallback = "") => String(safeCase[key] ?? fallback).trim().slice(0, 4000);\n    const get = (label, next) => {
       const re = new RegExp(label + "\\s*([^,]+?)" + (next ? "(?=,\\s*(?:" + next + ")\\b|$)" : "(?=,|$)"), "i");
       return (text.match(re)?.[1] || "").trim();
     };
