@@ -398,9 +398,9 @@ function routeTranscriptTask(text, caseData = null) {
       return (text.match(re)?.[1] || "").trim();
     };
     const vehicle = field("car", get("автомобиль", "госномер|пробег|vin|жалоба"));
-    const plate = get("госномер", "пробег|vin|жалоба");
-    const mileage = get("пробег", "vin|жалоба");
-    const vin = get("vin", "жалоба");
+    const plate = field("plate", get("госномер", "пробег|vin|жалоба")).slice(0, 20);
+    const mileage = field("mileage", get("пробег", "vin|жалоба")).slice(0, 20);
+    const vin = field("vin", get("vin", "жалоба")).toUpperCase().slice(0, 17);
     const complaint = (text.match(/жалоба клиента:\s*(.+)$/i)?.[1] || "").trim();
     const evidence = field("evidence", get("доказательство", "неисправность|вывод|срочность|рекомендация"));
     const finding = field("finding", get("неисправность", "срочность|рекомендация"));
