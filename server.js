@@ -423,6 +423,14 @@ function routeTranscriptTask(text, caseData = null) {
     const phone = field("phone").slice(0, 40);
     const orderNumber = field("orderNumber").slice(0, 80);
     const masterName = field("masterName").slice(0, 120);
+    const arrivalDate = field("arrivalDate").slice(0, 40);
+    const completionDate = field("completionDate").slice(0, 40);
+    const laborHours = field("laborHours").slice(0, 40);
+    const partsUsed = field("partsUsed");
+    const approvedAmount = field("approvedAmount").slice(0, 40);
+    const laborAmount = field("laborAmount").slice(0, 40);
+    const partsAmount = field("partsAmount").slice(0, 40);
+    const approvalRef = field("approvalRef").slice(0, 300);
     const now = new Date();
     const stamp = now.toISOString().slice(0,10).replaceAll("-","");
     const data = {
@@ -441,7 +449,7 @@ function routeTranscriptTask(text, caseData = null) {
       },
       media: { url: mediaUrl || "", note: controlCheck ? "Контрольная проверка после ремонта: " + controlCheck : "Фото/видео-доказательство не приложено" },
       client: { name: clientName, phone },
-      service: { master: masterName, next_service: nextService, warranty, client_handover: clientHandover },
+      service: { master: masterName, intake_at: arrivalDate, completed_at: completionDate, labor_hours: laborHours, parts_used: partsUsed, approved_amount: approvedAmount, labor_amount: laborAmount, parts_amount: partsAmount, approval_reference: approvalRef, next_service: nextService, warranty, client_handover: clientHandover },
       specialist: { name: masterName || "Автохирург" }
     };
     const safeName=(vehicle || "vehicle").replace(/[^a-zA-Z0-9А-Яа-я_-]+/g,"_").slice(0,40);
