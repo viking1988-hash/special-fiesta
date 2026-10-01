@@ -938,7 +938,7 @@ app.post("/api/session", async (req, res) => {
           model: "gpt-live-1",
           instructions:
             JARVIS_CORE +
-            `\n\nГолосовой runtime: говори кратко и естественно.
+            `\  if (task?.validation_error) return res.status(400).json({ ok:false, error:"case_validation_failed", result:task.message });\nn\nГолосовой runtime: говори кратко и естественно.
 
 Delegation policy:
 - Делегируй backend задачу, если пользователь просит проверить WordPress, сайт, страницу или авторизацию.
