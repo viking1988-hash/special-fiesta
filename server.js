@@ -498,7 +498,7 @@ function routeTranscriptTask(text, caseData = null) {
 }
 
 async function routeTranscriptTaskToMcp(sessionId, ws, text) {
-  const task = routeTranscriptTask(text);
+  const task = routeTranscriptTask(text, caseData);
   if (!task) return false;
 
   const entry = liveSessions.get(sessionId);
@@ -859,6 +859,7 @@ app.post("/api/route-transcript", async (req, res) => {
   }
 
   const text = String(req.body?.text || "").trim();
+  const caseData = req.body?.case && typeof req.body.case === "object" && !Array.isArray(req.body.case) ? req.body.case : null;
   if (!text) {
     return res.status(400).json({ error: "Transcript text is required" });
   }
