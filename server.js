@@ -340,7 +340,12 @@ function normalizeTranscript(text) {
     .trim();
 }
 
-function fieldCase(caseData, key, fallback = "") {\n  if (!caseData || typeof caseData !== "object" || Array.isArray(caseData)) return String(fallback || "").trim().slice(0, 4000);\n  return String(caseData[key] ?? fallback ?? "").trim().slice(0, 4000);\n}\n\nfunction routeTranscriptTask(text, caseData = null) {
+function fieldCase(caseData, key, fallback = "") {
+  if (!caseData || typeof caseData !== "object" || Array.isArray(caseData)) return String(fallback || "").trim().slice(0, 4000);
+  return String(caseData[key] ?? fallback ?? "").trim().slice(0, 4000);
+}
+
+function routeTranscriptTask(text, caseData = null) {
   const t = normalizeTranscript(text);
   if (!t) return null;
 
