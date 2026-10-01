@@ -740,6 +740,18 @@ app.post("/api/approval/confirm", async (req, res) => {
         error: "post_write_verification_failed"
       });
     }
+    const afterParsed = parseMaybeJson(after);
+    const afterPage = afterParsed?.data || afterParsed?.structuredContent?.data || afterParsed;
+    const mismatches = [];
+    for (const [field, expected] of Object.entries(safeFields)) {
+      let actual = afterPage?.[field];
+      if (field === "title" && actual && typeof actual === "object") actual = actual.rendered ?? actual.raw;
+      if (String(actual ?? "") !== String(expected)) mismatches.push({ field, expected, actual: actual ?? null });
+    }
+    if (mismatches.length) {
+      console.error("[JARVIS_APPROVED_WRITE_VERIFY_MISMATCH]", proposal.args.page_id, JSON.stringify(mismatches));
+      return res.status(502).json({ ok: false, approved: true, executed: true, verified: false, error: "post_write_value_mismatch", mismatches });
+    }
     console.log("[JARVIS_APPROVED_WRITE]", proposal.action, proposal.args.page_id, Object.keys(safeFields));
     return res.json({
       ok: true,
@@ -749,7 +761,7 @@ app.post("/api/approval/confirm", async (req, res) => {
       page_id: proposal.args.page_id,
       fields: safeFields,
       preflight_verified: Boolean(before),
-      post_write_verified: Boolean(after),
+      post_write_verified: true,
       result: parseMaybeJson(output)
     });
   } catch (error) {
