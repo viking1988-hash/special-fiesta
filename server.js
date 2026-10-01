@@ -397,11 +397,18 @@ function routeTranscriptTask(text, caseData = null) {
       const re = new RegExp(label + "\\s*([^,]+?)" + (next ? "(?=,\\s*(?:" + next + ")\\b|$)" : "(?=,|$)"), "i");
       return (text.match(re)?.[1] || "").trim();
     };
-    const vehicle = get("автомобиль", "госномер|пробег|vin|жалоба");
+    const vehicle = field("car", get("автомобиль", "госномер|пробег|vin|жалоба"));
     const plate = get("госномер", "пробег|vin|жалоба");
     const mileage = get("пробег", "vin|жалоба");
     const vin = get("vin", "жалоба");
     const complaint = (text.match(/жалоба клиента:\s*(.+)$/i)?.[1] || "").trim();
+    const evidence = field("evidence", get("доказательство", "неисправность|вывод|срочность|рекомендация"));
+    const finding = field("finding", get("неисправность", "срочность|рекомендация"));
+    const repairApproved = safeCase.repairApproved === true || String(safeCase.repairApproved || "").toLowerCase() === "true";
+    const repairResult = field("repairResult", get("выполненный ремонт", "контрольная проверка|фото|видео"));
+    const controlCheck = field("controlCheck", get("контрольная проверка", "фото|видео|финальная проверка"));
+    const mediaUrl = field("mediaUrl", get("фото(?:/видео)?", "финальная проверка|следующий контроль"));
+    const finalCheck = safeCase.finalCheck === true || String(safeCase.finalCheck || "").toLowerCase() === "true";
     const now = new Date();
     const stamp = now.toISOString().slice(0,10).replaceAll("-","");
     const data = {
