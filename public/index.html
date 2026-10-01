@@ -28,7 +28,10 @@ const updateCaseQuality=()=>{
  caseFields.mileage.classList.toggle("invalid",!mileageOk); caseFields.mileage.classList.toggle("valid",!!mileage&&mileageOk);
  const required=["car","complaint","evidence","finding"]; const filled=required.filter(k=>caseFields[k].value.trim()).length;
  const score=Math.round(filled/required.length*100); caseCompleteness.textContent="Карта: "+score+"%";caseProgress.style.width=score+"%";
- caseState.textContent=caseFields.finalCheck.checked?"Цикл завершён":score===100&&vinOk&&mileageOk?"Готова к заключению":filled?"Диагностика в работе":"Черновик";
+ const closeReady=caseFields.repairApproved.checked&&caseFields.repairResult.value.trim()&&caseFields.controlCheck.value.trim();
+ if(caseFields.finalCheck.checked&&!closeReady){caseFields.finalCheck.checked=false;logEvent("⚠️ Нельзя закрыть цикл: нужны согласование ремонта, выполненные работы и контрольная проверка.");}
+ caseFields.finalCheck.disabled=!closeReady;
+ caseState.textContent=caseFields.finalCheck.checked?"Цикл завершён":closeReady?"Готова к финальной проверке":score===100&&vinOk&&mileageOk?"Готова к заключению":filled?"Диагностика в работе":"Черновик";
  return {vinOk,mileageOk,score};
 };
 const setQuickEnabled=enabled=>{quickButtons.forEach(b=>{b.disabled=!enabled;if(enabled&&/Вывод клиенту|Диагностический PDF/.test(b.textContent)){const q=updateCaseQuality();b.disabled=q.score<100||!q.vinOk||!q.mileageOk;}})};
