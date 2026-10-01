@@ -62,7 +62,7 @@ const showPdfResult=(raw)=>{
   const parsed=typeof raw==="string"?JSON.parse(raw):raw;
   const item=parsed?.content?.find?.(x=>x?.type==="resource"&&x?.resource?.blob);
   if(!item) return false;
-  const filename=decodeURIComponent((item.resource.uri||"diagnostic.pdf").split(":").pop());
+  let filename="diagnostic.pdf"; try{filename=decodeURIComponent((item.resource.uri||"diagnostic.pdf").split(":").pop())}catch{} filename=filename.replace(/[\\/:*?"<>|]/g,"_").slice(0,120)||"diagnostic.pdf";
   const box=document.createElement("div"); box.className="pdf";
   const title=document.createElement("div"); title.textContent="Диагностический PDF создан";
   const a=document.createElement("a"); a.href="data:"+(item.resource.mimeType||"application/pdf")+";base64,"+item.resource.blob; a.download=filename; a.target="_blank"; a.rel="noopener"; a.textContent="📄 Открыть / скачать "+filename;
