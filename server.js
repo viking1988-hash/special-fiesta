@@ -406,7 +406,7 @@ function routeTranscriptTask(text, caseData = null) {
     const plate = field("plate", get("госномер", "пробег|vin|жалоба")).slice(0, 20);
     const mileage = field("mileage", get("пробег", "vin|жалоба")).slice(0, 20);
     const vin = field("vin", get("vin", "жалоба")).toUpperCase().slice(0, 17);
-    const complaint = field("complaint", (text.match(/жалоба клиента:\\s*(.+)$/i)?.[1] || "").trim());
+    const complaint = field("complaint", get("жалоба клиента", "доказательство|неисправность|срочность|рекомендация"));
     const evidence = field("evidence", get("доказательство", "неисправность|вывод|срочность|рекомендация"));
     const finding = field("finding", get("неисправность", "срочность|рекомендация"));
     const repairApproved = safeCase.repairApproved === true || String(safeCase.repairApproved || "").toLowerCase() === "true";
