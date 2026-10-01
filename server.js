@@ -225,8 +225,7 @@ class AvtohirurgMcpClient {
     if (!responseText.trim()) return {};
     if (responseText.trim().startsWith("data:")) {
       const dataLines = responseText
-        .split(/\r?
-/)
+        .split(new RegExp("\\r?\\n"))
         .filter((line) => line.startsWith("data:"))
         .map((line) => line.slice(5).trim())
         .filter(Boolean);
