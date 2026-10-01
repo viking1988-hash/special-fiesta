@@ -225,7 +225,8 @@ class AvtohirurgMcpClient {
     if (!responseText.trim()) return {};
     if (responseText.trim().startsWith("data:")) {
       const dataLines = responseText
-        .split(/\r?\n/)
+        .split(/\r?
+/)
         .filter((line) => line.startsWith("data:"))
         .map((line) => line.slice(5).trim())
         .filter(Boolean);
@@ -391,7 +392,9 @@ function routeTranscriptTask(text, caseData = null) {
   }
 
   if (/(диагностическ.*pdf|pdf.*диагностическ)/i.test(t) && /данные:/i.test(t)) {
-    const safeCase = caseData && typeof caseData === "object" ? caseData : {};\n    const field = (key, fallback = "") => String(safeCase[key] ?? fallback).trim().slice(0, 4000);\n    const get = (label, next) => {
+    const safeCase = caseData && typeof caseData === "object" ? caseData : {};
+    const field = (key, fallback = "") => String(safeCase[key] ?? fallback).trim().slice(0, 4000);
+    const get = (label, next) => {
       const re = new RegExp(label + "\\s*([^,]+?)" + (next ? "(?=,\\s*(?:" + next + ")\\b|$)" : "(?=,|$)"), "i");
       return (text.match(re)?.[1] || "").trim();
     };
@@ -510,7 +513,8 @@ async function routeTranscriptTaskToMcp(sessionId, ws, text) {
         parsed?.content?.find?.((item) => item?.type === "text")?.text ||
         (typeof parsed === "string" ? parsed : output);
       compact = String(candidate).split("
-").join("\n").slice(0, 1200);
+").join("
+").slice(0, 1200);
     }
     sendSideband(ws, {
       type: "session.commentary.append",
@@ -705,7 +709,8 @@ function formatBrowserToolResult(task, output, transcript) {
     parsed?.content?.find?.((item) => item?.type === "text")?.text ||
     (typeof parsed === "string" ? parsed : output);
   return String(candidate).split("
-").join("\n").slice(0, 1200);
+").join("
+").slice(0, 1200);
 }
 
 app.post("/api/approval/confirm", async (req, res) => {
@@ -940,7 +945,9 @@ app.post("/api/session", async (req, res) => {
           model: "gpt-live-1",
           instructions:
             JARVIS_CORE +
-            `\  if (task?.validation_error) return res.status(400).json({ ok:false, error:"case_validation_failed", result:task.message });\nn\nГолосовой runtime: говори кратко и естественно.
+            `\  if (task?.validation_error) return res.status(400).json({ ok:false, error:"case_validation_failed", result:task.message });
+n
+Голосовой runtime: говори кратко и естественно.
 
 Delegation policy:
 - Делегируй backend задачу, если пользователь просит проверить WordPress, сайт, страницу или авторизацию.
