@@ -395,7 +395,7 @@ function routeTranscriptTask(text, caseData = null) {
     return { name: "avtohirurg_protocol", args: { symptom: text } };
   }
 
-  if (/(диагностическ.*pdf|pdf.*диагностическ)/i.test(t) && /данные:/i.test(t)) {
+  if (/(диагностическ.*pdf|pdf.*диагностическ)/i.test(t) && (/данные:/i.test(t) || (caseData && typeof caseData === "object" && !Array.isArray(caseData)))) {
     const safeCase = caseData && typeof caseData === "object" ? caseData : {};
     const field = (key, fallback = "") => String(safeCase[key] ?? fallback).trim().slice(0, 4000);
     const get = (label, next) => {
