@@ -60,6 +60,12 @@ async function start(){
    inputTranscript="";
    logEvent("🎙 "+text);
    try{
+    if(/^(джарвис[ ,]*)?(стоп|остановись|останови|хватит|замолчи)[.! ]*$/i.test(text)){
+     if(dc.readyState==="open") dc.send(JSON.stringify({type:"response.cancel"}));
+     if(audio.srcObject) audio.srcObject.getAudioTracks().forEach(track=>{ track.enabled=true; });
+     logEvent("⏹ Ответ Jarvis остановлен");
+     return;
+    }
     if(pendingApprovalId && /^(джарвис[ ,]*)?(подтверждаю|подтвердить|да подтверждаю)/i.test(text)){
      const r=await fetch("/api/approval/confirm",{
       method:"POST",
