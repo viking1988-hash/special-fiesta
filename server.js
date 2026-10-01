@@ -752,20 +752,25 @@ function attachSideband(sessionId, apiKey) {
 }
 
 function extractPdfResource(output) {
-  const parsed = parseMaybeJson(output);
-  const content = parsed?.content || parsed?.result?.content || [];
-  const item = Array.isArray(content) ? content.find((x) => x?.type === "resource" && x?.resource?.blob) : null;
-  if (!item) return null;
-  return {
-    content: [{
-      type: "resource",
-      resource: {
+  let parsed = parseMaybeJson(output);
+  if (parsed?.result) parsed = parsed.result;
+  const content = Array.isArray(parsed?.content) ? parsed.content : [];
+  for (const item of content) {
+    if (item?.type === "resource" && item?.resource?.blob) {
+      return { content: [{ type: "resource", resource: {
         uri: item.resource.uri || "file:diagnostic.pdf",
         mimeType: item.resource.mimeType || "application/pdf",
         blob: item.resource.blob
-      }
-    }]
-  };
+      }}]};
+    }
+    if (item?.type === "text" && typeof item.text === "string") {
+      const nested = parseMaybeJson(item.text);
+      const nestedContent = Array.isArray(nested?.content) ? nested.content : [];
+      const resource = nestedContent.find((x) => x?.type === "resource" && x?.resource?.blob);
+      if (resource) return { content: [resource] };
+    }
+  }
+  return null;
 }
 
 function formatBrowserToolResult(task, output, transcript) {
@@ -962,7 +967,7 @@ app.post("/api/route-transcript", async (req, res) => {
     const output = await executeTool(task.name, task.args);
     console.log("[JARVIS_BROWSER_TRANSCRIPT_ROUTE]", task.name, text);
     console.log("[JARVIS_BROWSER_TRANSCRIPT_RESULT]", task.name);
-    const pdfResource = task.name === "generate_client_diagnostic_pdf" ? extractPdfResource(output) : null;
+    const pdfResource = task.name === "generate_client_diagnostic_pdf" ? extractPdfResource(output) : null;\n    if (task.name === "generate_client_diagnostic_pdf") console.log("[JARVIS_PDF_RESOURCE]", pdfResource ? "found" : "missing", typeof output, safeJson(output).slice(0, 240));
     return res.json({
       ok: true,
       tool: task.name,
