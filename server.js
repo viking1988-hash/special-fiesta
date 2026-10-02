@@ -967,7 +967,8 @@ app.post("/api/route-transcript", async (req, res) => {
     const output = await executeTool(task.name, task.args);
     console.log("[JARVIS_BROWSER_TRANSCRIPT_ROUTE]", task.name, text);
     console.log("[JARVIS_BROWSER_TRANSCRIPT_RESULT]", task.name);
-    const pdfResource = task.name === "generate_client_diagnostic_pdf" ? extractPdfResource(output) : null;\n    if (task.name === "generate_client_diagnostic_pdf") console.log("[JARVIS_PDF_RESOURCE]", pdfResource ? "found" : "missing", typeof output, safeJson(output).slice(0, 240));
+    const pdfResource = task.name === "generate_client_diagnostic_pdf" ? extractPdfResource(output) : null;
+    if (task.name === "generate_client_diagnostic_pdf") console.log("[JARVIS_PDF_RESOURCE]", pdfResource ? "found" : "missing", typeof output);
     return res.json({
       ok: true,
       tool: task.name,
