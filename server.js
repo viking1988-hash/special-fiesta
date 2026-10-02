@@ -425,6 +425,7 @@ function routeTranscriptTask(text, caseData = null) {
     const repairApproved = safeCase.repairApproved === true || String(safeCase.repairApproved || "").toLowerCase() === "true";
     const repairResult = field("repairResult", get("выполненный ремонт", "контрольная проверка|фото|видео"));
     const controlCheck = field("controlCheck", get("контрольная проверка", "фото|видео|финальная проверка"));
+    if ((repairResult || controlCheck) && !repairApproved) return { error: "Нельзя фиксировать выполненный ремонт или контрольную проверку до согласования ремонта с клиентом." };
     const mediaUrl = field("mediaUrl", get("фото(?:/видео)?", "финальная проверка|следующий контроль"));
     const finalCheck = safeCase.finalCheck === true || String(safeCase.finalCheck || "").toLowerCase() === "true";
     const urgency = field("urgency", get("срочность", "рекомендация|ремонт согласован"));
