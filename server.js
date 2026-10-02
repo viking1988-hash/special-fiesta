@@ -457,8 +457,13 @@ function routeTranscriptTask(text, caseData = null) {
       return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
     };
     const approvedRub = money(approvedAmount);
-    const actualRub = money(laborAmount) + money(partsAmount);
+    const laborRub = money(laborAmount);
+    const partsRub = money(partsAmount);
+    const actualRub = laborRub + partsRub;
+    if (repairApproved && approvedRub <= 0) return { error: "Перед отметкой «ремонт согласован» укажите согласованную с клиентом сумму." };
+    if (repairApproved && !approvalRef) return { error: "Для согласованного ремонта укажите доказательство согласования: звонок, сообщение или номер документа." };
     if (approvedRub > 0 && !approvalRef) return { error: "Для согласованной суммы укажите доказательство согласования: звонок, сообщение или номер документа." };
+    if (actualRub > 0 && approvedRub <= 0) return { error: "Перед фиксацией стоимости работ или запчастей укажите согласованную с клиентом сумму." };
     if (approvedRub > 0 && actualRub > approvedRub) return { error: "Фактическая сумма " + actualRub + " ₽ превышает согласованные " + approvedRub + " ₽. Требуется новое согласование клиента." };
     const now = new Date();
     const stamp = now.toISOString().slice(0,10).replaceAll("-","");
