@@ -34,7 +34,8 @@ const updateCaseQuality=()=>{
  const closeReady=financialReady&&caseFields.repairResult.value.trim()&&caseFields.controlCheck.value.trim();
  if(caseFields.finalCheck.checked&&!closeReady){caseFields.finalCheck.checked=false;logEvent("⚠️ Нельзя закрыть цикл: нужны согласование суммы, подтверждение клиента, выполненные работы и контрольная проверка.");}
  caseFields.finalCheck.disabled=!closeReady;
- caseState.textContent=caseFields.finalCheck.checked?"Цикл завершён":closeReady?"Готова к финальной проверке":score===100&&vinOk&&mileageOk?"Готова к заключению":filled?"Диагностика в работе":"Черновик";
+ const financialIssue=caseFields.repairApproved.checked&&!financialReady;
+ caseState.textContent=caseFields.finalCheck.checked?"Цикл завершён":closeReady?"Готова к финальной проверке":financialIssue?"Нужно финансовое согласование":score===100&&vinOk&&mileageOk?"Готова к заключению":filled?"Диагностика в работе":"Черновик";
  return {vinOk,mileageOk,score};
 };
 const setQuickEnabled=enabled=>{const q=updateCaseQuality();quickButtons.forEach(b=>{b.disabled=!enabled;if(enabled&&/Вывод клиенту|Диагностический PDF/.test(b.textContent))b.disabled=q.score<100||!q.vinOk||!q.mileageOk;})};
