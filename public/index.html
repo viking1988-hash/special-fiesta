@@ -36,11 +36,14 @@ const updateCaseQuality=()=>{
  const money=v=>{const n=Number.parseFloat(String(v||"").replace(/[^0-9.,-]/g,"").replace(",","."));return Number.isFinite(n)&&n>=0?n:0};
  const approvedRub=money(caseFields.approvedAmount.value),actualRub=money(caseFields.laborAmount.value)+money(caseFields.partsAmount.value);
  const financialReady=caseFields.repairApproved.checked&&approvedRub>0&&caseFields.approvalRef.value.trim()&&actualRub<=approvedRub;
- const closeReady=financialReady&&caseFields.repairResult.value.trim()&&caseFields.controlCheck.value.trim();
+ const confirmedFault=Array.from({length:12},(_,i)=>caseFields["diagnostic_p"+(i+1)+"_result"].value.trim()==="Неисправность"&&caseFields["diagnostic_p"+(i+1)+"_evidence"].value.trim()).some(Boolean); const repairCanStart=confirmedFault&&financialReady;
+ const closeReady=repairCanStart&&caseFields.repairResult.value.trim()&&caseFields.controlCheck.value.trim();
+ caseFields.repairApproved.disabled=!confirmedFault; caseFields.approvedAmount.disabled=!confirmedFault; caseFields.approvalRef.disabled=!confirmedFault; caseFields.repairResult.disabled=!repairCanStart; caseFields.controlCheck.disabled=!repairCanStart;
+ if(!confirmedFault){caseFields.repairApproved.checked=false;}
  if(caseFields.finalCheck.checked&&!closeReady){caseFields.finalCheck.checked=false;logEvent("⚠️ Нельзя закрыть цикл: нужны согласование суммы, подтверждение клиента, выполненные работы и контрольная проверка.");}
  caseFields.finalCheck.disabled=!closeReady;
  const financialIssue=caseFields.repairApproved.checked&&!financialReady;
- caseState.textContent=caseFields.finalCheck.checked?"Цикл завершён":closeReady?"Готова к финальной проверке":financialIssue?"Нужно финансовое согласование":score===100&&vinOk&&mileageOk&&!diagnosticComplete?"12 пунктов: "+diagnosticFilled+"/12":score===100&&vinOk&&mileageOk?"Готова к заключению":filled?"Диагностика в работе":"Черновик";
+ caseState.textContent=caseFields.finalCheck.checked?"Цикл завершён":closeReady?"Готова к финальной проверке":confirmedFault&&!financialReady?"Нужно согласование клиента":financialIssue?"Нужно финансовое согласование":score===100&&vinOk&&mileageOk&&!diagnosticComplete?"12 пунктов: "+diagnosticFilled+"/12":score===100&&vinOk&&mileageOk?"Готова к заключению":filled?"Диагностика в работе":"Черновик";
  return {vinOk,mileageOk,score,diagnosticFilled,diagnosticComplete};
 };
 const setQuickEnabled=enabled=>{const q=updateCaseQuality();quickButtons.forEach(b=>{b.disabled=!enabled;if(enabled&&/Вывод клиенту|Диагностический PDF/.test(b.textContent))b.disabled=q.score<100||!q.vinOk||!q.mileageOk||!q.diagnosticComplete;});if(diagnosticPdfButton){diagnosticPdfButton.title=q.score<100?"Заполните автомобиль, жалобу, доказательство и подтверждённую неисправность":(!q.vinOk||!q.mileageOk?"Проверьте VIN и пробег":(!q.diagnosticComplete?"Завершите 12 пунктов; для неисправностей обязательно приложите доказательство":"Сформировать PDF из текущей диагностической карты"));}};
