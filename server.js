@@ -1029,6 +1029,36 @@ app.post("/api/route-transcript", async (req, res) => {
   }
 });
 
+app.get("/api/diagnostic/pdf-self-test", async (_req, res) => {
+  const diagnostic = Object.fromEntries(Array.from({ length: 12 }, (_, i) => ["p" + (i + 1), {
+    result: i === 6 ? "Выявлен люфт правой передней стойки стабилизатора" : "Проверено, отклонений не зафиксировано",
+    evidence: i === 6 ? "Люфт подтверждён механической нагрузкой" : "Контроль по протоколу Автохирурга"
+  }]));
+  const caseData = {
+    car: "Volkswagen Tiguan",
+    plate: "А123АА69",
+    vin: "WVGZZZ5NZJW000001",
+    mileage: "128450",
+    complaint: "Стук в передней подвеске на неровностях",
+    evidence: "Механическая нагрузка воспроизвела характерный стук",
+    finding: "Люфт правой передней стойки стабилизатора",
+    urgency: "Плановый ремонт",
+    recommendation: "Заменить подтверждённо неисправную стойку стабилизатора",
+    diagnostic
+  };
+  const task = routeTranscriptTask("Сформируй диагностический PDF", caseData);
+  if (!task?.name) return res.status(500).json({ ok: false, error: task?.error || "PDF route not created" });
+  try {
+    const output = await executeTool(task.name, task.args);
+    const pdf = extractPdfResource(output);
+    const parsedData = JSON.parse(task.args.data_json);
+    const populated = Object.values(parsedData.diagnostic || {}).filter((p) => p?.result && p.result !== "Не зафиксировано").length;
+    return res.json({ ok: Boolean(pdf), tool: task.name, diagnostic_points: Object.keys(parsedData.diagnostic || {}).length, populated_points: populated, pdf_resource: Boolean(pdf) });
+  } catch (error) {
+    return res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
 app.get("/health", (_req, res) =>
   res.json({
     ok: true,
