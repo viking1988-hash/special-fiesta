@@ -939,7 +939,8 @@ function runDiagnosticGuardSelfTest() {
     approval_without_amount: Boolean(check({ repairApproved:true, approvalRef:"звонок" })?.error),
     approval_without_reference: Boolean(check({ repairApproved:true, approvedAmount:"10000" })?.error),
     overrun: Boolean(check({ repairApproved:true, approvedAmount:"10000", approvalRef:"сообщение", laborAmount:"6000", partsAmount:"5000" })?.error),
-    premature_close: Boolean(check({ finalCheck:true })?.error)
+    premature_close: Boolean(check({ finalCheck:true })?.error),
+    complete_repair_cycle: check({ repairApproved:true, approvedAmount:"10000", approvalRef:"сообщение клиента", repairResult:"Заменена подтверждённо неисправная стойка", controlCheck:"Люфт и стук после ремонта отсутствуют", laborAmount:"3000", partsAmount:"5000", finalCheck:true })?.name === "generate_client_diagnostic_pdf"
   };
   return { ok:Object.values(tests).every(Boolean), mutation:false, tests };
 }
