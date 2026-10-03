@@ -927,6 +927,15 @@ app.post("/api/approval/cancel", (req, res) => {
   return res.json({ ok: true, cancelled });
 });
 
+app.post("/api/diagnostic/validate", (req, res) => {
+  const caseData = req.body?.case && typeof req.body.case === "object" && !Array.isArray(req.body.case) ? req.body.case : null;
+  const task = routeTranscriptTask("Создай диагностический PDF по текущей карте", caseData);
+  if (!task) return res.status(500).json({ ok: false, error: "validation_route_unavailable" });
+  if (task.error) return res.status(422).json({ ok: false, error: task.error });
+  if (task.name !== "generate_client_diagnostic_pdf") return res.status(500).json({ ok: false, error: "unexpected_validation_route" });
+  return res.json({ ok: true, ready: true, report_name: task.args?.report_name || null });
+});
+
 app.post("/api/route-transcript", async (req, res) => {
   const origin = req.get("origin");
   const host = req.get("host");
