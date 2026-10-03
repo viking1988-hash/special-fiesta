@@ -1029,6 +1029,24 @@ app.post("/api/route-transcript", async (req, res) => {
   }
 });
 
+app.post("/api/diagnostic/export", (req, res) => {
+  const origin = req.get("origin");
+  const host = req.get("host");
+  if (origin && origin !== `https://${host}`) return res.status(403).json({ error: "Unexpected request origin" });
+  const caseData = req.body?.case && typeof req.body.case === "object" && !Array.isArray(req.body.case) ? req.body.case : null;
+  if (!caseData) return res.status(400).json({ ok: false, error: "Diagnostic case is required" });
+  const diagnostic = Object.fromEntries(Array.from({ length: 12 }, (_, i) => {
+    const n = i + 1;
+    return ["p" + n, { result: String(caseData["diagnostic_p" + n + "_result"] || "").trim(), evidence: String(caseData["diagnostic_p" + n + "_evidence"] || "").trim() }];
+  }));
+  return res.json({
+    ok: true,
+    schema: "avtohirurg.diagnostic.v1",
+    exported_at: new Date().toISOString(),
+    case: { ...caseData, diagnostic }
+  });
+});
+
 app.get("/api/diagnostic/pdf-self-test", async (_req, res) => {
   const diagnostic = Object.fromEntries(Array.from({ length: 12 }, (_, i) => ["p" + (i + 1), {
     result: i === 6 ? "Выявлен люфт правой передней стойки стабилизатора" : "Проверено, отклонений не зафиксировано",
