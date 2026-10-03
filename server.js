@@ -472,7 +472,16 @@ function routeTranscriptTask(text, caseData = null) {
       complaint: complaint || "Жалоба не указана",
       report: { number: orderNumber || "JARVIS-" + stamp, date: now.toLocaleDateString("ru-RU"), datetime: now.toLocaleString("ru-RU") },
       vehicle: { make_model: vehicle || "Не указано", plate: plate || "", vin: vin || "", mileage: mileage || "" },
-      diagnostic: {},
+      diagnostic: Object.fromEntries(Array.from({ length: 12 }, (_, i) => {
+        const key = "p" + (i + 1);
+        const point = safeCase.diagnostic?.[key];
+        const result = String(point?.result || field("diagnostic_" + key + "_result") || "").trim().slice(0, 4000);
+        const pointEvidence = String(point?.evidence || field("diagnostic_" + key + "_evidence") || "").trim().slice(0, 4000);
+        return [key, {
+          result: result || "Не зафиксировано",
+          evidence: pointEvidence || (i === 10 && evidence ? evidence : "Доказательство по пункту не приложено")
+        }];
+      })),
       conclusion: {
         confirmed_fault: finding || "Не заполнено — требуется результат диагностики",
         evidence: evidence || "Не заполнено — требуется доказательство",
