@@ -927,6 +927,26 @@ app.post("/api/approval/cancel", (req, res) => {
   return res.json({ ok: true, cancelled });
 });
 
+function runDiagnosticGuardSelfTest() {
+  const base = { car:"Тестовый автомобиль", mileage:"100000", vin:"WVWZZZ1JZXW000001", complaint:"Стук на неровностях", evidence:"При механической нагрузке воспроизведён люфт", finding:"Люфт стойки стабилизатора", urgency:"Планово", recommendation:"Заменить подтверждённо неисправную стойку и выполнить контроль", repairApproved:false };
+  const check = (patch) => routeTranscriptTask("Создай диагностический PDF по текущей карте", { ...base, ...patch });
+  const tests = {
+    valid: check({})?.name === "generate_client_diagnostic_pdf",
+    missing_evidence: Boolean(check({ evidence:"" })?.error),
+    invalid_vin: Boolean(check({ vin:"INVALID" })?.error),
+    invalid_mileage: Boolean(check({ mileage:"9999999" })?.error),
+    repair_before_approval: Boolean(check({ repairResult:"Заменена стойка" })?.error),
+    approval_without_amount: Boolean(check({ repairApproved:true, approvalRef:"звонок" })?.error),
+    approval_without_reference: Boolean(check({ repairApproved:true, approvedAmount:"10000" })?.error),
+    overrun: Boolean(check({ repairApproved:true, approvedAmount:"10000", approvalRef:"сообщение", laborAmount:"6000", partsAmount:"5000" })?.error),
+    premature_close: Boolean(check({ finalCheck:true })?.error)
+  };
+  return { ok:Object.values(tests).every(Boolean), mutation:false, tests };
+}
+
+const diagnosticGuardSelfTest = runDiagnosticGuardSelfTest();
+console.log("[JARVIS_DIAGNOSTIC_GUARD_SELF_TEST]", JSON.stringify(diagnosticGuardSelfTest));
+
 app.post("/api/diagnostic/validate", (req, res) => {
   const caseData = req.body?.case && typeof req.body.case === "object" && !Array.isArray(req.body.case) ? req.body.case : null;
   const task = routeTranscriptTask("Создай диагностический PDF по текущей карте", caseData);
