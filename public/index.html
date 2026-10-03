@@ -41,12 +41,13 @@ const updateCaseQuality=()=>{
  const confirmedFault=Array.from({length:12},(_,i)=>caseFields["diagnostic_p"+(i+1)+"_result"].value.trim()==="Неисправность"&&caseFields["diagnostic_p"+(i+1)+"_evidence"].value.trim()).some(Boolean); const repairCanStart=confirmedFault&&financialReady;
  const closeReady=repairCanStart&&caseFields.repairResult.value.trim()&&caseFields.controlCheck.value.trim();
  const handoverReady=closeReady&&caseFields.finalCheck.checked&&caseFields.clientHandover.value.trim(); caseFields.clientHandover.disabled=!closeReady;
+ const followupReady=handoverReady&&caseFields.nextService.value.trim(); if(handoverReady&&!caseFields.nextService.value.trim())caseFields.nextService.classList.add("invalid");else caseFields.nextService.classList.remove("invalid");
  caseFields.repairApproved.disabled=!confirmedFault; caseFields.approvedAmount.disabled=!confirmedFault; caseFields.approvalRef.disabled=!confirmedFault; if(caseFields.repairApproved.checked)caseFields.repairApproved.dataset.fingerprint=approvalFingerprint; caseFields.repairResult.disabled=!repairCanStart; caseFields.controlCheck.disabled=!repairCanStart;
  if(!confirmedFault){caseFields.repairApproved.checked=false;}
  if(caseFields.finalCheck.checked&&!closeReady){caseFields.finalCheck.checked=false;logEvent("⚠️ Нельзя закрыть цикл: нужны согласование суммы, подтверждение клиента, выполненные работы и контрольная проверка.");}
  caseFields.finalCheck.disabled=!closeReady;
  const financialIssue=caseFields.repairApproved.checked&&!financialReady;
- caseState.textContent=handoverReady?"Цикл завершён":caseFields.finalCheck.checked&&!caseFields.clientHandover.value.trim()?"Нужна выдача клиенту":closeReady?"Готова к финальной проверке":confirmedFault&&!financialReady?"Нужно согласование клиента":financialIssue?"Нужно финансовое согласование":score===100&&vinOk&&mileageOk&&!diagnosticComplete?"12 пунктов: "+diagnosticFilled+"/12":score===100&&vinOk&&mileageOk?"Готова к заключению":filled?"Диагностика в работе":"Черновик";
+ caseState.textContent=followupReady?"Цикл завершён":handoverReady&&!caseFields.nextService.value.trim()?"Назначьте следующий контроль":caseFields.finalCheck.checked&&!caseFields.clientHandover.value.trim()?"Нужна выдача клиенту":closeReady?"Готова к финальной проверке":confirmedFault&&!financialReady?"Нужно согласование клиента":financialIssue?"Нужно финансовое согласование":score===100&&vinOk&&mileageOk&&!diagnosticComplete?"12 пунктов: "+diagnosticFilled+"/12":score===100&&vinOk&&mileageOk?"Готова к заключению":filled?"Диагностика в работе":"Черновик";
  if(confirmedFault&&!repairCanStart)caseState.title=approvalSummary;else caseState.title="";
  return {vinOk,mileageOk,score,diagnosticFilled,diagnosticComplete};
 };
