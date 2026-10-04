@@ -1046,6 +1046,9 @@ app.post("/api/diagnostic/export", async (req, res) => {
   const hasRepair = Boolean(String(caseData.repairResult || "").trim());
   const hasControl = Boolean(String(caseData.controlCheck || "").trim());
   const handedOver = Boolean(String(caseData.clientHandover || "").trim());
+  if ((hasRepair || hasControl || finalCheck) && !repairApproved) return res.status(409).json({ ok: false, error: "repair_approval_required" });
+  if (finalCheck && (!hasRepair || !hasControl)) return res.status(409).json({ ok: false, error: "repair_control_required" });
+  if (repairApproved && (!String(caseData.approvedAmount || "").trim() || !String(caseData.approvalRef || "").trim())) return res.status(409).json({ ok: false, error: "approval_evidence_required" });
   let workflowStatus = populatedPoints < 12 ? "Диагностика" : hasFinding ? "Неисправность доказана" : "Диагностика завершена";
   if (hasFinding && !repairApproved) workflowStatus = "Ожидает согласования";
   if (repairApproved && !hasRepair) workflowStatus = "В ремонте";
