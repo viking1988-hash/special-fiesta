@@ -1201,6 +1201,11 @@ app.post("/api/ops/parts", async (req,res) => {
     [String(b.case_id),String(b.part_name),String(b.availability||"unknown"),String(b.supplier||""),Number(b.price||0),String(b.eta||"")]);
   res.json({ok:true,part:q.rows[0]});
 });
+app.delete("/api/ops/test-data/:id", async (req,res) => {
+  if (!db) return res.status(503).json({ok:false,error:"database_not_configured"});
+  const id=String(req.params.id||""); if(!id.startsWith("TEST-")) return res.status(403).json({ok:false,error:"test_records_only"});
+  await db.query("DELETE FROM jarvis_cases WHERE id=$1",[id]); res.json({ok:true,deleted:id});
+});
 app.get("/api/ops/dashboard", async (_req,res) => {
   if (!db) return res.status(503).json({ok:false,error:"database_not_configured"});
   const by=await db.query("SELECT status,count(*)::int count FROM jarvis_cases GROUP BY status ORDER BY status");
