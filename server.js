@@ -1039,7 +1039,42 @@ app.post("/api/diagnostic/export", async (req, res) => {
     const n = i + 1;
     return ["p" + n, { result: String(caseData["diagnostic_p" + n + "_result"] || "").trim(), evidence: String(caseData["diagnostic_p" + n + "_evidence"] || "").trim() }];
   }));
-  const exported = { ok: true, schema: "avtohirurg.diagnostic.v1", exported_at: new Date().toISOString(), case: { ...caseData, diagnostic } };
+  const populatedPoints = Object.values(diagnostic).filter((p) => p.result && p.evidence).length;
+  const repairApproved = caseData.repairApproved === true || String(caseData.repairApproved || "").toLowerCase() === "true";
+  const finalCheck = caseData.finalCheck === true || String(caseData.finalCheck || "").toLowerCase() === "true";
+  const hasFinding = Boolean(String(caseData.finding || "").trim() && String(caseData.evidence || "").trim());
+  const hasRepair = Boolean(String(caseData.repairResult || "").trim());
+  const hasControl = Boolean(String(caseData.controlCheck || "").trim());
+  const handedOver = Boolean(String(caseData.clientHandover || "").trim());
+  let workflowStatus = populatedPoints < 12 ? "Диагностика" : hasFinding ? "Неисправность доказана" : "Диагностика завершена";
+  if (hasFinding && !repairApproved) workflowStatus = "Ожидает согласования";
+  if (repairApproved && !hasRepair) workflowStatus = "В ремонте";
+  if (repairApproved && hasRepair && !hasControl) workflowStatus = "Контроль";
+  if (repairApproved && hasRepair && hasControl && finalCheck) workflowStatus = handedOver ? "Выдано" : "Готово";
+  const archiveId = String(caseData.orderNumber || ("JARVIS-" + Date.now())).trim();
+  const clientMessageDraft = hasFinding
+    ? ("Автохирург: по автомобилю " + String(caseData.car || "").trim() + " подтверждено: " + String(caseData.finding || "").trim() + ". Доказательство: " + String(caseData.evidence || "").trim() + ". Рекомендация: " + String(caseData.recommendation || "").trim() + ". Статус: " + workflowStatus + ".")
+    : ("Автохирург: диагностика автомобиля " + String(caseData.car || "").trim() + " выполнена. Статус: " + workflowStatus + ".");
+  const seoCaseDraft = {
+    title: String(caseData.car || "Автомобиль").trim() + ": " + String(caseData.complaint || "диагностический кейс").trim(),
+    question: String(caseData.complaint || "").trim(),
+    short_answer: hasFinding ? ("Подтверждено: " + String(caseData.finding || "").trim()) : "Диагностика завершена без публикации неподтверждённых выводов.",
+    symptoms: String(caseData.complaint || "").trim(),
+    proof: String(caseData.evidence || "").trim(),
+    repair: String(caseData.repairResult || caseData.recommendation || "").trim(),
+    publish_ready: Boolean(finalCheck && hasFinding && populatedPoints === 12),
+    requires_human_review: true
+  };
+  const exported = {
+    ok: true,
+    schema: "avtohirurg.diagnostic.v1",
+    exported_at: new Date().toISOString(),
+    archive: { id: archiveId, status: workflowStatus, diagnostic_points: populatedPoints, media_url: String(caseData.mediaUrl || "").trim() },
+    analytics: { diagnostic_complete: populatedPoints === 12, fault_confirmed: hasFinding, repair_approved: repairApproved, repair_completed: hasRepair, control_completed: hasControl, final_check: finalCheck, handed_over: handedOver },
+    client_message: { draft: clientMessageDraft, requires_human_approval: true, sent: false },
+    seo_case: seoCaseDraft,
+    case: { ...caseData, diagnostic, workflowStatus }
+  };
   const webhookUrl = String(process.env.N8N_DIAGNOSTIC_WEBHOOK_URL || "").trim();
   const webhookToken = String(process.env.DIAGNOSTIC_WEBHOOK_TOKEN || "").trim();
   if (!webhookToken) return res.json({ ...exported, automation: { configured: true, delivered: false, error: "auth_not_configured" } });
@@ -1049,7 +1084,20 @@ app.post("/api/diagnostic/export", async (req, res) => {
     const timer = setTimeout(() => controller.abort(), 5000);
     const response = await fetch(webhookUrl, { method: "POST", headers: { "content-type": "application/json", "x-avtohirurg-token": String(process.env.DIAGNOSTIC_WEBHOOK_TOKEN || "") }, body: JSON.stringify(exported), signal: controller.signal });
     clearTimeout(timer);
-    return res.json({ ...exported, automation: { configured: true, delivered: response.ok, status: response.status } });
+    let pdf = { generated: false };
+    if (response.ok && populatedPoints === 12 && finalCheck) {
+      try {
+        const pdfTask = routeTranscriptTask("Сформируй диагностический PDF", { ...caseData, diagnostic });
+        if (pdfTask?.name === "generate_client_diagnostic_pdf") {
+          const pdfOutput = await executeTool(pdfTask.name, pdfTask.args);
+          const pdfResource = extractPdfResource(pdfOutput);
+          pdf = { generated: Boolean(pdfResource), resource: pdfResource || null };
+        }
+      } catch (pdfError) {
+        pdf = { generated: false, error: "pdf_generation_failed" };
+      }
+    }
+    return res.json({ ...exported, automation: { configured: true, delivered: response.ok, status: response.status }, pdf });
   } catch (error) {
     return res.json({ ...exported, automation: { configured: true, delivered: false, error: error.name === "AbortError" ? "timeout" : "delivery_failed" } });
   }
