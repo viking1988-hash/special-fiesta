@@ -1029,7 +1029,7 @@ app.post("/api/route-transcript", async (req, res) => {
   }
 });
 
-app.post("/api/diagnostic/export", (req, res) => {
+app.post("/api/diagnostic/export", async (req, res) => {
   const origin = req.get("origin");
   const host = req.get("host");
   if (origin && origin !== `https://${host}`) return res.status(403).json({ error: "Unexpected request origin" });
@@ -1039,12 +1039,18 @@ app.post("/api/diagnostic/export", (req, res) => {
     const n = i + 1;
     return ["p" + n, { result: String(caseData["diagnostic_p" + n + "_result"] || "").trim(), evidence: String(caseData["diagnostic_p" + n + "_evidence"] || "").trim() }];
   }));
-  return res.json({
-    ok: true,
-    schema: "avtohirurg.diagnostic.v1",
-    exported_at: new Date().toISOString(),
-    case: { ...caseData, diagnostic }
-  });
+  const exported = { ok: true, schema: "avtohirurg.diagnostic.v1", exported_at: new Date().toISOString(), case: { ...caseData, diagnostic } };
+  const webhookUrl = String(process.env.N8N_DIAGNOSTIC_WEBHOOK_URL || "").trim();
+  if (!webhookUrl) return res.json({ ...exported, automation: { configured: false, delivered: false } });
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    const response = await fetch(webhookUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(exported), signal: controller.signal });
+    clearTimeout(timer);
+    return res.json({ ...exported, automation: { configured: true, delivered: response.ok, status: response.status } });
+  } catch (error) {
+    return res.json({ ...exported, automation: { configured: true, delivered: false, error: error.name === "AbortError" ? "timeout" : "delivery_failed" } });
+  }
 });
 
 app.get("/api/diagnostic/pdf-self-test", async (_req, res) => {
