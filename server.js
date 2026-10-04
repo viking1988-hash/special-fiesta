@@ -1045,7 +1045,7 @@ app.post("/api/diagnostic/export", async (req, res) => {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 5000);
-    const response = await fetch(webhookUrl, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(exported), signal: controller.signal });
+    const response = await fetch(webhookUrl, { method: "POST", headers: { "content-type": "application/json", "x-avtohirurg-token": String(process.env.DIAGNOSTIC_WEBHOOK_TOKEN || "") }, body: JSON.stringify(exported), signal: controller.signal });
     clearTimeout(timer);
     return res.json({ ...exported, automation: { configured: true, delivered: response.ok, status: response.status } });
   } catch (error) {
