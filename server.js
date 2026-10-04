@@ -4,9 +4,33 @@ import fs from "node:fs";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import WebSocket from "ws";
+import pg from "pg";
+const { Pool } = pg;
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
+const db = process.env.DATABASE_URL ? new Pool({ connectionString: process.env.DATABASE_URL, ssl: false, max: 5 }) : null;
+async function initOpsDb() {
+  if (!db) return;
+  await db.query(`CREATE TABLE IF NOT EXISTS jarvis_cases (
+    id text PRIMARY KEY, vin text, plate text, car text, mileage text, status text NOT NULL,
+    complaint text, finding text, evidence text, recommendation text, approved_amount text,
+    approval_ref text, repair_result text, control_check text, media_url text, next_service text,
+    warranty text, client_handover text, payload jsonb NOT NULL, created_at timestamptz DEFAULT now(),
+    updated_at timestamptz DEFAULT now()
+  )`);
+  await db.query(`CREATE INDEX IF NOT EXISTS jarvis_cases_vehicle_idx ON jarvis_cases(vin, plate)`);
+  await db.query(`CREATE TABLE IF NOT EXISTS jarvis_parts (
+    id bigserial PRIMARY KEY, case_id text REFERENCES jarvis_cases(id) ON DELETE CASCADE,
+    part_name text NOT NULL, availability text DEFAULT 'unknown', supplier text, price numeric DEFAULT 0,
+    eta text, created_at timestamptz DEFAULT now()
+  )`);
+  await db.query(`CREATE TABLE IF NOT EXISTS jarvis_followups (
+    id bigserial PRIMARY KEY, case_id text REFERENCES jarvis_cases(id) ON DELETE CASCADE,
+    due_at timestamptz, reason text NOT NULL, status text DEFAULT 'planned', created_at timestamptz DEFAULT now()
+  )`);
+}
+initOpsDb().catch(e => console.error("[OPS_DB_INIT]", e.message));
 app.use(express.json({ limit: "2mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
@@ -1078,6 +1102,26 @@ app.post("/api/diagnostic/export", async (req, res) => {
     seo_case: seoCaseDraft,
     case: { ...caseData, diagnostic, workflowStatus }
   };
+  if (db) {
+    try {
+      await db.query(`INSERT INTO jarvis_cases
+        (id,vin,plate,car,mileage,status,complaint,finding,evidence,recommendation,approved_amount,approval_ref,repair_result,control_check,media_url,next_service,warranty,client_handover,payload,updated_at)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,now())
+        ON CONFLICT (id) DO UPDATE SET vin=EXCLUDED.vin,plate=EXCLUDED.plate,car=EXCLUDED.car,mileage=EXCLUDED.mileage,status=EXCLUDED.status,
+        complaint=EXCLUDED.complaint,finding=EXCLUDED.finding,evidence=EXCLUDED.evidence,recommendation=EXCLUDED.recommendation,
+        approved_amount=EXCLUDED.approved_amount,approval_ref=EXCLUDED.approval_ref,repair_result=EXCLUDED.repair_result,
+        control_check=EXCLUDED.control_check,media_url=EXCLUDED.media_url,next_service=EXCLUDED.next_service,warranty=EXCLUDED.warranty,
+        client_handover=EXCLUDED.client_handover,payload=EXCLUDED.payload,updated_at=now()`,
+        [archiveId,String(caseData.vin||""),String(caseData.plate||""),String(caseData.car||""),String(caseData.mileage||""),workflowStatus,
+         String(caseData.complaint||""),String(caseData.finding||""),String(caseData.evidence||""),String(caseData.recommendation||""),
+         String(caseData.approvedAmount||""),String(caseData.approvalRef||""),String(caseData.repairResult||""),String(caseData.controlCheck||""),
+         String(caseData.mediaUrl||""),String(caseData.nextService||""),String(caseData.warranty||""),String(caseData.clientHandover||""),JSON.stringify(exported)]);
+      if (String(caseData.nextService || "").trim()) {
+        const exists = await db.query("SELECT 1 FROM jarvis_followups WHERE case_id=$1 AND reason=$2 LIMIT 1",[archiveId,String(caseData.nextService).trim()]);
+        if (!exists.rowCount) await db.query("INSERT INTO jarvis_followups(case_id,reason) VALUES($1,$2)",[archiveId,String(caseData.nextService).trim()]);
+      }
+    } catch (e) { console.error("[OPS_DB_SAVE]", e.message); }
+  }
   const webhookUrl = String(process.env.N8N_DIAGNOSTIC_WEBHOOK_URL || "").trim();
   const webhookToken = String(process.env.DIAGNOSTIC_WEBHOOK_TOKEN || "").trim();
   if (!webhookToken) return res.json({ ...exported, automation: { configured: true, delivered: false, error: "auth_not_configured" } });
@@ -1134,6 +1178,40 @@ app.get("/api/diagnostic/pdf-self-test", async (_req, res) => {
   } catch (error) {
     return res.status(500).json({ ok: false, error: error.message });
   }
+});
+
+
+app.get("/api/ops/cases", async (req,res) => {
+  if (!db) return res.status(503).json({ok:false,error:"database_not_configured"});
+  const status=String(req.query.status||"").trim();
+  const q=status ? await db.query("SELECT id,car,plate,vin,mileage,status,complaint,finding,next_service,warranty,updated_at FROM jarvis_cases WHERE status=$1 ORDER BY updated_at DESC LIMIT 200",[status])
+                 : await db.query("SELECT id,car,plate,vin,mileage,status,complaint,finding,next_service,warranty,updated_at FROM jarvis_cases ORDER BY updated_at DESC LIMIT 200");
+  res.json({ok:true,cases:q.rows});
+});
+app.get("/api/ops/vehicle", async (req,res) => {
+  if (!db) return res.status(503).json({ok:false,error:"database_not_configured"});
+  const key=String(req.query.q||"").trim(); if(!key) return res.status(400).json({ok:false,error:"query_required"});
+  const q=await db.query("SELECT * FROM jarvis_cases WHERE vin=$1 OR plate=$1 ORDER BY updated_at DESC LIMIT 50",[key]);
+  res.json({ok:true,visits:q.rows});
+});
+app.post("/api/ops/parts", async (req,res) => {
+  if (!db) return res.status(503).json({ok:false,error:"database_not_configured"});
+  const b=req.body||{}; if(!b.case_id||!b.part_name) return res.status(400).json({ok:false,error:"case_id_and_part_name_required"});
+  const q=await db.query("INSERT INTO jarvis_parts(case_id,part_name,availability,supplier,price,eta) VALUES($1,$2,$3,$4,$5,$6) RETURNING *",
+    [String(b.case_id),String(b.part_name),String(b.availability||"unknown"),String(b.supplier||""),Number(b.price||0),String(b.eta||"")]);
+  res.json({ok:true,part:q.rows[0]});
+});
+app.get("/api/ops/dashboard", async (_req,res) => {
+  if (!db) return res.status(503).json({ok:false,error:"database_not_configured"});
+  const by=await db.query("SELECT status,count(*)::int count FROM jarvis_cases GROUP BY status ORDER BY status");
+  const k=await db.query(`SELECT count(*)::int total,
+    count(*) FILTER (WHERE finding<>'')::int faults,
+    count(*) FILTER (WHERE approval_ref<>'')::int approved,
+    count(*) FILTER (WHERE repair_result<>'')::int repaired,
+    count(*) FILTER (WHERE client_handover<>'')::int handed_over
+    FROM jarvis_cases`);
+  const follow=await db.query("SELECT count(*)::int planned FROM jarvis_followups WHERE status='planned'");
+  res.json({ok:true,kpi:k.rows[0],by_status:by.rows,followups:follow.rows[0].planned});
 });
 
 app.get("/health", (_req, res) =>
