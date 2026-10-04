@@ -1040,7 +1040,7 @@ app.post("/api/diagnostic/export", async (req, res) => {
     return ["p" + n, { result: String(caseData["diagnostic_p" + n + "_result"] || "").trim(), evidence: String(caseData["diagnostic_p" + n + "_evidence"] || "").trim() }];
   }));
   const exported = { ok: true, schema: "avtohirurg.diagnostic.v1", exported_at: new Date().toISOString(), case: { ...caseData, diagnostic } };
-  const webhookUrl = String(process.env.N8N_DIAGNOSTIC_WEBHOOK_URL || "").trim();
+  const webhookUrl = String(process.env.N8N_DIAGNOSTIC_WEBHOOK_URL || "").trim();\n  const webhookToken = String(process.env.DIAGNOSTIC_WEBHOOK_TOKEN || "").trim();\n  if (!webhookToken) return res.json({ ...exported, automation: { configured: true, delivered: false, error: "auth_not_configured" } });
   if (!webhookUrl) return res.json({ ...exported, automation: { configured: false, delivered: false } });
   try {
     const controller = new AbortController();
