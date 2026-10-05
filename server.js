@@ -32,7 +32,8 @@ async function initOpsDb() {
 }
 initOpsDb().catch(e => console.error("[OPS_DB_INIT]", e.message));
 app.use(express.json({ limit: "2mb" }));
-app.use(express.static(path.join(__dirname, "public")));
+app.use((req,res,next)=>{if(req.path==="/"||req.path==="/owner.html"){res.set("Cache-Control","no-store, no-cache, must-revalidate, proxy-revalidate");res.set("Pragma","no-cache");res.set("Expires","0");}next();});
+app.use(express.static(path.join(__dirname, "public"),{etag:false,maxAge:0}));
 
 const JARVIS_CORE = fs.readFileSync(
   path.join(__dirname, "jarvis_core.md"),
