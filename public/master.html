@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Автохирург — Мастер</title>
+<style>
+body{font-family:Arial,sans-serif;background:#0d0f12;color:#fff;display:grid;place-items:center;min-height:100vh;margin:0}.eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:#777}.hint{color:#888;font-size:14px;margin:6px 0 20px}
+.card{width:min(680px,90vw);padding:32px;border:1px solid #333;border-radius:20px;background:#1a1a1a;text-align:center}
+button{font-size:20px;padding:16px 28px;border:0;border-radius:12px;cursor:pointer}
+button:disabled{opacity:.5}.status{margin:18px 0;color:#aaa;min-height:24px}
+#log{white-space:pre-wrap;text-align:left;background:#0b0b0b;padding:16px;border-radius:12px;min-height:100px;line-height:1.5}.tool{display:none}.result{margin:8px 0;padding:12px 14px;background:#151515;border:1px solid #262626;border-radius:12px}.command{color:#bbb;margin-top:12px}.approval{margin:10px 0;padding:12px 14px;background:#211d13;border:1px solid #4a3d1c;border-radius:12px}.error{margin:10px 0;padding:12px 14px;background:#241515;border:1px solid #4a2222;border-radius:12px}.pdf{margin:10px 0;padding:14px;background:#121922;border:1px solid #26374a;border-radius:12px}.pdf a{display:inline-block;margin-top:8px;color:#8fc4ff;font-weight:700;text-decoration:none}.quick{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:0 0 16px}.quick button{font-size:14px;padding:11px 10px;background:#24272c;color:#eee;border:1px solid #363a40}.quick button:hover{background:#2d3137}.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:4px 0 18px}.flow span{font-size:11px;color:#8b9098;padding:7px 3px;border-top:2px solid #34383e}.flow span:first-child{border-top-color:#55d187}.case{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 14px}.case input{box-sizing:border-box;width:100%;background:#111317;color:#fff;border:1px solid #34383e;border-radius:10px;padding:11px 12px;font-size:14px}.case input::placeholder{color:#686e76}.case .wide{grid-column:1/-1}.diag-point{display:grid;grid-template-columns:28px minmax(150px,.8fr) 1fr 1fr;gap:6px;align-items:center;margin:6px 0;padding:8px;border:1px solid #292d32;border-radius:10px}.diag-point.complete{border-color:#315c42}.diag-point.incomplete{border-color:#554628}.diag-toggle{display:none;width:100%;text-align:left;background:#171a1e;color:#ddd;border:1px solid #30353b;font-size:13px;padding:11px 12px;border-radius:10px}.diag-toggle .count{float:right;color:#888}.diag-point strong{color:#777;font-size:12px}.diag-label{text-align:left;color:#c5c9cf;font-size:12px;font-weight:700}.diag-status{display:flex;gap:4px;grid-column:3/5}.diag-status button{font-size:11px;padding:6px 8px;background:#20242a;color:#bbb;border:1px solid #343a42}.diag-status button.active{border-color:#55d187;color:#fff}.diag-status button[data-value="Неисправность"].active{border-color:#ff6b6b}.diag-evidence-warning{display:none;grid-column:3/5;font-size:11px;color:#ff9b72}.diag-point.incomplete .diag-evidence-warning{display:block}@media(max-width:520px){.diag-toggle{display:block}.diag-point{grid-template-columns:24px 1fr}.diag-label{grid-column:2}.diag-status{grid-column:2;flex-wrap:wrap}.diag-evidence-warning{grid-column:2}.diag-point input{grid-column:2}.diag-point input:last-child{grid-column:2}#diagnostic12.collapsed .diag-point{display:none}}.case textarea{box-sizing:border-box;width:100%;min-height:72px;resize:vertical;background:#111317;color:#fff;border:1px solid #34383e;border-radius:10px;padding:11px 12px;font-size:14px}.case textarea::placeholder{color:#686e76}.case select{box-sizing:border-box;width:100%;background:#111317;color:#fff;border:1px solid #34383e;border-radius:10px;padding:11px 12px;font-size:14px}.case-actions{display:flex;gap:8px;margin:0 0 14px}.case-actions button{flex:1;font-size:13px;padding:10px;background:#181b1f;color:#ddd;border:1px solid #34383e}.primary-action{background:#f2f2f2!important;color:#111!important;font-weight:700}.step-title{grid-column:1/-1;text-align:left;font-weight:700;margin-top:8px;padding:9px 2px;border-bottom:1px solid #2c3035}.step-title small{display:block;color:#777;font-weight:400;margin-top:3px}.progress{height:6px;background:#24272c;border-radius:99px;overflow:hidden;margin:-6px 0 16px}.progress i{display:block;height:100%;width:0;background:#55d187;transition:width .2s}.case-meta{display:flex;justify-content:space-between;gap:10px;color:#777;font-size:11px;margin:-6px 0 12px}.case .invalid{border-color:#9a4f4f}.case .valid{border-color:#315c42}.consent{grid-column:1/-1;display:flex;align-items:flex-start;gap:9px;text-align:left;color:#aaa;font-size:12px;padding:9px 2px}.consent input{width:auto;margin-top:2px}@media(max-width:520px){.flow{grid-template-columns:1fr}.flow span{border-top:0;border-left:2px solid #34383e;text-align:left;padding-left:9px}.flow span:first-child{border-left-color:#55d187}}.quick button:disabled{opacity:.35;cursor:not-allowed}.state{display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px}.dot{width:9px;height:9px;border-radius:50%;background:#666}.dot.online{background:#55d187;box-shadow:0 0 0 4px rgba(85,209,135,.1)}.dot.busy{background:#e2b65c}.dot.error{background:#e26d6d}.ops-tabs{display:flex;gap:8px;margin:0 0 16px}.ops-tabs button,.ops-link{flex:1;font-size:13px;padding:10px;background:#181b1f;color:#ddd;border:1px solid #34383e;border-radius:10px;text-decoration:none;text-align:center}.ops-panel{margin:0 0 18px;text-align:left}.ops-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.metric,.queue-card{background:#111317;border:1px solid #2d3238;border-radius:10px;padding:10px}.metric b{display:block;font-size:22px;margin-top:4px}.queue{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-top:10px}.queue-card strong{display:block}.ops-search{display:flex;gap:7px;margin:10px 0}.ops-search input{flex:1;background:#111317;color:#fff;border:1px solid #34383e;border-radius:10px;padding:10px}.ops-search button{font-size:13px;padding:10px}.visit{padding:9px;border-bottom:1px solid #292d32;font-size:12px}.hidden{display:none}@media(max-width:520px){.quick{grid-template-columns:1fr}.card{padding:22px}.ops-grid{grid-template-columns:1fr}.queue{grid-template-columns:1fr}}
+</style></head>
+<body><div class="card">
+<div class="eyebrow">Автохирург</div><h1>Рабочее место мастера</h1><p class="hint">Приём автомобиля, диагностика, согласование, ремонт и выдача</p>
+<div class="ops-tabs"><a href="/master.html" class="ops-link">Мастер</a><a href="/owner.html" class="ops-link">Владелец</a></div>
+<div id="ownerPanel" class="ops-panel hidden"><div class="ops-grid"><div class="metric">Заказ-наряды<b id="kpiTotal">0</b></div><div class="metric">Согласовано<b id="kpiApproved">0</b></div><div class="metric">Выдано<b id="kpiHanded">0</b></div></div><div id="queue" class="queue"></div><div class="ops-search"><input id="vehicleSearch" placeholder="VIN или госномер"><button type="button" id="vehicleSearchBtn">История</button></div><div id="vehicleHistory"></div></div>
+<button id="start" type="button" aria-label="Запустить Jarvis">🎙 Включить голосового помощника</button>
+<div id="status" class="status state"><span id="stateDot" class="dot"></span><span id="stateText">Готов к запуску</span></div><div class="flow"><span>1. Жалоба</span><span>2. Проверка</span><span>3. Доказательство</span><span>4. Вывод</span><span>5. Документ</span></div><div class="case"><div class="step-title">1. Приём автомобиля<small>Автомобиль, клиент, заказ-наряд и жалоба</small></div><input id="car" placeholder="Автомобиль, например Tiguan"><input id="clientName" placeholder="Клиент"><input id="phone" inputmode="tel" placeholder="Телефон клиента"><input id="orderNumber" placeholder="Заказ-наряд / номер обращения"><input id="masterName" placeholder="Мастер"><input id="arrivalDate" type="datetime-local" aria-label="Дата и время приёмки"><input id="completionDate" type="datetime-local" aria-label="Дата и время завершения"><input id="laborHours" inputmode="decimal" placeholder="Нормо-часы / фактическое время работ"><input id="partsUsed" class="wide" placeholder="Установленные запчасти / расходники"><input id="approvedAmount" inputmode="decimal" placeholder="Согласовано с клиентом, ₽"><input id="laborAmount" inputmode="decimal" placeholder="Работы, ₽"><input id="partsAmount" inputmode="decimal" placeholder="Запчасти, ₽"><input id="approvalRef" class="wide" placeholder="Подтверждение согласования: звонок / сообщение / номер документа"><input id="plate" placeholder="Госномер"><input id="mileage" placeholder="Пробег"><input id="vin" placeholder="VIN"><input id="complaint" class="wide" placeholder="Жалоба клиента"><textarea id="evidence" class="wide" placeholder="Доказательство: что измерили, увидели или воспроизвели"></textarea><div class="step-title">2. Диагностика<small>Пройдите 12 пунктов и зафиксируйте доказательства</small></div><div class="wide" id="diagnostic12"><button id="diagnosticToggle" class="diag-toggle" type="button">12 пунктов диагностики <span class="count" id="diagnosticCount">0/12</span></button><div class="hint" style="margin:4px 0 8px">12 пунктов диагностики — фиксируйте только фактически проверенное</div><div class="diag-point"><strong>1.</strong><label class="diag-label">Жалоба и условия</label><div class="diag-status" data-point="1"><button type="button" data-value="Норма">Норма</button><button type="button" data-value="Неисправность">Неисправность</button><button type="button" data-value="">Не проверено</button></div><input id="diagnostic_p1_result" placeholder="Результат проверки"><input id="diagnostic_p1_evidence" placeholder="Доказательство / измерение"><span class="diag-evidence-warning">Подтвердите неисправность: измерение, фото/видео или воспроизводимый тест</span></div><div class="diag-point"><strong>2.</strong><label class="diag-label">Визуальный осмотр</label><div class="diag-status" data-point="2"><button type="button" data-value="Норма">Норма</button><button type="button" data-value="Неисправность">Неисправность</button><button type="button" data-value="">Не проверено</button></div><input id="diagnostic_p2_result" placeholder="Результат проверки"><input id="diagnostic_p2_evidence" placeholder="Доказательство / измерение"><span class="diag-evidence-warning">Подтвердите неисправность: измерение, фото/видео или воспроизводимый тест</span></div><div class="diag-point"><strong>3.</strong><label class="diag-label">Жидкости</label><div class="diag-status" data-point="3"><button type="button" data-value="Норма">Норма</button><button type="button" data-value="Неисправность">Неисправность</button><button type="button" data-value="">Не проверено</button></div><input id="diagnostic_p3_result" placeholder="Результат проверки"><input id="diagnostic_p3_evidence" placeholder="Доказательство / измерение"><span class="diag-evidence-warning">Подтвердите неисправность: измерение, фото/видео или воспроизводимый тест</span></div><div class="diag-point"><strong>4.</strong><label class="diag-label">Люфты и крепления</label><div class="diag-status" data-point="4"><button type="button" data-value="Норма">Норма</button><button type="button" data-value="Неисправность">Неисправность</button><button type="button" data-value="">Не проверено</button></div><input id="diagnostic_p4_result" placeholder="Результат проверки"><input id="diagnostic_p4_evidence" placeholder="Доказательство / измерение"><span class="diag-evidence-warning">Подтвердите неисправность: измерение, фото/видео или воспроизводимый тест</span></div><div class="diag-point"><strong>5.</strong><label class="diag-label">Колёса и шины</label><div class="diag-status" data-point="5"><button type="button" data-value="Норма">Норма</button><button type="button" data-value="Неисправность">Неисправность</button><button type="button" data-value="">Не проверено</button></div><input id="diagnostic_p5_result" placeholder="Результат проверки"><input id="diagnostic_p5_evidence" placeholder="Доказательство / измерение"><span class="diag-evidence-warning">Подтвердите неисправность: измерение, фото/видео или воспроизводимый тест</span></div><div class="diag-point"><strong>6.</strong><label class="diag-label">Тормоза</label><div class="diag-status" data-point="6"><button type="button" data-value="Норма">Норма</button><button type="button" data-value="Неисправность">Неисправность</button><button type="button" data-value="">Не проверено</button></div><input id="diagnostic_p6_result" placeholder="Результат проверки"><input id="diagnostic_p6_evidence" placeholder="Доказательство / измерение"><span class="diag-evidence-warning">Подтвердите неисправность: измерение, фото/видео или воспроизводимый тест</span></div><div class="diag-point"><strong>7.</strong><label class="diag-label">Подвеска</label><div class="diag-status" data-point="7"><button type="button" data-value="Норма">Норма</button><button type="button" data-value="Неисправность">Неисправность</button><button type="button" data-value="">Не проверено</button></div><input id="diagnostic_p7_result" placeholder="Результат проверки"><input id="diagnostic_p7_evidence" placeholder="Доказательство / измерение"><span class="diag-evidence-warning">Подтвердите неисправность: измерение, фото/видео или воспроизводимый тест</span></div><div class="diag-point"><strong>8.</strong><label class="diag-label">Рулевое управление</label><div class="diag-status" data-point="8"><button type="button" data-value="Норма">Норма</button><button type="button" data-value="Неисправность">Неисправность</button><button type="button" data-value="">Не проверено</button></div><input id="diagnostic_p8_result" placeholder="Результат проверки"><input id="diagnostic_p8_evidence" placeholder="Доказательство / измерение"><span class="diag-evidence-warning">Подтвердите неисправность: измерение, фото/видео или воспроизводимый тест</span></div><div class="diag-point"><strong>9.</strong><label class="diag-label">Привод и агрегаты</label><div class="diag-status" data-point="9"><button type="button" data-value="Норма">Норма</button><button type="button" data-value="Неисправность">Неисправность</button><button type="button" data-value="">Не проверено</button></div><input id="diagnostic_p9_result" placeholder="Результат проверки"><input id="diagnostic_p9_evidence" placeholder="Доказательство / измерение"><span class="diag-evidence-warning">Подтвердите неисправность: измерение, фото/видео или воспроизводимый тест</span></div><div class="diag-point"><strong>10.</strong><label class="diag-label">Компьютерная диагностика</label><div class="diag-status" data-point="10"><button type="button" data-value="Норма">Норма</button><button type="button" data-value="Неисправность">Неисправность</button><button type="button" data-value="">Не проверено</button></div><input id="diagnostic_p10_result" placeholder="Результат проверки"><input id="diagnostic_p10_evidence" placeholder="Доказательство / измерение"><span class="diag-evidence-warning">Подтвердите неисправность: измерение, фото/видео или воспроизводимый тест</span></div><div class="diag-point"><strong>11.</strong><label class="diag-label">Подтверждающий тест</label><div class="diag-status" data-point="11"><button type="button" data-value="Норма">Норма</button><button type="button" data-value="Неисправность">Неисправность</button><button type="button" data-value="">Не проверено</button></div><input id="diagnostic_p11_result" placeholder="Результат проверки"><input id="diagnostic_p11_evidence" placeholder="Доказательство / измерение"><span class="diag-evidence-warning">Подтвердите неисправность: измерение, фото/видео или воспроизводимый тест</span></div><div class="diag-point"><strong>12.</strong><label class="diag-label">Фото/видео и заключение</label><div class="diag-status" data-point="12"><button type="button" data-value="Норма">Норма</button><button type="button" data-value="Неисправность">Неисправность</button><button type="button" data-value="">Не проверено</button></div><input id="diagnostic_p12_result" placeholder="Результат проверки"><input id="diagnostic_p12_evidence" placeholder="Доказательство / измерение"><span class="diag-evidence-warning">Подтвердите неисправность: измерение, фото/видео или воспроизводимый тест</span></div></div><div class="step-title">3. Вывод и согласование<small>Только подтверждённая неисправность и зафиксированное согласование</small></div><textarea id="finding" class="wide" placeholder="Подтверждённая неисправность / вывод"></textarea><select id="urgency"><option value="">Срочность ремонта</option><option>Критично — эксплуатация нежелательна</option><option>Срочно — устранить в ближайшее время</option><option>Планово</option><option>Наблюдение</option></select><input id="recommendation" placeholder="Рекомендация по ремонту"><label class="consent"><input id="repairApproved" type="checkbox"> <span>Клиент согласовал предложенный ремонт</span></label><div class="step-title">4. Ремонт и контроль<small>После согласования: выполненные работы и контроль результата</small></div><textarea id="repairResult" class="wide" placeholder="Что выполнено при ремонте"></textarea><textarea id="controlCheck" class="wide" placeholder="Контрольная проверка после ремонта: результат"></textarea><input id="mediaUrl" class="wide" placeholder="Ссылка на фото/видео-доказательство"><input id="nextService" class="wide" placeholder="Следующий контроль / рекомендация, например через 10 000 км"><input id="warranty" class="wide" placeholder="Гарантия на выполненные работы"><textarea id="clientHandover" class="wide" placeholder="Что объяснили клиенту при выдаче автомобиля"></textarea><label class="consent"><input id="finalCheck" type="checkbox"> <span>Финальная контрольная проверка пройдена, жалоба устранена</span></label></div><div class="case-meta"><span id="caseCompleteness">Карта: 0%</span><span id="caseState">Черновик</span></div><div class="progress"><i id="caseProgress"></i></div><div class="case-actions"><button id="newCase" type="button">Новый автомобиль</button><button id="saveCase" class="primary-action" type="button">Сохранить диагностику</button></div><div class="quick"><button data-command="Сформируй заключение для клиента по результатам диагностики">Показать клиенту</button><button id="diagnosticPdf" data-command="Создай диагностический PDF по текущей карте">Заключение PDF</button></div><div id="log"><div class="hint">Нажмите «Запустить Jarvis» и говорите обычным языком.</div></div>
+</div>
+<script>
+let pc,dc,stream;
+const escapeHtml=(value)=>String(value??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+const statusEl=document.querySelector("#status"),stateDot=document.querySelector("#stateDot"),stateText=document.querySelector("#stateText"),log=document.querySelector("#log"),btn=document.querySelector("#start"),quickButtons=[...document.querySelectorAll(".quick button")],caseFields={clientName:document.querySelector("#clientName"),phone:document.querySelector("#phone"),orderNumber:document.querySelector("#orderNumber"),masterName:document.querySelector("#masterName"),arrivalDate:document.querySelector("#arrivalDate"),completionDate:document.querySelector("#completionDate"),car:document.querySelector("#car"),plate:document.querySelector("#plate"),mileage:document.querySelector("#mileage"),vin:document.querySelector("#vin"),complaint:document.querySelector("#complaint"),evidence:document.querySelector("#evidence"),finding:document.querySelector("#finding"),urgency:document.querySelector("#urgency"),recommendation:document.querySelector("#recommendation"),repairApproved:document.querySelector("#repairApproved"),repairResult:document.querySelector("#repairResult"),controlCheck:document.querySelector("#controlCheck"),mediaUrl:document.querySelector("#mediaUrl"),nextService:document.querySelector("#nextService"),warranty:document.querySelector("#warranty"),clientHandover:document.querySelector("#clientHandover"),finalCheck:document.querySelector("#finalCheck"),laborHours:document.querySelector("#laborHours"),partsUsed:document.querySelector("#partsUsed"),approvedAmount:document.querySelector("#approvedAmount"),laborAmount:document.querySelector("#laborAmount"),partsAmount:document.querySelector("#partsAmount"),approvalRef:document.querySelector("#approvalRef"),diagnostic_p1_result:document.querySelector("#diagnostic_p1_result"),diagnostic_p1_evidence:document.querySelector("#diagnostic_p1_evidence"),diagnostic_p2_result:document.querySelector("#diagnostic_p2_result"),diagnostic_p2_evidence:document.querySelector("#diagnostic_p2_evidence"),diagnostic_p3_result:document.querySelector("#diagnostic_p3_result"),diagnostic_p3_evidence:document.querySelector("#diagnostic_p3_evidence"),diagnostic_p4_result:document.querySelector("#diagnostic_p4_result"),diagnostic_p4_evidence:document.querySelector("#diagnostic_p4_evidence"),diagnostic_p5_result:document.querySelector("#diagnostic_p5_result"),diagnostic_p5_evidence:document.querySelector("#diagnostic_p5_evidence"),diagnostic_p6_result:document.querySelector("#diagnostic_p6_result"),diagnostic_p6_evidence:document.querySelector("#diagnostic_p6_evidence"),diagnostic_p7_result:document.querySelector("#diagnostic_p7_result"),diagnostic_p7_evidence:document.querySelector("#diagnostic_p7_evidence"),diagnostic_p8_result:document.querySelector("#diagnostic_p8_result"),diagnostic_p8_evidence:document.querySelector("#diagnostic_p8_evidence"),diagnostic_p9_result:document.querySelector("#diagnostic_p9_result"),diagnostic_p9_evidence:document.querySelector("#diagnostic_p9_evidence"),diagnostic_p10_result:document.querySelector("#diagnostic_p10_result"),diagnostic_p10_evidence:document.querySelector("#diagnostic_p10_evidence"),diagnostic_p11_result:document.querySelector("#diagnostic_p11_result"),diagnostic_p11_evidence:document.querySelector("#diagnostic_p11_evidence"),diagnostic_p12_result:document.querySelector("#diagnostic_p12_result"),diagnostic_p12_evidence:document.querySelector("#diagnostic_p12_evidence")};
+const caseCompleteness=document.querySelector("#caseCompleteness"),caseState=document.querySelector("#caseState"),caseProgress=document.querySelector("#caseProgress");
+const diagnosticPdfButton=document.querySelector("#diagnosticPdf");
+const diagnostic12=document.querySelector("#diagnostic12"),diagnosticToggle=document.querySelector("#diagnosticToggle"),diagnosticCount=document.querySelector("#diagnosticCount");
+if(matchMedia("(max-width:520px)").matches)diagnostic12.classList.add("collapsed");diagnosticToggle?.addEventListener("click",()=>diagnostic12.classList.toggle("collapsed"));
+const normalizeVin=v=>String(v||"").toUpperCase().replace(/\s+/g,"");
+const updateCaseQuality=()=>{
+ const vin=normalizeVin(caseFields.vin.value); caseFields.vin.value=vin;
+ const vinOk=!vin || /^[A-HJ-NPR-Z0-9]{17}$/.test(vin);
+ caseFields.vin.classList.toggle("invalid",!vinOk); caseFields.vin.classList.toggle("valid",!!vin&&vinOk);
+ const mileage=String(caseFields.mileage.value||"").replace(/[^0-9]/g,""); const mileageOk=!mileage || (+mileage>0&&+mileage<3000000);
+ caseFields.mileage.classList.toggle("invalid",!mileageOk); caseFields.mileage.classList.toggle("valid",!!mileage&&mileageOk);
+ const required=["car","complaint","evidence","finding"]; const filled=required.filter(k=>caseFields[k].value.trim()).length;
+ const diagnosticFilled=Array.from({length:12},(_,i)=>{const n=i+1,r=caseFields["diagnostic_p"+n+"_result"].value.trim(),e=caseFields["diagnostic_p"+n+"_evidence"].value.trim();return !!r&&(r==="Норма"||r==="Не проверено"||!!e)}).filter(Boolean).length; const diagnosticComplete=diagnosticFilled===12;
+ Array.from({length:12},(_,i)=>{const n=i+1,r=caseFields["diagnostic_p"+n+"_result"].value.trim(),e=caseFields["diagnostic_p"+n+"_evidence"].value.trim(),row=caseFields["diagnostic_p"+n+"_result"].closest(".diag-point");const needsEvidence=!!r&&r!=="Норма"&&r!=="Не проверено";const done=!!r&&(!needsEvidence||!!e);row?.classList.toggle("complete",done);row?.classList.toggle("incomplete",!!r&&!done);const evidenceInput=caseFields["diagnostic_p"+n+"_evidence"];evidenceInput.placeholder=needsEvidence?"Обязательно: измерение / фото / тест":"Доказательство / измерение (при необходимости)"}); if(diagnosticCount)diagnosticCount.textContent=diagnosticFilled+"/12";
+ const score=Math.round(filled/required.length*100); caseCompleteness.textContent="Карта: "+score+"%";caseProgress.style.width=score+"%";
+ const money=v=>{const n=Number.parseFloat(String(v||"").replace(/[^0-9.,-]/g,"").replace(",","."));return Number.isFinite(n)&&n>=0?n:0};
+ const approvedRub=money(caseFields.approvedAmount.value),actualRub=money(caseFields.laborAmount.value)+money(caseFields.partsAmount.value);
+ const approvalFingerprint=[caseFields.approvedAmount.value.trim(),caseFields.approvalRef.value.trim(),caseFields.finding.value.trim(),caseFields.recommendation.value.trim()].join("|"); const storedApprovalFingerprint=caseFields.repairApproved.dataset.fingerprint||""; if(caseFields.repairApproved.checked&&!storedApprovalFingerprint)caseFields.repairApproved.dataset.fingerprint=approvalFingerprint; if(caseFields.repairApproved.checked&&storedApprovalFingerprint&&storedApprovalFingerprint!==approvalFingerprint){caseFields.repairApproved.checked=false;caseFields.repairApproved.dataset.fingerprint="";} if(!caseFields.repairApproved.checked&&(caseFields.repairResult.value.trim()||caseFields.controlCheck.value.trim())){caseFields.repairResult.value="";caseFields.controlCheck.value="";caseFields.finalCheck.checked=false;}
+ const financialReady=caseFields.repairApproved.checked&&approvedRub>0&&caseFields.approvalRef.value.trim()&&actualRub<=approvedRub;
+ const approvalSummary=confirmedFault?(!caseFields.repairApproved.checked?"Ожидается согласие клиента":approvedRub<=0?"Укажите согласованную сумму":!caseFields.approvalRef.value.trim()?"Зафиксируйте подтверждение клиента":actualRub>approvedRub?"Фактическая сумма выше согласованной":"Согласование подтверждено"):"Сначала подтвердите неисправность";
+ const confirmedFault=Array.from({length:12},(_,i)=>caseFields["diagnostic_p"+(i+1)+"_result"].value.trim()==="Неисправность"&&caseFields["diagnostic_p"+(i+1)+"_evidence"].value.trim()).some(Boolean); const repairCanStart=confirmedFault&&financialReady;
+ const closeReady=repairCanStart&&caseFields.repairResult.value.trim()&&caseFields.controlCheck.value.trim();
+ const handoverReady=closeReady&&caseFields.finalCheck.checked&&caseFields.clientHandover.value.trim(); caseFields.clientHandover.disabled=!closeReady;
+ const warrantyRequired=actualRub>0; const warrantyReady=!warrantyRequired||caseFields.warranty.value.trim(); const partsReady=!caseFields.partsAmount.value.trim()||money(caseFields.partsAmount.value)===0||caseFields.partsUsed.value.trim(); const mediaRequired=confirmedFault; const mediaReady=!mediaRequired||caseFields.mediaUrl.value.trim(); const identityReady=caseFields.orderNumber.value.trim()&&caseFields.masterName.value.trim()&&caseFields.arrivalDate.value.trim(); const completionDateReady=!!caseFields.completionDate.value.trim(); const followupReady=handoverReady&&caseFields.nextService.value.trim()&&warrantyReady&&partsReady&&mediaReady&&identityReady&&completionDateReady; if(mediaRequired&&!mediaReady)caseFields.mediaUrl.classList.add("invalid");else caseFields.mediaUrl.classList.remove("invalid"); if(warrantyRequired&&!caseFields.warranty.value.trim())caseFields.warranty.classList.add("invalid");else caseFields.warranty.classList.remove("invalid"); if(handoverReady&&!caseFields.nextService.value.trim())caseFields.nextService.classList.add("invalid");else caseFields.nextService.classList.remove("invalid");
+ caseFields.repairApproved.disabled=!confirmedFault; caseFields.approvedAmount.disabled=!confirmedFault; caseFields.approvalRef.disabled=!confirmedFault; if(caseFields.repairApproved.checked)caseFields.repairApproved.dataset.fingerprint=approvalFingerprint; caseFields.repairResult.disabled=!repairCanStart; caseFields.controlCheck.disabled=!repairCanStart;
+ if(!confirmedFault){caseFields.repairApproved.checked=false;}
+ if(caseFields.finalCheck.checked&&!closeReady){caseFields.finalCheck.checked=false;logEvent("⚠️ Нельзя закрыть цикл: нужны согласование суммы, подтверждение клиента, выполненные работы и контрольная проверка.");}
+ caseFields.finalCheck.disabled=!closeReady;
+ const financialIssue=caseFields.repairApproved.checked&&!financialReady;
+ caseState.textContent=followupReady?"Цикл завершён":handoverReady&&!completionDateReady?"Укажите дату завершения":handoverReady&&!identityReady?"Заполните заказ, мастера и дату приёмки":handoverReady&&!mediaReady?"Добавьте фото/видео доказательство":handoverReady&&!partsReady?"Укажите установленные запчасти":handoverReady&&!warrantyReady?"Укажите гарантию":handoverReady&&!caseFields.nextService.value.trim()?"Назначьте следующий контроль":caseFields.finalCheck.checked&&!caseFields.clientHandover.value.trim()?"Нужна выдача клиенту":closeReady?"Готова к финальной проверке":confirmedFault&&!financialReady?"Нужно согласование клиента":financialIssue?"Нужно финансовое согласование":score===100&&vinOk&&mileageOk&&!diagnosticComplete?"12 пунктов: "+diagnosticFilled+"/12":score===100&&vinOk&&mileageOk?"Готова к заключению":filled?"Диагностика в работе":"Черновик";
+ if(confirmedFault&&!repairCanStart)caseState.title=approvalSummary;else caseState.title="";
+ return {vinOk,mileageOk,score,diagnosticFilled,diagnosticComplete};
+};
+const setQuickEnabled=()=>{updateCaseQuality();quickButtons.forEach(b=>b.disabled=false);if(diagnosticPdfButton)diagnosticPdfButton.title="Сформировать PDF из текущей диагностической карты";};
+setQuickEnabled(false);
+const CASE_KEY="avtohirurg_jarvis_case_v1";
+const saveCase=async()=>{const quality=updateCaseQuality();if(quality.score<100){logEvent("⚠️ Для готовой карты заполните автомобиль, жалобу, доказательство и подтверждённую неисправность.");return;}if(!quality.vinOk||!quality.mileageOk){logEvent("⚠️ Проверьте VIN и пробег перед сохранением.");return;}const data=Object.fromEntries(Object.entries(caseFields).map(([k,el])=>[k,el.type==="checkbox"?el.checked:el.value]));localStorage.setItem(CASE_KEY,JSON.stringify(data));try{const r=await fetch("/api/diagnostic/export",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({case:data})});const j=await r.json();if(!r.ok){logEvent("⚠️ Карта сохранена на устройстве. Сервер: "+(j.error||r.status));return;}logEvent("✅ Карта сохранена в базе Автохирурга. Статус: "+(j.archive?.status||"сохранено"));}catch(e){logEvent("⚠️ Карта сохранена на устройстве, но сервер временно недоступен.");}};
+const restoreCase=()=>{try{const data=JSON.parse(localStorage.getItem(CASE_KEY)||"{}");Object.entries(caseFields).forEach(([k,el])=>{if(data[k]!==undefined){if(el.type==="checkbox")el.checked=!!data[k];else if(data[k])el.value=data[k]}});}catch{}};
+const clearCase=()=>{Object.values(caseFields).forEach(el=>{if(el.type==="checkbox")el.checked=false;else el.value="";el.classList.remove("valid","invalid")});localStorage.removeItem(CASE_KEY);updateCaseQuality();log.replaceChildren();const hint=document.createElement("div");hint.className="hint";hint.textContent="Новая диагностика: заполните автомобиль и жалобу клиента.";log.appendChild(hint);};
+document.querySelector("#saveCase").addEventListener("click",saveCase);
+document.querySelector("#newCase").addEventListener("click",clearCase);
+document.querySelectorAll(".diag-status button").forEach(b=>b.addEventListener("click",()=>{const box=b.closest(".diag-status"),n=box.dataset.point,input=caseFields["diagnostic_p"+n+"_result"],value=b.dataset.value||"";input.value=value;box.querySelectorAll("button").forEach(x=>x.classList.toggle("active",x===b));input.dispatchEvent(new Event("input",{bubbles:true}));}));
+const syncDiagnosticStatus=()=>document.querySelectorAll(".diag-status").forEach(box=>{const v=caseFields["diagnostic_p"+box.dataset.point+"_result"].value.trim();box.querySelectorAll("button").forEach(b=>b.classList.toggle("active",(b.dataset.value||"")===v));});
+Object.values(caseFields).forEach(el=>{const persist=()=>{updateCaseQuality();if(dc?.readyState==="open")setQuickEnabled(true);const data=Object.fromEntries(Object.entries(caseFields).map(([k,x])=>[k,x.type==="checkbox"?x.checked:x.value]));localStorage.setItem(CASE_KEY,JSON.stringify(data));};el.addEventListener("input",persist);el.addEventListener("change",persist);
+ if(el===caseFields.repairApproved)el.addEventListener("change",()=>{if(el.checked)el.dataset.fingerprint=[caseFields.approvedAmount.value.trim(),caseFields.approvalRef.value.trim(),caseFields.finding.value.trim(),caseFields.recommendation.value.trim()].join("|");else el.dataset.fingerprint="";});});
+restoreCase();syncDiagnosticStatus();updateCaseQuality();
+
+const status=(t,state="")=>{stateText.textContent=t;stateDot.className="dot"+(state?" "+state:"");};
+const logEvent=t=>{
+ const line=document.createElement("div");
+ const v=String(t);
+ if(v.startsWith("🔧 ")) return;
+ if(v.startsWith("🎙 ")) {line.className="command";line.textContent="Вы: "+v.slice(3);}
+ else if(v.startsWith("✅ ")) {line.className="result";line.textContent=v.slice(2);}
+ else if(v.startsWith("⚠️ ")) {line.className="approval";line.textContent=v.slice(2);}
+ else if(v.startsWith("❌ ")) {line.className="error";line.textContent="Ошибка: "+v.slice(2);}
+ else {line.textContent=v;}
+ log.appendChild(line);
+};
+const showPdfResult=(raw)=>{
+ try{
+  const parsed=typeof raw==="string"?JSON.parse(raw):raw;
+  const item=parsed?.content?.find?.(x=>x?.type==="resource"&&x?.resource?.blob);
+  if(!item) return false;
+  let filename="diagnostic.pdf"; try{filename=decodeURIComponent((item.resource.uri||"diagnostic.pdf").split(":").pop())}catch{} filename=filename.replace(/[\\/:*?"<>|]/g,"_").slice(0,120)||"diagnostic.pdf";
+  const box=document.createElement("div"); box.className="pdf";
+  const title=document.createElement("div"); title.textContent="Диагностический PDF создан";
+  const a=document.createElement("a"); a.href="data:"+(item.resource.mimeType||"application/pdf")+";base64,"+item.resource.blob; a.download=filename; a.target="_blank"; a.rel="noopener"; a.textContent="📄 Открыть / скачать "+filename;
+  box.appendChild(title); box.appendChild(a); log.appendChild(box); return true;
+ }catch(e){return false;}
+};
+const waitIce=()=>new Promise(resolve=>{
+ if(pc.iceGatheringState==="complete") return resolve();
+ const done=()=>{if(pc.iceGatheringState==="complete"){pc.removeEventListener("icegatheringstatechange",done);resolve()}};
+ pc.addEventListener("icegatheringstatechange",done);
+});
+async function start(){
+ try{
+  btn.disabled=true; status("Запрашиваю микрофон…","busy");
+  stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
+  const audioTrack=stream.getAudioTracks()[0];
+  if(!audioTrack) throw new Error("Микрофон не вернул аудиодорожку");
+  pc=new RTCPeerConnection();
+  const audio=document.createElement("audio"); audio.autoplay=true; audio.playsInline=true; document.body.appendChild(audio);
+  pc.ontrack=e=>{audio.srcObject=e.streams[0]; audio.play().catch(err=>{
+   const msg=err?.message||String(err);
+   if(/not allowed|denied permission|user agent|platform|NotAllowedError/i.test(msg)){
+    logEvent("ℹ️ iPhone временно заблокировал автозапуск звука. Коснитесь экрана и продолжайте говорить.");
+   }else{ logEvent("⚠️ Audio: "+msg); }
+  })};
+  const audioTransceiver=pc.addTransceiver("audio",{direction:"sendrecv"});
+  await audioTransceiver.sender.replaceTrack(audioTrack);
+  dc=pc.createDataChannel("oai-events");
+  let inputTranscript="";
+  let transcriptTimer=null;
+  let lastRoutedTranscript="";
+  let pendingApprovalId="";
+  const speakResult=(content)=>{
+   if(dc.readyState==="open"){
+    dc.send(JSON.stringify({
+     type:"session.commentary.append",
+     event_id:"browser_result_"+crypto.randomUUID(),
+     delegation_id:null,
+     content
+    }));
+   }
+  };
+  const routeTranscript=async()=>{
+   const text=inputTranscript.trim();
+   if(!text || text===lastRoutedTranscript) return;
+   lastRoutedTranscript=text;
+   // Treat each debounce as a completed command. This prevents words from a
+   // previous utterance (for example "Стоп") from re-triggering an old tool.
+   inputTranscript="";
+   logEvent("🎙 "+text);
+   try{
+    if(/^(джарвис[ ,]*)?(стоп|остановись|останови|хватит|замолчи)[.! ]*$/i.test(text)){
+     if(audio) { audio.muted=true; audio.pause(); audio.currentTime=0; }
+     setTimeout(()=>{ if(audio){ audio.muted=false; audio.play().catch(err=>{ const msg=err?.message||String(err); if(!/not allowed|denied permission|user agent|platform|NotAllowedError/i.test(msg)) logEvent("⚠️ Audio: "+msg); }); } },350);
+     logEvent("⏹ Ответ Jarvis остановлен");
+     return;
+    }
+    if(pendingApprovalId && /^(джарвис[ ,]*)?(подтверждаю|подтвердить|да подтверждаю)/i.test(text)){
+     const r=await fetch("/api/approval/confirm",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({approval_id:pendingApprovalId})
+     });
+     const data=await r.json();
+     if(!r.ok) throw new Error(data.error||"Approval failed");
+     pendingApprovalId="";
+     const message=data.result||"Подтверждение принято.";
+     logEvent("✅ "+message);
+     speakResult(message);
+     return;
+    }
+    if(pendingApprovalId && /^(джарвис[ ,]*)?(отмена|отменить|не подтверждаю)/i.test(text)){
+     await fetch("/api/approval/cancel",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({approval_id:pendingApprovalId})
+     });
+     pendingApprovalId="";
+     logEvent("⛔ Действие отменено.");
+     speakResult("Действие отменено.");
+     return;
+    }
+    const r=await fetch("/api/route-transcript",{
+     method:"POST",
+     headers:{"Content-Type":"application/json"},
+     body:JSON.stringify({text,case:Object.fromEntries(Object.entries(caseFields).map(([k,el])=>[k,el.type==="checkbox"?el.checked:el.value]))})
+    });
+    if(r.status===204) return;
+    const data=await r.json();
+    if(!r.ok) throw new Error(data.error||"Backend task failed");
+    if(data.ok){
+     if(data.approval_required){
+      pendingApprovalId=data.approval_id;
+      logEvent("⚠️ "+data.result);
+      speakResult(data.result+" Скажите: подтверждаю, или: отмена.");
+      return;
+     }
+     if(data.tool) logEvent("🔧 "+data.tool);
+     const rawResult=typeof data.result==="string" ? data.result : JSON.stringify(data.result);
+     const hasEmbeddedResource=data.tool==="generate_client_diagnostic_pdf" || /"type"\s*:\s*"resource"/i.test(rawResult) || /"blob"\s*:/i.test(rawResult);
+     if(hasEmbeddedResource){
+      if(!showPdfResult(data.result)) logEvent("✅ Диагностический PDF создан.");
+      speakResult("Диагностический PDF успешно создан.");
+     }else{
+      logEvent("✅ "+rawResult);
+      const voiceResult=rawResult.length>700 ? rawResult.slice(0,700)+"…" : rawResult;
+      speakResult("Результат проверки: "+voiceResult);
+     }
+    }
+   }catch(error){
+    logEvent("❌ "+(error.message||String(error)));
+   }
+  };
+  dc.onmessage=e=>{
+   try{
+    const ev=JSON.parse(e.data);
+    if(ev.type==="session.started"){status("Jarvis онлайн — говорите","online");btn.dataset.busy="0";btn.textContent="🎙 Jarvis включён";setQuickEnabled(true);}
+    if(ev.type==="session.input_transcript.delta"){
+     inputTranscript+=(ev.delta||"");
+     clearTimeout(transcriptTimer);
+     transcriptTimer=setTimeout(routeTranscript,900);
+    }
+    if(ev.type==="session.output_transcript.delta"){
+     // Assistant transcript is intentionally not routed to the task backend.
+    }
+    if(ev.type==="error"){status("Ошибка голосового соединения","error");logEvent("❌ Голосовое соединение прервано. Запустите Jarvis повторно.");console.error("Live error",ev)}
+   }catch(error){logEvent("Event error: "+(error.message||String(error)))}
+  };
+  const offer=await pc.createOffer({offerToReceiveAudio:true});
+  await pc.setLocalDescription(offer);
+  await waitIce();
+  const localSdp=pc.localDescription?.sdp||"";
+  if(!/m=audio\s/i.test(localSdp)) throw new Error("WebRTC не сформировал audio media section");
+  const answer=await fetch("/api/session",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sdp:pc.localDescription.sdp})});
+  const data=await answer.json();
+  if(!answer.ok) throw new Error(data.error?.message||data.error||JSON.stringify(data));
+  await pc.setRemoteDescription({type:"answer",sdp:data.transport.sdp});
+  status("Подключение Jarvis…","busy");
+ }catch(e){
+  status("Ошибка запуска","error"); setQuickEnabled(false); const msg=e?.message||String(e); logEvent("❌ Jarvis не запустился: "+msg+(e?.name==="NotAllowedError"?" — разрешите микрофон для этого сайта в настройках браузера.":"")); console.error(e); btn.dataset.busy="0";
+ }
+}
+btn.addEventListener("click",start,{passive:false});
+quickButtons.forEach(q=>q.onclick=()=>{
+ if(!dc || dc.readyState!=="open"){setQuickEnabled(false);logEvent("⚠️ Сначала запустите Jarvis.");return;}
+ let command=q.dataset.command||"";
+ inputTranscript=command;
+ clearTimeout(transcriptTimer);
+ transcriptTimer=setTimeout(routeTranscript,20);
+});
+</script></body></html>
