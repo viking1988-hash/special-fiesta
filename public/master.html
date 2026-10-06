@@ -28,7 +28,7 @@ window.jarvisTap=function(e){
     return false;
   }
   if(typeof window.startJarvis!=="function"){
-    if(t)t.textContent="Ошибка загрузки Jarvis — обновите страницу";
+    if(t)t.textContent="Jarvis init: "+String(window.__jarvisInitError||"runtime не зарегистрирован");
     return false;
   }
   window.startJarvis();
