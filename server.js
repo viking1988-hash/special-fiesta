@@ -30,7 +30,19 @@ async function initOpsDb() {
     due_at timestamptz, reason text NOT NULL, status text DEFAULT 'planned', created_at timestamptz DEFAULT now()
   )`);
 }
-initOpsDb().catch(e => console.error("[OPS_DB_INIT]", e.message));
+initOpsDb().then(async()=>{
+  if(!db) return;
+  try{
+    await db.query("BEGIN");
+    const id="TEST-STARTUP-"+Date.now(),vin="WVWZZZ1JZXW000001",plate="TESTDB";
+    await db.query("INSERT INTO jarvis_cases(id,vin,plate,car,mileage,status,complaint,finding,evidence,recommendation,approved_amount,approval_ref,repair_result,control_check,media_url,next_service,warranty,client_handover,payload) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)",[id,vin,plate,"Тестовый автомобиль","100000","Диагностика","Тест PostgreSQL","","","","","","","","","","","",JSON.stringify({test:true})]);
+    const byId=await db.query("SELECT id FROM jarvis_cases WHERE id=$1",[id]);
+    const history=await db.query("SELECT id FROM jarvis_cases WHERE vin=$1 OR plate=$2",[vin,plate]);
+    await db.query("ROLLBACK");
+    const after=await db.query("SELECT 1 FROM jarvis_cases WHERE id=$1",[id]);
+    console.log("[OPS_DB_SELF_TEST]",JSON.stringify({ok:byId.rowCount===1&&history.rowCount>=1&&after.rowCount===0,mutation_persisted:false,write_read:byId.rowCount===1,vehicle_history_lookup:history.rowCount>=1,rollback_cleanup:after.rowCount===0}));
+  }catch(e){try{await db.query("ROLLBACK")}catch{} console.error("[OPS_DB_SELF_TEST]",e.message)}
+}).catch(e => console.error("[OPS_DB_INIT]", e.message));
 app.use(express.json({ limit: "2mb" }));
 app.use((req,res,next)=>{if(req.path==="/"||req.path==="/owner.html"){res.set("Cache-Control","no-store, no-cache, must-revalidate, proxy-revalidate");res.set("Pragma","no-cache");res.set("Expires","0");}next();});
 app.use(express.static(path.join(__dirname, "public"),{etag:false,maxAge:0}));
