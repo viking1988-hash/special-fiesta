@@ -1182,6 +1182,27 @@ app.get("/api/diagnostic/pdf-self-test", async (_req, res) => {
 });
 
 
+app.post("/api/ops/db-self-test", async (_req,res) => {
+  if (!db) return res.status(503).json({ok:false,error:"database_not_configured"});
+  const id="TEST-DB-"+Date.now();
+  const vin="WVWZZZ1JZXW000001";
+  const plate="TESTDB";
+  try {
+    await db.query("BEGIN");
+    await db.query(`INSERT INTO jarvis_cases(id,vin,plate,car,mileage,status,complaint,finding,evidence,recommendation,approved_amount,approval_ref,repair_result,control_check,media_url,next_service,warranty,client_handover,payload) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)`,
+      [id,vin,plate,"Тестовый автомобиль","100000","Диагностика","Тест PostgreSQL","","","","","","","","","","","",JSON.stringify({test:true})]);
+    const byId=await db.query("SELECT id,vin,plate,status FROM jarvis_cases WHERE id=$1",[id]);
+    const history=await db.query("SELECT id FROM jarvis_cases WHERE vin=$1 OR plate=$2",[vin,plate]);
+    await db.query("ROLLBACK");
+    const after=await db.query("SELECT 1 FROM jarvis_cases WHERE id=$1",[id]);
+    return res.json({ok:byId.rowCount===1&&history.rowCount>=1&&after.rowCount===0,mutation_persisted:false,write_read:true,vehicle_history_lookup:history.rowCount>=1,rollback_cleanup:after.rowCount===0});
+  } catch (e) {
+    try { await db.query("ROLLBACK"); } catch {}
+    console.error("[OPS_DB_SELF_TEST]",e.message);
+    return res.status(500).json({ok:false,error:"db_self_test_failed"});
+  }
+});
+
 app.get("/api/ops/cases", async (req,res) => {
   if (!db) return res.status(503).json({ok:false,error:"database_not_configured"});
   const status=String(req.query.status||"").trim();
