@@ -1271,6 +1271,7 @@ app.get("/health", (_req, res) =>
 );
 
 app.post("/api/session", async (req, res) => {
+  console.log("[VOICE_SESSION_REQUEST]", new Date().toISOString());
   const apiKey = env("OPENAI_API_KEY");
   if (!apiKey) {
     return res.status(503).json({ error: "OPENAI_API_KEY is not configured" });
