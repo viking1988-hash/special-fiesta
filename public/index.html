@@ -82,7 +82,7 @@ Object.values(caseFields).forEach(el=>{const persist=()=>{updateCaseQuality();if
  if(el===caseFields.repairApproved)el.addEventListener("change",()=>{if(el.checked)el.dataset.fingerprint=[caseFields.approvedAmount.value.trim(),caseFields.approvalRef.value.trim(),caseFields.finding.value.trim(),caseFields.recommendation.value.trim()].join("|");else el.dataset.fingerprint="";});});
 try{restoreCase();syncDiagnosticStatus();updateCaseQuality();}catch(e){window.__jarvisInitError=(e&&e.message)||String(e);}
 
-const status=(t,state="")=>{stateText.textContent=t;stateDot.className="dot"+(state?" "+state:"");};
+window.startJarvis=function(){window.__jarvisStartPending=true;};\nconst status=(t,state="")=>{stateText.textContent=t;stateDot.className="dot"+(state?" "+state:"");};\nif(window.__jarvisStartPending){window.__jarvisStartPending=false;setTimeout(()=>start(),0);}
 const logEvent=t=>{
  const line=document.createElement("div");
  const v=String(t);
