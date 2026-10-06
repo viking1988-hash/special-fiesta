@@ -14,7 +14,7 @@ button:disabled{opacity:.5}.status{margin:18px 0;color:#aaa;min-height:24px}
 <div class="eyebrow">Автохирург · BUILD 1433</div><h1>Рабочее место мастера</h1><p class="hint">Приём автомобиля, диагностика, согласование, ремонт и выдача</p>
 <div class="ops-tabs"><a href="/master.html?v=mobilefix" class="ops-link" target="_self">Мастер</a><a href="/owner.html" class="ops-link">Владелец</a></div>
 <div id="ownerPanel" class="ops-panel hidden"><div class="ops-grid"><div class="metric">Заказ-наряды<b id="kpiTotal">0</b></div><div class="metric">Согласовано<b id="kpiApproved">0</b></div><div class="metric">Выдано<b id="kpiHanded">0</b></div></div><div id="queue" class="queue"></div><div class="ops-search"><input id="vehicleSearch" placeholder="VIN или госномер"><button type="button" id="vehicleSearchBtn">История</button></div><div id="vehicleHistory"></div></div>
-<button id="start" type="button" aria-label="Запустить Jarvis" onclick="jarvisTap(event)">🎙 Включить голосового помощника</button>
+<button id="start" type="button" aria-label="Запустить Jarvis">🎙 Включить голосового помощника</button>
 <script>
 window.jarvisTap=function(e){
   if(e){e.preventDefault();e.stopPropagation();}
@@ -83,6 +83,8 @@ Object.values(caseFields).forEach(el=>{const persist=()=>{updateCaseQuality();if
 try{restoreCase();syncDiagnosticStatus();updateCaseQuality();}catch(e){window.__jarvisInitError=(e&&e.message)||String(e);}
 
 window.startJarvis=function(){return start();};
+btn.onclick=function(e){e.preventDefault();return start();};
+btn.addEventListener("touchend",function(e){e.preventDefault();return start();},{passive:false});
 const status=(t,state="")=>{stateText.textContent=t;stateDot.className="dot"+(state?" "+state:"");};
 
 const logEvent=t=>{
