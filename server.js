@@ -1182,7 +1182,7 @@ app.get("/api/diagnostic/pdf-self-test", async (_req, res) => {
 });
 
 
-app.post("/api/ops/db-self-test", async (_req,res) => {
+app.get("/api/ops/db-self-test", async (_req,res) => {
   if (!db) return res.status(503).json({ok:false,error:"database_not_configured"});
   const id="TEST-DB-"+Date.now();
   const vin="WVWZZZ1JZXW000001";
