@@ -44,7 +44,7 @@ initOpsDb().then(async()=>{
   }catch(e){try{await db.query("ROLLBACK")}catch{} console.error("[OPS_DB_SELF_TEST]",e.message)}
 }).catch(e => console.error("[OPS_DB_INIT]", e.message));
 app.use(express.json({ limit: "2mb" }));
-app.use((req,res,next)=>{if(req.path==="/"||req.path==="/owner.html"){res.set("Cache-Control","no-store, no-cache, must-revalidate, proxy-revalidate");res.set("Pragma","no-cache");res.set("Expires","0");}next();});
+app.use((req,res,next)=>{if(req.path==="/"||req.path==="/owner.html"||req.path==="/master.html"){res.set("Cache-Control","no-store, no-cache, must-revalidate, proxy-revalidate");res.set("Pragma","no-cache");res.set("Expires","0");}next();});
 app.use(express.static(path.join(__dirname, "public"),{etag:false,maxAge:0}));
 
 const JARVIS_CORE = fs.readFileSync(
