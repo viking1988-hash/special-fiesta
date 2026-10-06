@@ -18,21 +18,13 @@ button:disabled{opacity:.5}.status{margin:18px 0;color:#aaa;min-height:24px}
 <script>
 window.jarvisTap=function(e){
   if(e){e.preventDefault();e.stopPropagation();}
-  var t=document.getElementById("stateText"), d=document.getElementById("stateDot");
-  if(t)t.textContent="Касание принято — проверяю микрофон…";
+  var t=document.getElementById("stateText"),d=document.getElementById("stateDot");
+  if(t)t.textContent="Запускаю Jarvis…";
   if(d)d.className="dot busy";
-  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-    if(t)t.textContent="Этот встроенный браузер не даёт доступ к микрофону";
-    var log=document.getElementById("log");
-    if(log){var x=document.createElement("div");x.textContent="Откройте страницу во внешнем Safari/Chrome для голосового Jarvis.";log.prepend(x);}
-    return false;
-  }
-  if(typeof window.startJarvis==="function"){window.startJarvis();return false;}
-  try{
-    var fn=(0,eval)("typeof start==='function' ? start : null");
-    if(fn){window.startJarvis=fn;fn();return false;}
-  }catch(err){window.__jarvisInitError=(err&&err.message)||String(err);}
-  if(t)t.textContent="Jarvis init: "+String(window.__jarvisInitError||"start недоступен");
+  setTimeout(function(){
+    if(typeof window.startJarvis==="function"){window.startJarvis();}
+    else if(t)t.textContent="Jarvis runtime не готов";
+  },0);
   return false;
 };
 </script>
