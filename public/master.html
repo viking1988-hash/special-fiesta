@@ -87,7 +87,7 @@ document.querySelectorAll(".diag-status button").forEach(b=>b.addEventListener("
 const syncDiagnosticStatus=()=>document.querySelectorAll(".diag-status").forEach(box=>{const v=caseFields["diagnostic_p"+box.dataset.point+"_result"].value.trim();box.querySelectorAll("button").forEach(b=>b.classList.toggle("active",(b.dataset.value||"")===v));});
 Object.values(caseFields).forEach(el=>{const persist=()=>{updateCaseQuality();if(dc?.readyState==="open")setQuickEnabled(true);const data=Object.fromEntries(Object.entries(caseFields).map(([k,x])=>[k,x.type==="checkbox"?x.checked:x.value]));localStorage.setItem(CASE_KEY,JSON.stringify(data));};el.addEventListener("input",persist);el.addEventListener("change",persist);
  if(el===caseFields.repairApproved)el.addEventListener("change",()=>{if(el.checked)el.dataset.fingerprint=[caseFields.approvedAmount.value.trim(),caseFields.approvalRef.value.trim(),caseFields.finding.value.trim(),caseFields.recommendation.value.trim()].join("|");else el.dataset.fingerprint="";});});
-restoreCase();syncDiagnosticStatus();updateCaseQuality();
+try{restoreCase();syncDiagnosticStatus();updateCaseQuality();}catch(e){window.__jarvisInitError=(e&&e.message)||String(e);}
 
 const status=(t,state="")=>{stateText.textContent=t;stateDot.className="dot"+(state?" "+state:"");};
 const logEvent=t=>{
