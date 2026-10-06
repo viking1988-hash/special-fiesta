@@ -116,10 +116,13 @@ const waitIce=()=>new Promise(resolve=>{
 async function start(){
  try{
   if(btn.dataset.busy==="1") return; btn.dataset.busy="1"; status("Запрашиваю микрофон…","busy");
+  status("Запрашиваю микрофон…","busy");
+  const micPromise=navigator.mediaDevices.getUserMedia({audio:true});
   stream=await Promise.race([
-    navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}}),
-    new Promise((_,reject)=>setTimeout(()=>reject(Object.assign(new Error("MIC_TIMEOUT"),{name:"MicTimeoutError"})),8000))
+    micPromise,
+    new Promise((_,reject)=>setTimeout(()=>{const x=new Error("MIC_TIMEOUT");x.name="MicTimeoutError";reject(x);},8000))
   ]);
+  status("Микрофон получен — подключаю Jarvis…","busy");
   const audioTrack=stream.getAudioTracks()[0];
   if(!audioTrack) throw new Error("Микрофон не вернул аудиодорожку");
   pc=new RTCPeerConnection();
