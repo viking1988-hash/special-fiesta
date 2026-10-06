@@ -1260,8 +1260,7 @@ app.post("/api/session", async (req, res) => {
           model: "gpt-live-1",
           instructions:
             JARVIS_CORE +
-            `\  if (task?.validation_error) return res.status(400).json({ ok:false, error:"case_validation_failed", result:task.message });
-n
+            `
 Голосовой runtime: говори кратко и естественно.
 
 Delegation policy:
