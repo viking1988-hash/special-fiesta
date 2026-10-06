@@ -27,11 +27,12 @@ window.jarvisTap=function(e){
     if(log){var x=document.createElement("div");x.textContent="Откройте страницу во внешнем Safari/Chrome для голосового Jarvis.";log.prepend(x);}
     return false;
   }
-  if(typeof window.startJarvis!=="function"){
-    if(t)t.textContent="Jarvis init: "+String(window.__jarvisInitError||"runtime не зарегистрирован");
-    return false;
-  }
-  window.startJarvis();
+  if(typeof window.startJarvis==="function"){window.startJarvis();return false;}
+  try{
+    var fn=(0,eval)("typeof start==='function' ? start : null");
+    if(fn){window.startJarvis=fn;fn();return false;}
+  }catch(err){window.__jarvisInitError=(err&&err.message)||String(err);}
+  if(t)t.textContent="Jarvis init: "+String(window.__jarvisInitError||"start недоступен");
   return false;
 };
 </script>
