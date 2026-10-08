@@ -1102,6 +1102,15 @@ async function ensureStaffSchema(){
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
  )`);
 }
+app.get("/api/auth/me",async(req,res)=>{
+ if(!personalAuthEnabled())return res.sendStatus(404);
+ const token=staffCookies(req).crm_session;
+ try{
+  const user=await require("./lib/crm-session-store").lookupSession(db,token);
+  if(!user)return res.sendStatus(401);
+  return res.json({ok:true,user:{id:user.id,login:user.login,role:user.role}});
+ }catch{return res.sendStatus(503);}
+});
 app.use("/api/ops", (req,res,next)=>{
  const path=req.path;
  const masterOnly=require("./lib/crm-role-policy").requiredRole(req.method,path)==="master";
