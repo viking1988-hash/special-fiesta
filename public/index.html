@@ -68,7 +68,7 @@ const getOpsHeaders=async()=>{
   sessionStorage.removeItem("avtohirurg_master_token");
   try{
    let r=await fetch("/api/auth/me",{credentials:"same-origin"});
-   if(r.ok){const j=await r.json();if(j.role==="master"||j.role==="owner")return {};}
+   if(r.ok){const j=await r.json();if(j.user?.role==="master"||j.user?.role==="owner")return {};}
    const login=prompt("Логин сотрудника CRM:");if(!login)return null;
    const password=prompt("Пароль сотрудника CRM (не отправляйте его в чат):");if(!password)return null;
    r=await fetch("/api/auth/login",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({login,password})});
