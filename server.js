@@ -1071,7 +1071,7 @@ app.use("/api/ops", (req,res,next)=>{
  const ownerOnly=path==="/dashboard"||path==="/vehicle"||path==="/cases"||path==="/parts"||path.startsWith("/test-data");
  const ownerSecret=String(process.env.OPS_ACCESS_TOKEN||"");
  const masterSecret=String(process.env.MASTER_ACCESS_TOKEN||"");
- const configured=ownerOnly?ownerSecret:(masterSecret||ownerSecret);
+ const configured=ownerOnly?ownerSecret:masterSecret;
  if(!configured)return res.status(503).json({ok:false,error:"ops_auth_not_configured"});
  const provided=String(req.get("x-ops-token")||"");
  const a=Buffer.from(configured),b=Buffer.from(provided);
