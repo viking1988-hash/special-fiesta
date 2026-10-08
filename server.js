@@ -1066,6 +1066,9 @@ app.post("/api/route-transcript", async (req, res) => {
   }
 });
 
+// Personal authentication is isolated behind a feature flag for staged rollout.
+const personalAuthEnabled=()=>process.env.CRM_PERSONAL_AUTH_ENABLED==="true";
+app.get("/api/auth/status",(req,res)=>res.json({enabled:personalAuthEnabled(),legacy:true}));
 app.use("/api/ops", (req,res,next)=>{
  const path=req.path;
  const masterOnly=(req.method==="POST"&&path==="/drafts")||(req.method==="GET"&&path.startsWith("/drafts/"));
