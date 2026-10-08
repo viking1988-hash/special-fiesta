@@ -1068,7 +1068,8 @@ app.post("/api/route-transcript", async (req, res) => {
 
 app.use("/api/ops", (req,res,next)=>{
  const path=req.path;
- const ownerOnly=path==="/dashboard"||path==="/vehicle"||path==="/cases"||path==="/parts"||path.startsWith("/test-data");
+ const masterOnly=path==="/drafts"||path.startsWith("/drafts/");
+ const ownerOnly=!masterOnly;
  const ownerSecret=String(process.env.OPS_ACCESS_TOKEN||"");
  const masterSecret=String(process.env.MASTER_ACCESS_TOKEN||"");
  const configured=ownerOnly?ownerSecret:masterSecret;
