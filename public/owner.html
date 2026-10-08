@@ -16,7 +16,7 @@ async function initAuth(){
  }catch{personalMode=false;}
  staffLogin.style.display=personalMode?"block":"none";
  accessKey.placeholder=personalMode?"Пароль сотрудника":"Ключ доступа CRM";
- if(personalMode){await dashboard();}else dashboard();
+ if(personalMode){sessionStorage.removeItem("avtohirurg_ops_token");await dashboard();}else dashboard();
 }
 login.onclick=async()=>{
  const password=accessKey.value;
