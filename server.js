@@ -1066,6 +1066,29 @@ app.post("/api/route-transcript", async (req, res) => {
   }
 });
 
+app.post("/api/ops/drafts", async (req,res)=>{
+ const origin=req.get("origin");
+ if(origin && origin!=="https://"+req.get("host"))return res.status(403).json({ok:false,error:"unexpected_origin"});
+ if(!db)return res.status(503).json({ok:false,error:"database_unavailable"});
+ const c=req.body?.case;
+ if(!c||typeof c!=="object"||Array.isArray(c))return res.status(400).json({ok:false,error:"case_required"});
+ const id=String(c.orderNumber||"").trim();
+ if(!id||id.length>120)return res.status(422).json({ok:false,error:"order_number_required"});
+ try{
+  await db.query("INSERT INTO jarvis_cases(id,vin,plate,car,mileage,status,complaint,finding,evidence,recommendation,payload) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb) ON CONFLICT(id) DO UPDATE SET vin=EXCLUDED.vin,plate=EXCLUDED.plate,car=EXCLUDED.car,mileage=EXCLUDED.mileage,complaint=EXCLUDED.complaint,finding=EXCLUDED.finding,evidence=EXCLUDED.evidence,recommendation=EXCLUDED.recommendation,payload=EXCLUDED.payload,updated_at=now() WHERE jarvis_cases.status='Черновик'",[id,String(c.vin||""),String(c.plate||""),String(c.car||""),String(c.mileage||""),"Черновик",String(c.complaint||""),String(c.finding||""),String(c.evidence||""),String(c.recommendation||""),JSON.stringify(c)]);
+  const row=await db.query("SELECT status FROM jarvis_cases WHERE id=$1",[id]);
+  if(row.rows[0]?.status!=="Черновик")return res.status(409).json({ok:false,error:"existing_finalized_case"});
+  return res.json({ok:true,id,status:"Черновик"});
+ }catch(e){console.error("[DRAFT_SAVE_ERROR]",e.message);return res.status(500).json({ok:false,error:"draft_save_failed"});}
+});
+app.get("/api/ops/drafts/:id",async(req,res)=>{
+ if(!db)return res.status(503).json({ok:false,error:"database_unavailable"});
+ const id=String(req.params.id||"");
+ if(!id||id.length>120)return res.status(400).json({ok:false,error:"invalid_id"});
+ try{const q=await db.query("SELECT id,status,payload FROM jarvis_cases WHERE id=$1 AND status='Черновик'",[id]);if(!q.rows.length)return res.status(404).json({ok:false,error:"draft_not_found"});return res.json({ok:true,...q.rows[0]});}
+ catch(e){return res.status(500).json({ok:false,error:"draft_load_failed"});}
+});
+
 app.post("/api/diagnostic/pdf", async (req, res) => {
   const origin = req.get("origin");
   if (origin && origin !== "https://" + req.get("host")) return res.status(403).json({ok:false,error:"unexpected_origin"});
