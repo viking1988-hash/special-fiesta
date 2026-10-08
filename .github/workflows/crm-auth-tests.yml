@@ -13,4 +13,4 @@ jobs:
           node-version: '22'
       - run: npm install --ignore-scripts --no-audit --no-fund
       - run: node --check server.js
-      - run: node --test test/crm-*.test.js
+      - run: node --test test/crm-*.test.js test/crm-postgres.integration.test.cjs
