@@ -1111,6 +1111,13 @@ app.get("/api/auth/me",async(req,res)=>{
   return res.json({ok:true,user:{id:user.id,login:user.login,role:user.role}});
  }catch{return res.sendStatus(503);}
 });
+app.post("/api/auth/logout",async(req,res)=>{
+ if(!personalAuthEnabled())return res.sendStatus(404);
+ const token=staffCookies(req).crm_session;
+ res.clearCookie("crm_session",{httpOnly:true,secure:true,sameSite:"strict",path:"/api"});
+ try{await require("./lib/crm-session-store").revokeSession(db,token);return res.json({ok:true});}
+ catch{return res.sendStatus(503);}
+});
 app.use("/api/ops", (req,res,next)=>{
  const path=req.path;
  const masterOnly=require("./lib/crm-role-policy").requiredRole(req.method,path)==="master";
