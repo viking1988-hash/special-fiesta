@@ -1066,6 +1066,30 @@ app.post("/api/route-transcript", async (req, res) => {
   }
 });
 
+app.post("/api/diagnostic/pdf", async (req, res) => {
+  const origin = req.get("origin");
+  if (origin && origin !== "https://" + req.get("host")) return res.status(403).json({ok:false,error:"unexpected_origin"});
+  const c = req.body?.case;
+  if (!c || typeof c !== "object" || Array.isArray(c)) return res.status(400).json({ok:false,error:"case_required"});
+  const required = ["car","complaint","finding","evidence"];
+  if (required.some(k => !String(c[k] || "").trim())) return res.status(422).json({ok:false,error:"diagnostic_fields_required"});
+  const diagnostic = Object.fromEntries(Array.from({length:12},(_,i)=>{
+    const n=i+1;
+    return ["p"+n,{result:String(c["diagnostic_p"+n+"_result"]||"").trim(),evidence:String(c["diagnostic_p"+n+"_evidence"]||"").trim()}];
+  }));
+  if (Object.values(diagnostic).some(p=>!p.result||!p.evidence)) return res.status(422).json({ok:false,error:"twelve_points_required"});
+  try {
+    const task = routeTranscriptTask("Сформируй диагностический PDF",{...c,diagnostic});
+    if (task?.name !== "generate_client_diagnostic_pdf") return res.status(502).json({ok:false,error:"pdf_route_unavailable"});
+    const resource = extractPdfResource(await executeTool(task.name,task.args));
+    if (!resource) return res.status(502).json({ok:false,error:"pdf_resource_missing"});
+    return res.json({ok:true,result:resource});
+  } catch (error) {
+    console.error("[DIAGNOSTIC_PDF_ERROR]",error.message);
+    return res.status(502).json({ok:false,error:"pdf_generation_failed"});
+  }
+});
+
 app.post("/api/diagnostic/export", async (req, res) => {
   const origin = req.get("origin");
   const host = req.get("host");
