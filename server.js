@@ -1124,7 +1124,7 @@ app.post("/api/auth/logout",async(req,res)=>{
 app.use("/api/ops", (req,res,next)=>{
  if(personalAuthEnabled()){
   if(!db)return res.status(503).json({ok:false,error:"database_unavailable"});
-  return require("./lib/crm-session-auth").staffSessionMiddleware(db)(req,res,next);
+  return require("./lib/crm-csrf").requireTrustedOrigin(req,res,()=>require("./lib/crm-session-auth").staffSessionMiddleware(db)(req,res,next));
  }
  const path=req.path;
  const masterOnly=require("./lib/crm-role-policy").requiredRole(req.method,path)==="master";
