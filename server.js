@@ -1071,8 +1071,12 @@ const personalAuthEnabled=()=>process.env.CRM_PERSONAL_AUTH_ENABLED==="true";
 app.get("/api/auth/status",(req,res)=>res.json({enabled:personalAuthEnabled(),legacy:true}));
 // Session-backed staff authentication (off until explicitly enabled).
 const staffCrypto=require("crypto");
-const staffHash=p=>staffCrypto.createHash("sha256").update(p).digest();
-const staffEqual=(a,b)=>staffCrypto.timingSafeEqual(staffHash(a),staffHash(b));
+const staffPasswordHash=(password,salt)=>staffCrypto.scryptSync(password,salt,64);
+const staffPasswordVerify=(password,salt,expectedHex)=>{
+ if(typeof password!=="string"||typeof salt!=="string"||typeof expectedHex!=="string"||!/^[0-9a-f]{128}$/i.test(expectedHex))return false;
+ const actual=staffPasswordHash(password,salt);
+ return staffCrypto.timingSafeEqual(actual,Buffer.from(expectedHex,"hex"));
+};
 function staffCookies(req){
  const raw=String(req.headers.cookie||"");
  return Object.fromEntries(raw.split(";").map(x=>{const i=x.indexOf("=");return i<0?["",""]:[x.slice(0,i).trim(),x.slice(i+1).trim()];}).filter(x=>x[0]));
