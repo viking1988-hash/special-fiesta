@@ -243,14 +243,21 @@ async function start(){
  }
 }
 
-quickButtons.forEach(q=>q.onclick=()=>{
+quickButtons.forEach(q=>q.onclick=async()=>{
  const data=Object.fromEntries(Object.entries(caseFields).map(([k,el])=>[k,el.type==="checkbox"?el.checked:el.value]));
  if(q.id!=="diagnosticPdf"){
   const summary=["Автомобиль: "+(data.car||"не указан"),"Жалоба: "+(data.complaint||"не заполнена"),"Подтверждённая неисправность: "+(data.finding||"не установлена"),"Доказательство: "+(data.evidence||"не приложено"),"Рекомендация: "+(data.recommendation||"не заполнена")].join("\\n");
   logEvent(summary);return;
  }
  if(!data.car||!data.complaint||!data.finding||!data.evidence){logEvent("⚠️ Для PDF заполните автомобиль, жалобу, неисправность и доказательство.");return;}
- if(!dc||dc.readyState!=="open"){logEvent("⚠️ Для формирования PDF сейчас требуется подключить голосовой Jarvis. Данные карты сохраните отдельно.");return;}
- inputTranscript=q.dataset.command||"";clearTimeout(transcriptTimer);transcriptTimer=setTimeout(routeTranscript,20);
+ if(Array.from({length:12},(_,i)=>i+1).some(n=>!String(data["diagnostic_p"+n+"_result"]||"").trim()||!String(data["diagnostic_p"+n+"_evidence"]||"").trim())){logEvent("⚠️ Для PDF заполните результаты и доказательства всех 12 пунктов.");return;}
+ q.disabled=true;logEvent("⏳ Формирую диагностический PDF...");
+ try{
+  const response=await fetch("/api/diagnostic/pdf",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({case:data})});
+  const body=await response.json();
+  if(!response.ok){logEvent("❌ PDF не создан: "+(body.error||response.status));return;}
+  if(!showPdfResult(body.result))logEvent("❌ Генератор не вернул файл PDF.");
+ }catch(error){logEvent("❌ Не удалось связаться с генератором PDF.");}
+ finally{q.disabled=false;}
 });
 </script></body></html>
