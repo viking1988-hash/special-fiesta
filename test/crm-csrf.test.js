@@ -1,6 +1,7 @@
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert/strict");
+process.env.NODE_ENV = "production";
 const { requireTrustedOrigin } = require("../lib/crm-csrf");
 function request(method, origin) {
  const headers={host:"crm.example.test","x-forwarded-proto":"https",origin};
