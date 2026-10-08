@@ -1104,6 +1104,7 @@ async function ensureStaffSchema(){
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
  )`);
 }
+app.use("/api/auth", (req,res,next)=>{if(req.method==="POST")return require("./lib/crm-csrf").requireTrustedOrigin(req,res,next);next();});
 app.post("/api/auth/login",(req,res)=>{if(!personalAuthEnabled())return res.sendStatus(404);if(!db)return res.sendStatus(503);return require("./lib/crm-login-handler").makeLoginHandler(db)(req,res);});
 app.get("/api/auth/me",async(req,res)=>{
  if(!personalAuthEnabled())return res.sendStatus(404);
