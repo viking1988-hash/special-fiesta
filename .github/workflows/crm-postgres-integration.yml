@@ -28,4 +28,4 @@ jobs:
         with:
           node-version: '22'
       - run: npm install --ignore-scripts --no-audit --no-fund
-      - run: node --test test/crm-postgres*.integration.test.cjs
+      - run: node --test --test-concurrency=1 test/crm-postgres*.integration.test.cjs
