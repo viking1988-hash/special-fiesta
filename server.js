@@ -3,6 +3,8 @@ import path from "node:path";
 import fs from "node:fs";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
 import WebSocket from "ws";
 import pg from "pg";
 const { Pool } = pg;
