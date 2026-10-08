@@ -1069,6 +1069,14 @@ app.post("/api/route-transcript", async (req, res) => {
 // Personal authentication is isolated behind a feature flag for staged rollout.
 const personalAuthEnabled=()=>process.env.CRM_PERSONAL_AUTH_ENABLED==="true";
 app.get("/api/auth/status",(req,res)=>res.json({enabled:personalAuthEnabled(),legacy:true}));
+// Session-backed staff authentication (off until explicitly enabled).
+const staffCrypto=require("crypto");
+const staffHash=p=>staffCrypto.createHash("sha256").update(p).digest();
+const staffEqual=(a,b)=>staffCrypto.timingSafeEqual(staffHash(a),staffHash(b));
+function staffCookies(req){
+ const raw=String(req.headers.cookie||"");
+ return Object.fromEntries(raw.split(";").map(x=>{const i=x.indexOf("=");return i<0?["",""]:[x.slice(0,i).trim(),x.slice(i+1).trim()];}).filter(x=>x[0]));
+}
 app.use("/api/ops", (req,res,next)=>{
  const path=req.path;
  const masterOnly=(req.method==="POST"&&path==="/drafts")||(req.method==="GET"&&path.startsWith("/drafts/"));
