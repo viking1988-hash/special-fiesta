@@ -244,10 +244,13 @@ async function start(){
 }
 
 quickButtons.forEach(q=>q.onclick=()=>{
- if(!dc || dc.readyState!=="open"){setQuickEnabled(false);logEvent("⚠️ Сначала запустите Jarvis.");return;}
- let command=q.dataset.command||"";
- inputTranscript=command;
- clearTimeout(transcriptTimer);
- transcriptTimer=setTimeout(routeTranscript,20);
+ const data=Object.fromEntries(Object.entries(caseFields).map(([k,el])=>[k,el.type==="checkbox"?el.checked:el.value]));
+ if(q.id!=="diagnosticPdf"){
+  const summary=["Автомобиль: "+(data.car||"не указан"),"Жалоба: "+(data.complaint||"не заполнена"),"Подтверждённая неисправность: "+(data.finding||"не установлена"),"Доказательство: "+(data.evidence||"не приложено"),"Рекомендация: "+(data.recommendation||"не заполнена")].join("\\n");
+  logEvent(summary);return;
+ }
+ if(!data.car||!data.complaint||!data.finding||!data.evidence){logEvent("⚠️ Для PDF заполните автомобиль, жалобу, неисправность и доказательство.");return;}
+ if(!dc||dc.readyState!=="open"){logEvent("⚠️ Для формирования PDF сейчас требуется подключить голосовой Jarvis. Данные карты сохраните отдельно.");return;}
+ inputTranscript=q.dataset.command||"";clearTimeout(transcriptTimer);transcriptTimer=setTimeout(routeTranscript,20);
 });
 </script></body></html>
