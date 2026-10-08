@@ -1104,7 +1104,7 @@ async function ensureStaffSchema(){
 }
 app.use("/api/ops", (req,res,next)=>{
  const path=req.path;
- const masterOnly=(req.method==="POST"&&path==="/drafts")||(req.method==="GET"&&path.startsWith("/drafts/"));
+ const masterOnly=require("./lib/crm-role-policy").requiredRole(req.method,path)==="master";
  const ownerOnly=!masterOnly;
  const ownerSecret=String(process.env.OPS_ACCESS_TOKEN||"");
  const masterSecret=String(process.env.MASTER_ACCESS_TOKEN||"");
