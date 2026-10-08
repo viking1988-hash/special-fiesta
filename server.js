@@ -1081,6 +1081,27 @@ function staffCookies(req){
  const raw=String(req.headers.cookie||"");
  return Object.fromEntries(raw.split(";").map(x=>{const i=x.indexOf("=");return i<0?["",""]:[x.slice(0,i).trim(),x.slice(i+1).trim()];}).filter(x=>x[0]));
 }
+// Staff storage schema is created only during a future controlled rollout.
+async function ensureStaffSchema(){
+ if(!db)throw Error("database_unavailable");
+ await db.query(`CREATE TABLE IF NOT EXISTS crm_staff (
+  id UUID PRIMARY KEY,
+  login TEXT NOT NULL UNIQUE,
+  password_salt TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('owner','master')),
+  enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+ )`);
+ await db.query(`CREATE TABLE IF NOT EXISTS crm_staff_sessions (
+  id UUID PRIMARY KEY,
+  staff_id UUID NOT NULL REFERENCES crm_staff(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  revoked_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+ )`);
+}
 app.use("/api/ops", (req,res,next)=>{
  const path=req.path;
  const masterOnly=(req.method==="POST"&&path==="/drafts")||(req.method==="GET"&&path.startsWith("/drafts/"));
