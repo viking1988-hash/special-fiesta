@@ -71,4 +71,17 @@ jobs:
           fi
           test ! -e /tmp/failed-export.dump.age
           test ! -e /tmp/failed-export.dump.age.partial
+          # Cross-organization linkage must be rejected on a fresh isolated restore.
+          psql -d crm_test_clients_source -v ON_ERROR_STOP=1 -c 'UPDATE public.vehicles SET organization_id=99 WHERE id=201'
+          psql -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE crm_test_clients_mismatch'
+          psql -d crm_test_clients_mismatch -v ON_ERROR_STOP=1 -c 'CREATE TABLE public.customers (id bigint PRIMARY KEY, organization_id bigint, name text, phone text); CREATE TABLE public.vehicles (id bigint PRIMARY KEY, organization_id bigint, customer_id bigint REFERENCES public.customers(id), vin text);'
+          export DATABASE_URL='postgresql://postgres:ci-only@localhost:5432/crm_test_clients_source'
+          bash scripts/crm-clients-export.sh /tmp/mismatch.dump.age
+          export CLIENT_BACKUP_ARCHIVE=/tmp/mismatch.dump.age
+          export TEST_DATABASE_URL='postgresql://postgres:ci-only@localhost:5432/crm_test_clients_mismatch'
+          export CLIENT_BACKUP_EXPECTED_TEST_DB=crm_test_clients_mismatch
+          if bash scripts/crm-client-backup-verify.sh; then
+            echo 'Cross-organization client vehicle mismatch was accepted'; exit 1
+          fi
+          rm -f /tmp/mismatch.dump.age
           rm -f /tmp/client-ci-identity.txt /tmp/wrong-identity.txt /tmp/clients-20261009T000000Z.dump.age /tmp/truncated.dump.age
