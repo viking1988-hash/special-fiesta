@@ -13,3 +13,7 @@ Do not enable CRM_PERSONAL_AUTH_ENABLED until all steps have been validated.
 9. Roll back by setting CRM_PERSONAL_AUTH_ENABLED=false; legacy OPS_ACCESS_TOKEN and MASTER_ACCESS_TOKEN must remain configured and protected during transition.
 
 Caution: the login throttle is per-process memory and is not distributed across instances. Do not rely on it alone for production abuse protection.
+
+10. Confirm the staging DATABASE_URL points to the intended staging database before provisioning; never run bootstrap against production during tests.
+11. Check whether the database provider requires TLS and set connection-string SSL parameters accordingly. Do not bypass certificate verification as a workaround.
+12. After provisioning, confirm a second run with the same login fails without changing the existing password or role.
