@@ -19,3 +19,6 @@ The isolated `crm-restore-test` command (read-only inspection, 2026-10-09) refer
 - The service currently has a deliberate failing start command; it does **not** export or upload customer records.
 - Do not copy the production `DATABASE_URL` or Yandex OAuth token into the staging project.
 - Existing full CRM backup and `crm-yandex-mirror` must remain unchanged.
+
+## Implementation blocker verified 2026-10-09
+The staged Railway service has no database connection, Yandex token, or encryption recipient configured. It is intentionally set to fail and must **not** be activated. Before writing the export job, verify exact table dependencies in a restored snapshot. A streaming pipeline must propagate `pg_dump` failure (e.g. Bash `set -o pipefail`); successful encryption alone must never count as a successful dump. Use a distinct Yandex path and do not automatically delete historical copies until retention has been tested. A source upload attempt was blocked; no export script has been deployed.
