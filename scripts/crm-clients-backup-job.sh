@@ -14,8 +14,8 @@ workdir="$(mktemp -d)"
 trap 'rm -rf -- "$workdir"' EXIT
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"
 archive="$workdir/clients-$stamp.dump.age"
-"$here/crm-clients-export.sh" "$archive"
+bash "$here/crm-clients-export.sh" "$archive"
 [[ -s "$archive" ]] || { echo "CLIENT_BACKUP_EMPTY" >&2; exit 1; }
-"$here/crm-clients-yandex-upload.sh" "$archive"
+bash "$here/crm-clients-yandex-upload.sh" "$archive"
 echo "CLIENT_BACKUP_JOB_OK timestamp=$stamp"
 # Retention deletion is intentionally not implemented until independently verified.
