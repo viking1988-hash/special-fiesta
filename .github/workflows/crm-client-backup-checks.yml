@@ -88,6 +88,7 @@ jobs:
         run: |
           docker build -f backup/Dockerfile.rehearsal -t crm-client-rehearsal:test .
           docker run --rm --network none crm-client-rehearsal:test
+          docker run --rm --network none --entrypoint python3 crm-client-rehearsal:test test/backup/key-recovery.py
       - name: Verify real-schema rehearsal is disabled without explicit gate
         run: |
           docker build -f backup/Dockerfile.schema-rehearsal -t crm-schema-rehearsal:test .
