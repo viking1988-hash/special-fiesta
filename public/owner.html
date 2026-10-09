@@ -12,7 +12,10 @@ async function opsFetch(url){
 async function initAuth(){
  try{
   const r=await fetch("/api/auth/status",{credentials:"same-origin"});
-  const j=await r.json();personalMode=Boolean(j.enabled);
+  if(!r.ok)throw Error("auth status HTTP "+r.status);
+  const j=await r.json();
+  if(typeof j.enabled!=="boolean")throw Error("invalid auth status");
+  personalMode=j.enabled;
  }catch{
   authStatus.textContent="Не удалось проверить режим авторизации. Доступ временно заблокирован, повторите загрузку страницы.";
   login.disabled=true;
