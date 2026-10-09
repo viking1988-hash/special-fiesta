@@ -65,7 +65,7 @@ try {
         Copy-Item -LiteralPath $sealed -Destination $destination
         if ((Get-FileHash -LiteralPath $destination -Algorithm SHA256).Hash -ne $sealedHash) { throw 'OFFLINE_COPY_HASH_MISMATCH' }
         Set-Content -LiteralPath (Join-Path $dir 'recipient.txt') -Value $recipient -Encoding ASCII
-        Set-Content -LiteralPath (Join-Path $dir 'manifest.txt') -Value @('age-key-id=' + $id, 'encrypted-identity-sha256=' + $sealedHash) -Encoding ASCII
+        Set-Content -LiteralPath (Join-Path $dir 'manifest.txt') -Value @(('age-key-id=' + $id), ('encrypted-identity-sha256=' + $sealedHash)) -Encoding ASCII
     }
     # Remove the original BEFORE proving recovery using each offline copy.
     Remove-Item -LiteralPath $identity -Force

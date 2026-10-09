@@ -226,6 +226,20 @@ class TransferTests(unittest.TestCase):
         with patch.object(disk, 'api', return_value={'type': 'dir', 'public_key': 'public', '_embedded': {'items': []}}), self.assertRaises(y.BackupError):
             disk.list_items()
 
+    def test_canonical_app_directory_normalized_only_for_exact_children(self):
+        disk = FakeDisk()
+        root = 'disk:/Applications/TestApp/clients-backups-test'
+        good = {'name': NAME, 'path': root+'/'+NAME, 'type': 'file', 'custom_properties': {'client_backup_sha256': HASH}}
+        unrelated = dict(good, path='disk:/other/'+NAME)
+        with patch.object(disk, 'api', return_value={'type': 'dir', 'path': root, '_embedded': {'items': [good, unrelated]}}):
+            items = disk.list_items()
+            self.assertEqual(items[0]['path'], disk.folder+'/'+NAME)
+            self.assertEqual(items[1]['path'], unrelated['path'])
+            disk.check_freshness(dt.datetime(2026,10,9,tzinfo=dt.timezone.utc))
+        for bad in ('disk:/other-folder', 'disk:/Applications/../clients-backups-test', ''):
+            with patch.object(disk, 'api', return_value={'type': 'dir', 'path': bad, '_embedded': {'items': []}}), self.assertRaises(y.BackupError):
+                disk.list_items()
+
 
 if __name__ == "__main__":
     unittest.main()

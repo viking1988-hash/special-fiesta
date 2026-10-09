@@ -179,14 +179,36 @@ class Disk:
 
     def list_items(self):
         items, offset = [], 0
+        directory_path = None
         while True:
-            result = self.api(path=self.folder, limit=100, offset=offset)
+            result = self.api(path=self.folder, limit=100, offset=offset,
+                              fields='type,path,public_url,public_key,_embedded.items.name,_embedded.items.path,_embedded.items.type,_embedded.items.size,_embedded.items.public_url,_embedded.items.public_key,_embedded.items.custom_properties')
             if result.get('type') != 'dir' or result.get('public_url') or result.get('public_key'):
                 raise BackupError('PRIVATE_DIRECTORY_LISTING_REQUIRED')
+            # Disk returns canonical disk:/ paths for a requested app:/ folder.
+            # Trust only this directory's own private API response, then require
+            # an EXACT immediate-child path before normalizing to the alias.
+            canonical = result.get('path', '')
+            if (not isinstance(canonical, str) or '\\' in canonical
+                    or '..' in canonical.split('/')
+                    or not (canonical == self.folder or
+                            canonical.startswith('disk:/') and canonical.endswith('/' + self.folder.split('/')[-1]))):
+                raise BackupError('DIRECTORY_PATH_UNCONFIRMED')
+            if directory_path is not None and canonical != directory_path:
+                raise BackupError('DIRECTORY_IDENTITY_CHANGED')
+            directory_path = canonical
             page = result.get("_embedded", {}).get("items")
             if not isinstance(page, list):
                 raise BackupError("INVALID_DIRECTORY_LISTING")
-            items.extend(page)
+            for item in page:
+                if not isinstance(item, dict):
+                    raise BackupError('INVALID_DIRECTORY_ITEM')
+                name = item.get('name', '')
+                normalized = dict(item)
+                if (isinstance(name, str) and '/' not in name and '\\' not in name
+                        and item.get('path') == canonical + '/' + name):
+                    normalized['path'] = self.folder + '/' + name
+                items.append(normalized)
             if len(page) < 100:
                 break
             offset += 100
