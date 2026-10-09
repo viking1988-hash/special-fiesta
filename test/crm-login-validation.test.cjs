@@ -49,3 +49,14 @@ test("reject missing request body without throwing",async()=>{
  await makeLoginHandler(db)({ip:"192.0.2.23"},res);
  assert.equal(res.statusCode,401);
 });
+
+test("reject passwords below minimum length without querying database",async()=>{
+ for(const password of ["","x".repeat(11)]){
+  let queries=0;
+  const db={query:async()=>{queries++;throw Error("unexpected query")}};
+  const res=response();
+  await makeLoginHandler(db)({body:{login:"owner.test",password},ip:"192.0.2.24"},res);
+  assert.equal(res.statusCode,401);
+  assert.equal(queries,0);
+ }
+});
