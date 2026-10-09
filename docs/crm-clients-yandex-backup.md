@@ -40,3 +40,33 @@ GitHub tree inspection confirms all four client-backup shell scripts have mode `
 - ShellCheck passed in `CRM client backup checks` on commit `fff86671` (run `37966836103`).
 - The explicit test rejecting `CLIENT_BACKUP_REQUIRE_ENCRYPTION=false` passed on commit `9e1fd2e4` (run `37966921056`).
 - These are static and negative-path checks, **not** evidence of successful encryption, upload, or recovery. A synthetic-data end-to-end rehearsal remains required before enabling the staged Railway service.
+
+## Current verified baseline and recovery runbook (2026-10-09)
+- Baseline commit 7084b29e2bbf53bac5f6e8356dd8a6c35be1d08f: all five latest Actions succeeded. Synthetic rehearsal run 37975535647 exported customers/vehicles, encrypted with age, restored into a separate empty PostgreSQL database, and checked counts.
+- This is a simplified synthetic schema, not a production-schema compatibility certificate.
+- Expanded rehearsal adds two organizations, text/NULL fields, tenant-matched joins, rejection of nonempty target, wrong key, truncated ciphertext, wrong database identity, and failed source export with partial-file cleanup.
+- Railway production service crm-clients-yandex-backup remains staged-create with no deployment. No production or existing backup configuration was changed.
+- Connected Railway OAuth returns variable names only (valuesRedacted=true). The existing mirror has YANDEX_DISK_TOKEN, but this session cannot read it. The separate backup service has no token, database connection or age recipient. No live Yandex upload/download has been demonstrated.
+- Retention deletion and alerts are not implemented for this separate backup. Do not activate until live synthetic upload/download and production-schema restore have passed.
+
+### Disaster recovery procedure
+This archive contains ONLY customers and vehicles. It does not replace the full CRM backup (organizations, bookings, users and the rest of the schema/data).
+
+1. Preserve the damaged database and stop CRM writes under a separately authorized incident procedure. Never restore this archive directly over production.
+2. Retrieve the selected .dump.age file from app:/clients-backups using the authorized Yandex account. Verify its recorded SHA-256 against the downloaded ciphertext. Current uploader checks size only; digest/readback verification is still required before rollout.
+3. Retrieve the matching age private identity from offline custody. Never store it with the archive, in GitHub, or in Railway. Loss of this identity makes the encrypted backup unrecoverable.
+4. Provision a disposable PostgreSQL database named crm_test_recovery or staging_recovery. Install the reviewed matching schema and prerequisite referenced records (for example organizations). Customers/vehicles must be empty. Match PostgreSQL tools to the archive/server versions.
+5. Set the following environment variables without placing credentials into terminal history or logs:
+   - CLIENT_BACKUP_ARCHIVE: downloaded encrypted file path
+   - AGE_IDENTITY_FILE: offline identity file path
+   - TEST_DATABASE_URL: connection to the disposable database
+   - CLIENT_BACKUP_TEST_CONFIRM=ISOLATED
+   - CLIENT_BACKUP_TEST_DB_EMPTY_CONFIRMED=YES
+   - CLIENT_BACKUP_EXPECTED_TEST_DB: exact disposable database name
+6. Run: bash scripts/crm-client-backup-verify.sh
+7. Require CLIENT_BACKUP_RESTORE_OK, then compare expected record counts, customer/vehicle ownership, organization boundaries and representative values. Check sequences for any sequence-backed IDs before permitting new writes. The current verification script checks customer links; it does not certify every production constraint or sequence.
+8. Test CRM against the recovered isolated database. Only after incident approval promote a validated recovery or perform a reviewed transactional import. Preserve a rollback snapshot and verify public/admin CRM operations after the switch.
+9. Remove plaintext temporary files and protect/reseal the offline private identity. Keep the ciphertext and incident verification record.
+
+### Activation acceptance criteria
+Reviewed real schema/dependencies; read-only export account; persistent offline key custody and key recovery rehearsal; synthetic live Yandex upload + download + digest + restore; exact record/value comparisons; failure notifications; validated retention policy; operator approval. Keep CLIENT_BACKUP_ENABLED=false until all criteria pass.
