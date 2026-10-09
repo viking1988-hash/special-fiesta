@@ -5,6 +5,7 @@ umask 077
 [[ "${CLIENT_BACKUP_ENABLED:-false}" == "true" ]] || { echo "CLIENT_BACKUP_DISABLED"; exit 0; }
 [[ "${CLIENT_BACKUP_SCHEMA_VERIFIED:-}" == "YES" ]] || { echo "CLIENT_BACKUP_SCHEMA_UNVERIFIED" >&2; exit 1; }
 [[ "${CLIENT_BACKUP_RESTORE_VERIFIED:-}" == "YES" ]] || { echo "CLIENT_BACKUP_RESTORE_UNVERIFIED" >&2; exit 1; }
+[[ "${CLIENT_BACKUP_REQUIRE_ENCRYPTION:-true}" == "true" ]] || { echo "CLIENT_BACKUP_ENCRYPTION_REQUIRED" >&2; exit 1; }
 : "${DATABASE_URL:?}"
 : "${AGE_RECIPIENT:?}"
 : "${YANDEX_DISK_TOKEN:?}"
