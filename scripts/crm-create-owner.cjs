@@ -8,7 +8,7 @@ async function main() {
  if (!url || !/^[a-z0-9._-]{3,100}$/.test(login) || typeof password !== "string" || password.length < 16) {
   throw Error("Set DATABASE_URL, CRM_OWNER_LOGIN (3-100 safe chars), CRM_OWNER_PASSWORD (16+ chars)");
  }
- const pool = new Pool({connectionString:url,ssl:false,max:1});
+ const pool = new Pool({connectionString:url,max:1});
  try {
   const salt = crypto.randomBytes(32).toString("hex");
   const hash = crypto.scryptSync(password,salt,64).toString("hex");
