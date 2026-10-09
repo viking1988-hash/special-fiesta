@@ -131,3 +131,14 @@ Live synthetic Yandex upload/download/restore; real schema/dependency audit; off
 - Railway staged configuration update returned Service instance not found. Read-back still shows the separate service as staged-create, zero deployments, old placeholder command and a staged (inactive) daily cron. Container configuration exists in GitHub but has NOT been applied in Railway.
 - No working CRM service, production table, existing backup job, token or real client archive was changed. No actual Yandex upload/download or Telegram delivery was performed.
 - Rollback of preparation is a reviewed revert of the backup-only commits in PR 9; no database rollback is required because no production database mutation occurred. Keep the service undeployed/disabled during rollback. Do not discard another operator's staged changes.
+
+## Authorized Railway rehearsal: prepared, deployment blocked (2026-10-09)
+- Operator authorized the separate artificial-data-only deployment in chat.
+- Dedicated one-shot image: backup/Dockerfile.rehearsal. Source pinned to fe8eff965e86060597b33a21614001432314b248. All five Actions passed; backup checks run 37978988562 built and ran both normal-disabled and one-shot rehearsal images.
+- The one-shot runner clears ambient PostgreSQL routing variables, creates source/restore databases on container loopback, uses only two artificial customers and two artificial vehicles, creates an ephemeral test age identity, exports/encrypts and verifies restored values/ownership. No production database credentials are configured.
+- Optional live test is restricted to app:/clients-backups-test and opt-in flags. The staged Yandex token uses Railway's supported reference to crm-yandex-mirror.YANDEX_DISK_TOKEN; the value was neither read nor disclosed. Existing mirror configuration is untouched.
+- The original staged daily cron has been removed (cronSchedule=null); CLIENT_BACKUP_ENABLED=false, alerts disabled, restart policy NEVER. Only the new service appears in the staged patch; no shared variables/working services are changed.
+- After source attachment, setting dockerfilePath/startCommand became possible. Read-back confirms the correct rehearsal Dockerfile, pinned commit and null cron. No instance/deployment exists yet.
+- accept-deploy was invoked after operator authorization and patch review, but returned: Cancelled — the user did not approve this action. No changes were made. The action was NOT retried or routed through another interface.
+- Real Yandex upload/download and Railway runtime verification therefore remain blocked; CI roundtrips use a transport double. Neither real client export nor automatic daily backup has been activated.
+- Next permitted action requires approval for this exact reviewed staged rehearsal patch. After live acceptance, stop the one-shot service and keep production backup disabled until schema/key/notification acceptance and separate operator release approval.
