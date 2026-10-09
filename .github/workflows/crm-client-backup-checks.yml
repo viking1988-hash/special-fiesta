@@ -6,6 +6,7 @@ on:
       - 'test/backup/**'
       - 'scripts/crm-clients-*.sh'
       - 'scripts/crm-client-backup-verify.sh'
+      - 'scripts/crm-client-*.sql'
       - '.github/workflows/crm-client-backup-checks.yml'
   workflow_dispatch:
 jobs:
@@ -73,9 +74,10 @@ jobs:
         run: python3 -m unittest discover -s test/backup -v
       - name: Validate supplemental shell scripts
         run: |
-          shellcheck -S warning backup/key-setup.sh test/backup/container-rehearsal.sh
+          shellcheck -S warning backup/key-setup.sh test/backup/container-rehearsal.sh test/backup/reader-ci.sh
           bash -n backup/key-setup.sh
           bash -n test/backup/container-rehearsal.sh
+          bash -n test/backup/reader-ci.sh
       - name: Build separate PostgreSQL 18 backup image
         run: docker build -f backup/Dockerfile -t crm-client-backup:test .
       - name: Verify disabled image and installed tools
@@ -93,3 +95,8 @@ jobs:
         run: |
           docker build -f backup/Dockerfile.schema-rehearsal -t crm-schema-rehearsal:test .
           test "$(docker run --rm --network none crm-schema-rehearsal:test)" = SCHEMA_REHEARSAL_DISABLED
+          docker run --rm --network none --entrypoint bash crm-schema-rehearsal:test test/backup/reader-ci.sh
+      - name: Verify separate monitor is disabled by default
+        run: |
+          docker build -f backup/Dockerfile.watchdog -t crm-client-watchdog:test .
+          test "$(docker run --rm --network none crm-client-watchdog:test)" = CLIENT_BACKUP_MONITOR_DISABLED

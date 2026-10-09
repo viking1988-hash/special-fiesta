@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import re
 import stat
+import runpy
 import shutil
 import subprocess
 import tempfile
@@ -98,6 +99,11 @@ DO $test$ BEGIN
 END $test$;
 """)
         print("REAL_SCHEMA_SOURCE_CONSTRAINTS_OK unique_phone=YES customer_fk=YES mileage_check=YES", flush=True)
+        run(["psql", "-X", "-d", source, "-v", "ON_ERROR_STOP=1",
+             "-v", "expected_database=" + source, "-v", "reader_role_install=REVIEWED_ROLE_ONLY",
+             "-f", "scripts/crm-client-reader-role.sql"])
+        runpy.run_path('test/backup/reader-permissions.py')['test_permissions'](source)
+        print('READER_ROLE_CREATED scope=ISOLATED_ONLY login_password=UNSET', flush=True)
         active = work / "active"
         secondary = work / "secondary"
         recovered = work / "recovered"
@@ -107,9 +113,10 @@ END $test$;
         run(["age-keygen", "-o", str(identity)])
         recipient = run(["age-keygen", "-y", str(identity)]).strip()
         os.environ.update(CLIENT_BACKUP_ENABLED="true", CLIENT_BACKUP_SCHEMA_VERIFIED="YES",
-                          AGE_RECIPIENT=recipient, DATABASE_URL="postgresql://postgres@127.0.0.1/" + source)
+                          AGE_RECIPIENT=recipient, DATABASE_URL="postgresql://crm_clients_backup_reader@127.0.0.1/" + source)
         encrypted = work / "clients-artificial.dump.age"
         print(run(["bash", "scripts/crm-clients-export.sh", str(encrypted)]).strip(), flush=True)
+        print('READER_ROLE_ENCRYPTED_EXPORT_OK', flush=True)
         backup_key = secondary / "identity.agekey"
         shutil.copyfile(identity, backup_key)
         backup_key.chmod(0o600)

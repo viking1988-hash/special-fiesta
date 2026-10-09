@@ -207,6 +207,25 @@ class TransferTests(unittest.TestCase):
         with patch.object(disk, "list_items", return_value=[item("20261008T000000Z")]):
             disk.check_freshness(now)
 
+    def test_exact_36_hour_boundary_unverified_and_public_ignored(self):
+        disk = FakeDisk()
+        now = dt.datetime(2026, 10, 9, 12, tzinfo=dt.timezone.utc)
+        name = 'clients-20261008T000000Z.dump.age'
+        item = {'name': name, 'type': 'file', 'path': disk.folder + '/' + name,
+                'custom_properties': {'client_backup_sha256': HASH}}
+        with patch.object(disk, 'list_items', return_value=[item]):
+            disk.check_freshness(now)
+            with self.assertRaises(y.BackupError):
+                disk.check_freshness(now + dt.timedelta(seconds=1))
+        for bad in (dict(item, custom_properties={}), dict(item, public_url='https://public.invalid')):
+            with patch.object(disk, 'list_items', return_value=[bad]), self.assertRaises(y.BackupError):
+                disk.check_freshness(now)
+
+    def test_monitor_directory_must_be_private(self):
+        disk = FakeDisk()
+        with patch.object(disk, 'api', return_value={'type': 'dir', 'public_key': 'public', '_embedded': {'items': []}}), self.assertRaises(y.BackupError):
+            disk.list_items()
+
 
 if __name__ == "__main__":
     unittest.main()

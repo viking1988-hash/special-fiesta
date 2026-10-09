@@ -181,6 +181,8 @@ class Disk:
         items, offset = [], 0
         while True:
             result = self.api(path=self.folder, limit=100, offset=offset)
+            if result.get('type') != 'dir' or result.get('public_url') or result.get('public_key'):
+                raise BackupError('PRIVATE_DIRECTORY_LISTING_REQUIRED')
             page = result.get("_embedded", {}).get("items")
             if not isinstance(page, list):
                 raise BackupError("INVALID_DIRECTORY_LISTING")
@@ -204,6 +206,7 @@ class Disk:
             sha = item.get("custom_properties", {}).get("client_backup_sha256", "")
             if (not match or item.get("type") != "file"
                     or item.get("path") != self.folder + "/" + item["name"]
+                    or item.get('public_url') or item.get('public_key')
                     or not re.fullmatch(r"[a-f0-9]{64}", sha)):
                 continue
             try:
