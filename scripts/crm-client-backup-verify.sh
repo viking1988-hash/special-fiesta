@@ -6,6 +6,8 @@ umask 077
 : "${AGE_IDENTITY_FILE:?Set path to private age identity}"
 : "${TEST_DATABASE_URL:?Use an isolated disposable PostgreSQL database}"
 [[ "${CLIENT_BACKUP_TEST_CONFIRM:-}" == "ISOLATED" ]] || { echo "Isolated database confirmation required" >&2; exit 1; }
+[[ "$TEST_DATABASE_URL" != *"production"* ]] || { echo "Production-looking database URL refused" >&2; exit 1; }
+[[ "${CLIENT_BACKUP_TEST_DB_EMPTY_CONFIRMED:-}" == "YES" ]] || { echo "Confirm empty isolated test tables" >&2; exit 1; }
 for binary in age pg_restore psql; do command -v "$binary" >/dev/null || { echo "Missing tool: $binary" >&2; exit 1; }; done
 [[ -s "$CLIENT_BACKUP_ARCHIVE" && -r "$AGE_IDENTITY_FILE" ]]
 workdir="$(mktemp -d)"
@@ -22,10 +24,11 @@ for table in customers vehicles; do
 done
 # The test database must have a reviewed schema installed already.
 pg_restore --exit-on-error --single-transaction --data-only --no-owner --no-acl --dbname="$TEST_DATABASE_URL" "$workdir/clients.dump"
-psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -Atqc "
+result=$(psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -Atqc "
 SELECT CASE WHEN EXISTS(
  SELECT 1 FROM public.vehicles v
  LEFT JOIN public.customers c ON c.id=v.customer_id
  WHERE v.customer_id IS NOT NULL AND c.id IS NULL
-) THEN 'BROKEN_LINKS' ELSE 'LINKS_OK' END;"
-echo "CLIENT_BACKUP_RESTORE_CHECK_FINISHED"
+) THEN 'BROKEN_LINKS' ELSE 'LINKS_OK' END;")
+[[ "$result" == "LINKS_OK" ]] || { echo "Client vehicle links invalid" >&2; exit 1; }
+echo "CLIENT_BACKUP_RESTORE_OK"
