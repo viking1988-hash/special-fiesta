@@ -21,6 +21,13 @@ jobs:
           bash -n scripts/crm-clients-yandex-upload.sh
           bash -n scripts/crm-clients-backup-job.sh
           bash -n scripts/crm-client-backup-verify.sh
+      - name: Verify age encryption tooling
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq age
+          command -v age
+          command -v age-keygen
+          age --version
       - name: Validate PostgreSQL archive tooling is available
         run: |
           command -v pg_dump
