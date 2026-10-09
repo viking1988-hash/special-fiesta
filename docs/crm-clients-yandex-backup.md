@@ -1,0 +1,21 @@
+# CRM client-only Yandex Disk backup — rollout checklist
+
+Status: **not enabled**. Railway service `crm-clients-yandex-backup` is staged only; it must not be applied until encryption and restore tests pass.
+
+## Verified data model
+The isolated `crm-restore-test` command (read-only inspection, 2026-10-09) references `customers` and `vehicles` tables. `vehicles.customer_id` points to `customers.id`; both include `organization_id`. This is evidence of table names and basic relationships, **not** a complete column/constraint inventory.
+
+## Required implementation
+1. On a restored **isolated** snapshot, inspect `information_schema.columns`, foreign keys and dependencies for `public.customers` and `public.vehicles`; do not guess schema or export extra tables.
+2. Export only these tables with PostgreSQL `pg_dump --format=custom --data-only --table=public.customers --table=public.vehicles`, plus separately versioned, reviewed schema/restore instructions. Preserve ownership relationships and test import into an isolated database with matching schema.
+3. Encrypt the archive **before upload** with authenticated encryption (e.g. age recipient-based encryption); store decryption private key outside Railway and Yandex Disk. Fail closed when key is absent.
+4. Upload to a dedicated non-public app folder `app:/clients-backups/`, using a unique timestamped `.dump.age` name; verify remote size and digest where supported. Do not log client data, credentials or presigned URLs.
+5. Run restore tests in a disposable PostgreSQL database. Verify customer and vehicle counts, referential integrity and representative joins, without printing PII.
+6. Only after successful restore and retention-policy review, enable daily schedule and retention of the most recent 30 days; do not delete any old backup before the new backup is verified.
+7. Record operator approval, runbook, failure alerts, and tested decryption-key recovery procedure.
+
+## Railway safeguards
+- Production project `Avtohirurg-CRM`; separate service `crm-clients-yandex-backup` currently has `CLIENT_BACKUP_ENABLED=false` and `CLIENT_BACKUP_REQUIRE_ENCRYPTION=true` in a staged patch.
+- The service currently has a deliberate failing start command; it does **not** export or upload customer records.
+- Do not copy the production `DATABASE_URL` or Yandex OAuth token into the staging project.
+- Existing full CRM backup and `crm-yandex-mirror` must remain unchanged.
