@@ -3,7 +3,9 @@ BEGIN READ ONLY;
 SET LOCAL statement_timeout = '30s';
 SET LOCAL lock_timeout = '5s';
 -- Metadata only: no customer names, phones, VINs or other personal data.
-SELECT table_name, column_name, data_type, is_nullable
+SELECT table_name, column_name, data_type, udt_schema, udt_name, is_nullable,
+       character_maximum_length, numeric_precision, datetime_precision,
+       (column_default IS NOT NULL) AS has_default
 FROM information_schema.columns
 WHERE table_schema = 'public'
   AND table_name IN ('customers', 'vehicles')
@@ -50,5 +52,20 @@ JOIN pg_class child ON child.oid = i.inhrelid
 JOIN pg_namespace n ON n.oid = parent.relnamespace
 WHERE n.nspname = 'public' AND parent.relname IN ('customers','vehicles')
 ORDER BY parent.relname, child.relname;
+
+-- Inbound references explain why a client-only archive cannot replace a full restore.
+SELECT child.relname AS referencing_table, parent.relname AS client_table,
+       con.conname, pg_get_constraintdef(con.oid, true) AS constraint_definition
+FROM pg_constraint con
+JOIN pg_class child ON child.oid = con.conrelid
+JOIN pg_class parent ON parent.oid = con.confrelid
+JOIN pg_namespace n ON n.oid = parent.relnamespace
+WHERE con.contype = 'f' AND n.nspname = 'public'
+  AND parent.relname IN ('customers','vehicles')
+ORDER BY parent.relname, child.relname, con.conname;
+
+SELECT tablename, indexname, indexdef
+FROM pg_indexes WHERE schemaname='public' AND tablename IN ('customers','vehicles')
+ORDER BY tablename, indexname;
 
 COMMIT;
