@@ -48,13 +48,15 @@ class FakeDisk(y.Disk):
 
 class TransferTests(unittest.TestCase):
     def test_storage_hosts(self):
-        for url in ("https://uploader1.disk.yandex.net/upload", "https://a.storage.yandex.net/x"):
+        for url in ("https://uploader1.disk.yandex.net/upload", "https://a.storage.yandex.net/x",
+                    "https://downloader.disk.yandex.ru/disk/test"):
             self.assertEqual(y.storage_url(url), url)
 
     def test_reject_unsafe_hosts(self):
         for url in ("http://a.disk.yandex.net/x", "https://a.disk.yandex.net.evil/x",
                     "https://evil/x", "https://user@a.disk.yandex.net/x",
-                    "https://a.disk.yandex.net:8443/x", "https://a.disk.yandex.net/x#secret"):
+                    "https://a.disk.yandex.net:8443/x", "https://a.disk.yandex.net/x#secret",
+                    "https://downloader.disk.yandex.ru.evil/x", "https://evil.disk.yandex.ru/x"):
             with self.subTest(url=url), self.assertRaises(y.BackupError):
                 y.storage_url(url)
 

@@ -32,7 +32,8 @@ def storage_url(url):
     if (p.scheme != "https" or p.username or p.password or p.fragment
             or p.port not in (None, 443) or "\\" in url
             or not (host.endswith(".disk.yandex.net")
-                    or host.endswith(".storage.yandex.net"))):
+                    or host.endswith(".storage.yandex.net")
+                    or host == "downloader.disk.yandex.ru")):
         raise BackupError("UNTRUSTED_STORAGE_URL")
     return url
 
