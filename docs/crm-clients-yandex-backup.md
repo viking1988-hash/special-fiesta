@@ -35,3 +35,8 @@ GitHub tree inspection confirms all four client-backup shell scripts have mode `
 - Commit `c11df870` changed the orchestrator to call both child scripts with `bash`, so GitHub's `100644` file mode no longer prevents execution of these child steps.
 - Commit `c4e066bf` added a regression assertion to CI. `CRM client backup checks` succeeded for `c4e066bf` (run `37966559285`).
 - This closes the shell execution issue only; a real age-encrypted PostgreSQL export, Yandex upload, and isolated restore remain untested. Do not enable the dedicated service yet.
+
+## CI static-analysis and encryption-gate status — 2026-10-09
+- ShellCheck passed in `CRM client backup checks` on commit `fff86671` (run `37966836103`).
+- The explicit test rejecting `CLIENT_BACKUP_REQUIRE_ENCRYPTION=false` passed on commit `9e1fd2e4` (run `37966921056`).
+- These are static and negative-path checks, **not** evidence of successful encryption, upload, or recovery. A synthetic-data end-to-end rehearsal remains required before enabling the staged Railway service.
