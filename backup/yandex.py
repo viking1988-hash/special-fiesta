@@ -26,6 +26,23 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
         raise BackupError("HTTP_REDIRECT_REFUSED")
 
 
+class DownloadRedirect(urllib.request.HTTPRedirectHandler):
+    """Only unauthenticated GET, HTTPS, reviewed storage hosts, at most 3 hops."""
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if req.get_method() != "GET" or any(
+                key.lower() in ("authorization", "proxy-authorization", "cookie")
+                for key in req.headers):
+            raise BackupError("AUTHENTICATED_REDIRECT_REFUSED")
+        storage_url(newurl)
+        count = getattr(req, "_client_redirect_count", 0) + 1
+        if count > 3:
+            raise BackupError("TOO_MANY_DOWNLOAD_REDIRECTS")
+        # Copy no source headers; especially never forward credentials/cookies.
+        redirected = urllib.request.Request(newurl, method="GET")
+        redirected._client_redirect_count = count
+        return redirected
+
+
 def storage_url(url):
     p = urllib.parse.urlsplit(url)
     host = p.hostname or ""
@@ -66,6 +83,7 @@ class Disk:
             raise BackupError("FOLDER_NOT_ALLOWED")
         self.token, self.folder = token, folder
         self.opener = urllib.request.build_opener(NoRedirect())
+        self.download_opener = urllib.request.build_opener(DownloadRedirect())
 
     def request(self, url, method="GET", data=None, authenticated=True):
         headers = {"Content-Type": "application/json"}
@@ -78,7 +96,8 @@ class Disk:
             headers = {}
             if hasattr(data, "fileno"):
                 headers["Content-Length"] = str(os.fstat(data.fileno()).st_size)
-        return self.opener.open(urllib.request.Request(
+        opener = self.download_opener if not authenticated and method == "GET" else self.opener
+        return opener.open(urllib.request.Request(
             url, data=data, method=method, headers=headers), timeout=60)
 
     def api(self, suffix="", method="GET", payload=None, **query):

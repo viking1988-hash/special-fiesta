@@ -139,6 +139,30 @@ class TransferTests(unittest.TestCase):
         with self.assertRaises(y.BackupError):
             y.NoRedirect().redirect_request(None, None, 302, "redirect", {}, "https://evil")
 
+    def test_download_redirect_only_validated_get_without_headers(self):
+        req = y.urllib.request.Request("https://downloader.disk.yandex.ru/disk/test", method="GET")
+        handler = y.DownloadRedirect()
+        result = handler.redirect_request(req, None, 302, "redirect", {}, "https://s1.storage.yandex.net/test")
+        self.assertEqual(result.headers, {})
+        self.assertEqual(result._client_redirect_count, 1)
+        for destination in ("http://s1.storage.yandex.net/test", "https://evil.invalid/test",
+                            "https://s1.storage.yandex.net.evil/test"):
+            with self.assertRaises(y.BackupError):
+                handler.redirect_request(req, None, 302, "redirect", {}, destination)
+        req.add_header("Authorization", "never-forward")
+        with self.assertRaises(y.BackupError):
+            handler.redirect_request(req, None, 302, "redirect", {}, "https://s1.storage.yandex.net/test")
+
+    def test_download_redirect_hop_limit_and_upload_refused(self):
+        handler = y.DownloadRedirect()
+        req = y.urllib.request.Request("https://s1.storage.yandex.net/test", method="GET")
+        req._client_redirect_count = 3
+        with self.assertRaises(y.BackupError):
+            handler.redirect_request(req, None, 302, "redirect", {}, "https://s1.storage.yandex.net/test")
+        req = y.urllib.request.Request("https://s1.storage.yandex.net/test", method="PUT")
+        with self.assertRaises(y.BackupError):
+            handler.redirect_request(req, None, 302, "redirect", {}, "https://s1.storage.yandex.net/test")
+
     def test_public_folder_refused(self):
         disk = FakeDisk()
         with patch.object(disk, "api", return_value={"type": "dir", "public_url": "public"}):
