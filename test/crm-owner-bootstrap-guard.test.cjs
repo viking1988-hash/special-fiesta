@@ -20,3 +20,7 @@ test("owner provisioning stores a salted scrypt hash rather than plaintext",()=>
  assert.match(script,/password_salt,password_hash/);
  assert.doesNotMatch(script,/console\.log\(password\)/);
 });
+
+test("owner password policy is compatible with login verifier",()=>{
+ assert.match(script,/password\.length < 16 \|\| password\.length > 256/);
+});
