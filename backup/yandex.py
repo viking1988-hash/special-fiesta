@@ -248,6 +248,7 @@ def retention_candidates(items, folder, now):
         sha = item.get("custom_properties", {}).get("client_backup_sha256", "")
         if (not match or item.get("type") != "file"
                 or item.get("path") != folder + "/" + item["name"]
+                or item.get("public_url") or item.get("public_key")
                 or not re.fullmatch(r"[a-f0-9]{64}", sha)):
             continue
         try:
