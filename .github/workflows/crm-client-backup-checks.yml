@@ -17,6 +17,10 @@ jobs:
           bash -n scripts/crm-clients-yandex-upload.sh
           bash -n scripts/crm-clients-backup-job.sh
           bash -n scripts/crm-client-backup-verify.sh
+      - name: Verify child scripts are launched through bash
+        run: |
+          grep -Fq 'bash "$here/crm-clients-export.sh" "$archive"' scripts/crm-clients-backup-job.sh
+          grep -Fq 'bash "$here/crm-clients-yandex-upload.sh" "$archive"' scripts/crm-clients-backup-job.sh
       - name: Verify missing safety gates fail closed
         run: |
           if CLIENT_BACKUP_ENABLED=true bash scripts/crm-clients-backup-job.sh >/dev/null 2>&1; then
