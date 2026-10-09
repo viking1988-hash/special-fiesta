@@ -30,3 +30,8 @@ The staged Railway service has no database connection, Yandex token, or encrypti
 
 ## Deployment blocker: shell executable permissions (verified 2026-10-09)
 GitHub tree inspection confirms all four client-backup shell scripts have mode `100644`, not executable `100755`. The orchestrator currently calls `crm-clients-export.sh` and `crm-clients-yandex-upload.sh` directly; that will fail with `Permission denied` in a deployment that preserves these modes. The attempted orchestrator edit was blocked, and **no fix was committed**. Before enabling the job, explicitly verify executable modes or make the orchestrator invoke each child with Bash, then exercise the end-to-end job in an isolated environment. Existing CI syntax and disabled-state checks do not cover this execution path.
+
+## Resolved shell execution blocker — 2026-10-09
+- Commit `c11df870` changed the orchestrator to call both child scripts with `bash`, so GitHub's `100644` file mode no longer prevents execution of these child steps.
+- Commit `c4e066bf` added a regression assertion to CI. `CRM client backup checks` succeeded for `c4e066bf` (run `37966559285`).
+- This closes the shell execution issue only; a real age-encrypted PostgreSQL export, Yandex upload, and isolated restore remain untested. Do not enable the dedicated service yet.
