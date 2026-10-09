@@ -4,7 +4,7 @@ Updated 2026-10-09 UTC. Repository `viking1988-hash/special-fiesta`, branch `fea
 
 ## Evidence of completed tests
 
-Original live-Yandex code commit: `c13cc1e8d20f1665b8ae0e7ba675b1181df4f3c3`. Continued from documentation commit `2f4856e4998ac3507276220e6538e650afed3d23`. Current tested code: `f2a6ed8001831433d99aefbe92e74d6b5695673e`. All five Actions succeeded there, including backup checks 37982072623 and restore rehearsal 37982072616; the expanded unit/mock suite has 25 passing tests. Live real-schema/key/alert evidence is in [the verification report](crm-backup-verification-20261009.md) and [timestamped metadata-only logs](evidence/crm-backup-20261009.json).
+Original live-Yandex code commit: `c13cc1e8d20f1665b8ae0e7ba675b1181df4f3c3`. Continued from documentation commit `2f4856e4998ac3507276220e6538e650afed3d23`. Previous tested baseline: `f2a6ed8001831433d99aefbe92e74d6b5695673e`. Latest reader-role/watchdog code: `210dc1f5368ebba6bb7fe48d7a93b4c4c91e893f`; all five Actions succeeded, including backup checks 37984255579. Latest suite: 32 passing tests. See [current role/watchdog report](crm-backup-role-watchdog-report-20261009.md), [owner key procedure](crm-backup-offline-key-owner.md) and [inactive rollout plan](crm-backup-launch-plan.md). All five Actions succeeded there, including backup checks 37982072623 and restore rehearsal 37982072616; the expanded unit/mock suite has 25 passing tests. Live real-schema/key/alert evidence is in [the verification report](crm-backup-verification-20261009.md) and [timestamped metadata-only logs](evidence/crm-backup-20261009.json).
 
 All five Actions succeeded at this commit: CRM client backup checks (37980025900), synthetic client restore rehearsal (37980025862), PostgreSQL integration (37980026178), CRM auth (37980025883), Jarvis runtime (37980025936). Backup safety suite: 22 passing unit/mock tests. Container tests build both dedicated images and exercise the disabled production entrypoint, non-root tools and isolated synthetic recovery.
 
@@ -29,7 +29,7 @@ No real customer data was uploaded. No production CRM database, working CRM serv
 
 Project `Avtohirurg-CRM`; project ID `3324700c-193f-46f0-aca7-719ac6cb14f6`; new service ID `2c914871-74c5-4837-bb94-b4620b50b934`.
 
-- Live source pinned to `f2a6ed8001831433d99aefbe92e74d6b5695673e`; documentation pushes do not redeploy it.
+- Both new services pinned to `210dc1f5368ebba6bb7fe48d7a93b4c4c91e893f`; documentation pushes do not redeploy them. Backup uses the disabled schema-rehearsal image; separate crm-clients-backup-watchdog uses backup/Dockerfile.watchdog. No new cron exists; both restart policies are NEVER.
 - Dockerfile: `backup/Dockerfile.schema-rehearsal`; start: `python3 /app/test/backup/schema-rehearsal.py`. Includes aws-cli for read-only snapshot retrieval during explicitly gated rehearsals.
 - Restart policy NEVER. No active cron, public domain, TCP proxy or volume mount.
 - No production database connection or production age identity/recipient configured.
@@ -81,7 +81,7 @@ The job exits nonzero and emits CLIENT_BACKUP_JOB_FAILED on failure, cleans temp
 
 The new service has protected references to the existing monitor bot/chat variables; the monitor itself was not changed or restarted. CLIENT_BACKUP_LIVE_ALERT_TEST is now false, so redeploying does not resend the test. Actual production failure alerts remain disabled until rollout approval.
 
-`backup/watchdog.py` prepares a separate read-only freshness check: alert when no verified backup exists within 36 hours. It is disabled by default via CLIENT_BACKUP_MONITOR_ENABLED. Mock tests cover fresh/stale/missing/future archives. Actual scheduling and notification delivery for this monitor remain unverified. A job failure trap alone cannot detect a scheduler that never ran.
+`backup/watchdog.py` prepares a separate read-only freshness check: alert when no verified backup exists within 36 hours. It is disabled by default via CLIENT_BACKUP_MONITOR_ENABLED. Mock tests cover fresh/stale/missing/future archives. An actual one-shot read-only test on the artificial Disk folder passed: fresh metadata succeeded, clock +37 hours caused failure and Telegram accepted test message 25. Independent periodic scheduling remains disabled and has not run. A job failure trap alone cannot detect a scheduler that never ran.
 
 ## Schedule and 30-day retention policy
 
@@ -113,9 +113,9 @@ This archive contains ONLY customers and vehicles. It cannot recover organizatio
 
 ## Remaining release gates
 
-- Read-only production export account scoped to the reviewed tables/dependencies; no write privileges.
+- Install/authenticate the production reader role through trusted DBA access. SQL and actual write-denial/export tests passed in an isolated copy; the production catalog and credentials were not changed.
 - Offline production key custody, second protected copy and demonstrated key recovery.
-- Missing-run monitoring delivery/scheduling tests. The actual job failure notification has passed.
+- Actual activation and observation of the independently scheduled monitor after rollout approval; the one-shot missing-run notification test and actual job failure notification have passed.
 - If automatic deletion is required: reviewed implementation and artificial-folder tests; current mode only plans retention.
 - Reviewed production Dockerfile/source/variables and schedule, followed by the owner's explicit approval after all checks.
 
