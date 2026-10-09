@@ -4,9 +4,26 @@ from pathlib import Path
 import re
 import sys
 import urllib.error
+import urllib.parse
 
 sys.path.insert(0, str(Path(__file__).parents[2] / "backup"))
 from yandex import Disk, BackupError, digest
+
+
+class ObservedDisk(Disk):
+    def api(self, suffix="", method="GET", payload=None, **query):
+        result = super().api(suffix, method, payload, **query)
+        if suffix in ("/upload", "/download"):
+            host = urllib.parse.urlsplit(result.get("href", "")).hostname or ""
+            # Static categories only: never log a presigned URL or provider-supplied hostname.
+            if host == "downloader.disk.yandex.ru":
+                category = "YANDEX_DOWNLOADER_RU"
+            elif host.endswith(".disk.yandex.net") or host.endswith(".storage.yandex.net"):
+                category = "YANDEX_NET_STORAGE"
+            else:
+                category = "UNRECOGNIZED"
+            print("SYNTHETIC_API_LINK stage=" + suffix[1:] + " host_category=" + category, flush=True)
+        return result
 
 
 def main():
@@ -16,7 +33,7 @@ def main():
         raise BackupError("SYNTHETIC_TEST_GATE_REQUIRED")
     source, destination = map(Path, sys.argv[1:])
     destination.parent.mkdir(mode=0o700, exist_ok=True)
-    disk = Disk(os.environ.get("YANDEX_DISK_TOKEN"), "app:/clients-backups-test")
+    disk = ObservedDisk(os.environ.get("YANDEX_DISK_TOKEN"), "app:/clients-backups-test")
     sha = disk.upload(source)
     disk.download(source.name, destination, sha)
     if digest(destination) != sha:
