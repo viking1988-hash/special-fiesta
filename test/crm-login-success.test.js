@@ -10,8 +10,9 @@ test("valid employee receives a session cookie backed by a hashed DB token", asy
  const calls=[];
  const db={query:async(sql,params)=>{
   calls.push({sql,params});
-  if(sql.startsWith("SELECT"))return {rows:[{id:"00000000-0000-4000-8000-000000000001",login:"owner",role:"owner",password_salt:salt,password_hash}]};
-  if(sql.startsWith("INSERT"))return {rowCount:1};
+  if(sql.includes("FROM crm_login_attempts"))return {rows:[]};
+  if(sql.includes("FROM crm_staff WHERE"))return {rows:[{id:"00000000-0000-4000-8000-000000000001",login:"owner",role:"owner",password_salt:salt,password_hash}]};
+  if(sql.startsWith("INSERT")||sql.startsWith("DELETE"))return {rowCount:1};
   throw Error("unexpected SQL");
  }};
  const res={statusCode:200,status(n){this.statusCode=n;return this;},cookie(name,token,options){this.cookieData={name,token,options};return this;},json(body){this.body=body;return this;}};
@@ -21,7 +22,7 @@ test("valid employee receives a session cookie backed by a hashed DB token", asy
  assert.equal(res.cookieData.name,"crm_session");
  assert.equal(res.cookieData.options.httpOnly,true);
  assert.equal(res.cookieData.options.secure,true);
- assert.equal(calls.length,2);
- assert.notEqual(calls[1].params[1],res.cookieData.token);
+ assert.equal(calls.filter(x=>x.sql.includes("INSERT INTO crm_staff_sessions")).length,1);
+ assert.notEqual(calls.find(x=>x.sql.includes("INSERT INTO crm_staff_sessions")).params[1],res.cookieData.token);
  assert.equal(calls[1].params[1],crypto.createHash("sha256").update(res.cookieData.token).digest("hex"));
 });
