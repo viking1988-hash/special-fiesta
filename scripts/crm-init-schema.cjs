@@ -22,6 +22,12 @@ async function main() {
    revoked_at TIMESTAMPTZ,
    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
   )`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS crm_login_attempts (
+   key_hash TEXT PRIMARY KEY,
+   failures INTEGER NOT NULL DEFAULT 0 CHECK (failures >= 0),
+   window_start TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  )`);
+  await pool.query("CREATE INDEX IF NOT EXISTS crm_login_attempts_window_idx ON crm_login_attempts(window_start)");
   await pool.query("COMMIT");
   process.stdout.write("CRM staff schema ready\n");
  } catch (e) {await pool.query("ROLLBACK");throw e;}
