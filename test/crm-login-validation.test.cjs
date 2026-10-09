@@ -18,7 +18,7 @@ test("reject invalid login formats without querying the database",async()=>{
 });
 test("normalize uppercase and whitespace before login lookup",async()=>{
  let searched;
- const db={query:async(_sql,params)=>{searched=params[0];return {rows:[]}}};
+ const db={query:async(sql,params)=>{if(sql.includes("FROM crm_login_attempts"))return {rows:[]};if(sql.includes("FROM crm_staff WHERE"))searched=params[0];return sql.startsWith("SELECT")?{rows:[]}:{rowCount:1}}};
  const res=response();
  await makeLoginHandler(db)({body:{login:"  OWNER.TEST  ",password:"valid-password-123456"},ip:"192.0.2.16"},res);
  assert.equal(searched,"owner.test");
