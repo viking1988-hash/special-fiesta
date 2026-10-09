@@ -17,3 +17,6 @@ Caution: the login throttle is per-process memory and is not distributed across 
 10. Confirm the staging DATABASE_URL points to the intended staging database before provisioning; never run bootstrap against production during tests.
 11. Check whether the database provider requires TLS and set connection-string SSL parameters accordingly. Do not bypass certificate verification as a workaround.
 12. After provisioning, confirm a second run with the same login fails without changing the existing password or role.
+
+13. Before running the provisioning script, set `CRM_OWNER_BOOTSTRAP_CONFIRM=YES` as an explicit one-time confirmation. Without this flag, the script must not connect to the database or write accounts. Remove this variable after provisioning.
+14. Verify the bootstrap confirmation check on staging with the flag absent; it must exit unsuccessfully and leave all accounts untouched.
