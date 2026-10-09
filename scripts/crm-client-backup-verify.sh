@@ -9,8 +9,12 @@ umask 077
 [[ "$TEST_DATABASE_URL" != *"production"* ]] || { echo "Production-looking database URL refused" >&2; exit 1; }
 [[ "$TEST_DATABASE_URL" != *"crm-api"* ]] || { echo "Production-looking database URL refused" >&2; exit 1; }
 [[ "${CLIENT_BACKUP_TEST_DB_EMPTY_CONFIRMED:-}" == "YES" ]] || { echo "Confirm empty isolated test tables" >&2; exit 1; }
+: "${CLIENT_BACKUP_EXPECTED_TEST_DB:?Set exact isolated database name}"
 for binary in age pg_restore psql; do command -v "$binary" >/dev/null || { echo "Missing tool: $binary" >&2; exit 1; }; done
 [[ -s "$CLIENT_BACKUP_ARCHIVE" && -r "$AGE_IDENTITY_FILE" ]]
+actual_db=$(psql "$TEST_DATABASE_URL" -X -v ON_ERROR_STOP=1 -Atqc "SELECT current_database()")
+[[ "$actual_db" == "$CLIENT_BACKUP_EXPECTED_TEST_DB" ]] || { echo "Unexpected test database identity" >&2; exit 1; }
+[[ "$actual_db" == crm_test_* || "$actual_db" == staging_* ]] || { echo "Test database name must be crm_test_* or staging_*" >&2; exit 1; }
 workdir="$(mktemp -d)"
 trap 'rm -rf "$workdir"' EXIT
 age --decrypt -i "$AGE_IDENTITY_FILE" -o "$workdir/clients.dump" "$CLIENT_BACKUP_ARCHIVE"
