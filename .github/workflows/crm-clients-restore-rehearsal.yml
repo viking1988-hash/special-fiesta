@@ -33,9 +33,9 @@ jobs:
           psql -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE crm_test_clients_source'
           psql -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE crm_test_clients_restore'
           for db in crm_test_clients_source crm_test_clients_restore; do
-            psql -d "$db" -v ON_ERROR_STOP=1 -c 'CREATE TABLE public.customers (id bigint PRIMARY KEY, organization_id bigint); CREATE TABLE public.vehicles (id bigint PRIMARY KEY, organization_id bigint, customer_id bigint REFERENCES public.customers(id));'
+            psql -d "$db" -v ON_ERROR_STOP=1 -c 'CREATE TABLE public.customers (id bigint PRIMARY KEY, organization_id bigint, name text, phone text); CREATE TABLE public.vehicles (id bigint PRIMARY KEY, organization_id bigint, customer_id bigint REFERENCES public.customers(id), vin text);'
           done
-          psql -d crm_test_clients_source -v ON_ERROR_STOP=1 -c 'INSERT INTO public.customers VALUES (101,1); INSERT INTO public.vehicles VALUES (201,1,101);'
+          psql -d crm_test_clients_source -v ON_ERROR_STOP=1 -c 'INSERT INTO public.customers VALUES (101,1,$Synthetic customer$,$TEST-PHONE$),(102,2,$Synthetic second$,NULL); INSERT INTO public.vehicles VALUES (201,1,101,$TEST-VIN-1$),(202,2,102,NULL);'
       - name: Encrypt, restore and verify synthetic clients
         run: |
           age-keygen -o /tmp/client-ci-identity.txt 2>/dev/null
@@ -49,5 +49,26 @@ jobs:
           export CLIENT_BACKUP_TEST_CONFIRM=ISOLATED CLIENT_BACKUP_TEST_DB_EMPTY_CONFIRMED=YES
           export CLIENT_BACKUP_EXPECTED_TEST_DB=crm_test_clients_restore
           bash scripts/crm-client-backup-verify.sh
-          test "$(psql -d crm_test_clients_restore -Atqc 'SELECT count(*) FROM public.customers')" = 1
-          test "$(psql -d crm_test_clients_restore -Atqc 'SELECT count(*) FROM public.vehicles')" = 1
+          test "$(psql -d crm_test_clients_restore -Atqc 'SELECT count(*) FROM public.customers')" = 2
+          test "$(psql -d crm_test_clients_restore -Atqc 'SELECT count(*) FROM public.vehicles')" = 2
+          test "$(psql -d crm_test_clients_restore -Atqc 'SELECT count(*) FROM public.vehicles v JOIN public.customers c ON c.id=v.customer_id AND c.organization_id=v.organization_id')" = 2
+          if bash scripts/crm-client-backup-verify.sh; then
+            echo 'Nonempty restore target was accepted'; exit 1
+          fi
+          age-keygen -o /tmp/wrong-identity.txt 2>/dev/null
+          if AGE_IDENTITY_FILE=/tmp/wrong-identity.txt bash scripts/crm-client-backup-verify.sh; then
+            echo 'Wrong key was accepted'; exit 1
+          fi
+          head -c 80 "$CLIENT_BACKUP_ARCHIVE" > /tmp/truncated.dump.age
+          if CLIENT_BACKUP_ARCHIVE=/tmp/truncated.dump.age bash scripts/crm-client-backup-verify.sh; then
+            echo 'Truncated archive was accepted'; exit 1
+          fi
+          if CLIENT_BACKUP_EXPECTED_TEST_DB=crm_test_wrong bash scripts/crm-client-backup-verify.sh; then
+            echo 'Wrong target identity was accepted'; exit 1
+          fi
+          if DATABASE_URL='postgresql://postgres:ci-only@localhost:5432/crm_test_missing' bash scripts/crm-clients-export.sh /tmp/failed-export.dump.age; then
+            echo 'Failed database export was accepted'; exit 1
+          fi
+          test ! -e /tmp/failed-export.dump.age
+          test ! -e /tmp/failed-export.dump.age.partial
+          rm -f /tmp/client-ci-identity.txt /tmp/wrong-identity.txt /tmp/clients-20261009T000000Z.dump.age /tmp/truncated.dump.age
