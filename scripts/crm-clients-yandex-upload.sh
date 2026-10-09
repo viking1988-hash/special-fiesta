@@ -9,6 +9,7 @@ archive="$1"
 for tool in curl jq wc basename; do command -v "$tool" >/dev/null; done
 name="$(basename -- "$archive")"
 [[ "$name" =~ ^clients-[0-9]{8}T[0-9]{6}Z\.dump\.age$ ]] || { echo "Invalid backup filename" >&2; exit 1; }
+[[ ! -L "$archive" ]] || { echo "Symlink archive refused" >&2; exit 1; }
 remote="app:/clients-backups/$name"
 api="https://cloud-api.yandex.net/v1/disk/resources"
 auth="Authorization: OAuth $YANDEX_DISK_TOKEN"
