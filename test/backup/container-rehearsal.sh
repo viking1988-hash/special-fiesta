@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-# Disposable container, network disabled, only artificial rows.
+# Disposable container, only artificial rows. CI blocks external networking;
+# Railway may opt into the authorized live Yandex test folder only.
 set -Eeuo pipefail
 umask 077
+# Ignore all ambient database routing options: the source/target always live in this container.
+unset PGDATABASE PGSERVICE PGSERVICEFILE PGHOSTADDR PGPORT PGPASSWORD DATABASE_URL TEST_DATABASE_URL
+export SYNTHETIC_REHEARSAL_ONLY=YES
 export PGDATA=/tmp/synthetic-pgdata PGHOST=127.0.0.1 PGUSER=postgres
 initdb -D "$PGDATA" -A trust >/dev/null
 pg_ctl -D "$PGDATA" -o '-c listen_addresses=127.0.0.1' -w start >/dev/null
@@ -17,9 +21,15 @@ export AGE_RECIPIENT
 AGE_RECIPIENT="$(age-keygen -y /tmp/identity)"
 export CLIENT_BACKUP_ENABLED=true CLIENT_BACKUP_SCHEMA_VERIFIED=YES
 export DATABASE_URL=postgresql://postgres@127.0.0.1/crm_test_container_source
-bash scripts/crm-clients-export.sh /tmp/clients-20261009T000000Z.dump.age
-python3 test/backup/roundtrip.py /tmp/clients-20261009T000000Z.dump.age /tmp/readback/clients-20261009T000000Z.dump.age
-export CLIENT_BACKUP_ARCHIVE=/tmp/readback/clients-20261009T000000Z.dump.age
+archive="/tmp/clients-$(date -u +%Y%m%dT%H%M%SZ).dump.age"
+readback="/tmp/readback/$(basename -- "$archive")"
+bash scripts/crm-clients-export.sh "$archive"
+if [[ "${CLIENT_BACKUP_LIVE_YANDEX_TEST:-false}" == true ]]; then
+  python3 test/backup/live-roundtrip.py "$archive" "$readback"
+else
+  python3 test/backup/roundtrip.py "$archive" "$readback"
+fi
+export CLIENT_BACKUP_ARCHIVE="$readback"
 export AGE_IDENTITY_FILE=/tmp/identity TEST_DATABASE_URL=postgresql://postgres@127.0.0.1/crm_test_container_restore
 export CLIENT_BACKUP_TEST_CONFIRM=ISOLATED CLIENT_BACKUP_TEST_DB_EMPTY_CONFIRMED=YES CLIENT_BACKUP_EXPECTED_TEST_DB=crm_test_container_restore
 bash scripts/crm-client-backup-verify.sh
@@ -33,3 +43,5 @@ done
 psql -d crm_test_container_restore -X -v ON_ERROR_STOP=1 -f scripts/crm-client-schema-audit.sql >/dev/null
 echo CONTAINER_SYNTHETIC_METADATA_AUDIT_OK
 echo CONTAINER_SYNTHETIC_RECOVERY_OK
+
+echo SYNTHETIC_REHEARSAL_DONE customers=2 vehicles=2 links=2

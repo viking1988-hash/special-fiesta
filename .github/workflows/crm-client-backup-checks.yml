@@ -84,3 +84,7 @@ jobs:
           docker run --rm --network none --entrypoint bash crm-client-backup:test -c 'pg_dump --version; age --version; curl --version; jq --version; python3 --version; test "$(id -u)" != 0'
       - name: Restore synthetic archive inside isolated PostgreSQL 18 container
         run: docker run --rm --network none -v "$PWD/test:/app/test:ro" --entrypoint bash crm-client-backup:test test/backup/container-rehearsal.sh
+      - name: Build and verify one-shot Railway rehearsal image
+        run: |
+          docker build -f backup/Dockerfile.rehearsal -t crm-client-rehearsal:test .
+          docker run --rm --network none crm-client-rehearsal:test
