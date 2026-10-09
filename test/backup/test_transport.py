@@ -181,6 +181,21 @@ class TransferTests(unittest.TestCase):
         self.assertEqual(y.retention_candidates(items, folder, now), [items[0]["name"]])
         self.assertEqual(y.retention_candidates(items[:1], folder, now), [])
 
+    def test_retention_never_selects_publicly_shared_archives(self):
+        folder = "app:/clients-backups"
+        now = dt.datetime(2026, 10, 9, tzinfo=dt.timezone.utc)
+        def entry(stamp, **fields):
+            name = "clients-" + stamp + ".dump.age"
+            return {"name": name, "path": folder + "/" + name, "type": "file",
+                    "custom_properties": {"client_backup_sha256": HASH}, **fields}
+        public_url = entry("20260101T000000Z", public_url="https://public.invalid/example")
+        public_key = entry("20260102T000000Z", public_key="published")
+        old_private = entry("20260103T000000Z")
+        newest_private = entry("20261009T000000Z")
+        self.assertEqual(
+            y.retention_candidates([public_url, public_key, old_private, newest_private], folder, now),
+            [old_private["name"]])
+
     def test_folder_missing_is_created(self):
         disk = FakeDisk()
         missing = urllib.error.HTTPError(y.API, 404, "missing", {}, None)
