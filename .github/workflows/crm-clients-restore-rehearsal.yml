@@ -24,6 +24,7 @@ jobs:
       PGHOST: localhost
       PGUSER: postgres
       PGPASSWORD: ci-only
+      CLIENT_BACKUP_REMOTE_TEST_APPROVED: 'YES' # Ephemeral GitHub Actions PostgreSQL service container only
     steps:
       - uses: actions/checkout@v4
       - name: Install backup tools
