@@ -30,3 +30,19 @@ test("owner UI rejects unsuccessful or malformed auth status",async()=>{
   assert.match(elements.authStatus.textContent,/заблокирован/);
  }
 });
+
+test("owner UI rejects invalid JSON or status endpoint failure before dashboard access",async()=>{
+ for(const response of [
+  {ok:true,json:async()=>{throw SyntaxError("invalid JSON")}},
+  {ok:false,status:500,json:async()=>({enabled:true})}
+ ]){
+  const ids=["staffLogin","accessKey","authStatus","login","queue","history","total","approved","handed","logout","go"];
+  const elements=Object.fromEntries(ids.map(id=>[id,{style:{},disabled:false,textContent:"",placeholder:""}]));
+  const calls=[];
+  const context={...elements,sessionStorage:{getItem(){return "legacy-secret"},removeItem(){},setItem(){}},fetch:async(url)=>{calls.push(url);return response}};
+  vm.createContext(context);vm.runInContext(script,context);
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(elements.login.disabled,true);
+  assert.equal(calls.includes("/api/ops/dashboard"),false);
+ }
+});
