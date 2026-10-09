@@ -157,8 +157,7 @@ class Disk:
                  payload={"custom_properties": {"client_backup_sha256": sha}})
         return sha
 
-    def retention_plan(self, now=None):
-        now = now or dt.datetime.now(dt.timezone.utc)
+    def list_items(self):
         items, offset = [], 0
         while True:
             result = self.api(path=self.folder, limit=100, offset=offset)
@@ -171,7 +170,29 @@ class Disk:
             offset += 100
             if offset >= 10000:
                 raise BackupError("DIRECTORY_TOO_LARGE")
-        return retention_candidates(items, self.folder, now)
+        return items
+
+    def retention_plan(self, now=None):
+        now = now or dt.datetime.now(dt.timezone.utc)
+        return retention_candidates(self.list_items(), self.folder, now)
+
+    def check_freshness(self, now=None):
+        now = now or dt.datetime.now(dt.timezone.utc)
+        stamps = []
+        for item in self.list_items():
+            match = NAME.fullmatch(item.get("name", ""))
+            sha = item.get("custom_properties", {}).get("client_backup_sha256", "")
+            if (not match or item.get("type") != "file"
+                    or item.get("path") != self.folder + "/" + item["name"]
+                    or not re.fullmatch(r"[a-f0-9]{64}", sha)):
+                continue
+            try:
+                stamp = dt.datetime.strptime(match[1], "%Y%m%dT%H%M%SZ").replace(tzinfo=dt.timezone.utc)
+            except ValueError:
+                continue
+            stamps.append(stamp)
+        if not stamps or not dt.timedelta(0) <= now - max(stamps) <= dt.timedelta(hours=36):
+            raise BackupError("NO_RECENT_VERIFIED_BACKUP")
 
 
 def retention_candidates(items, folder, now):

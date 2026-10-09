@@ -25,4 +25,9 @@ export CLIENT_BACKUP_TEST_CONFIRM=ISOLATED CLIENT_BACKUP_TEST_DB_EMPTY_CONFIRMED
 bash scripts/crm-client-backup-verify.sh
 test "$(psql -d crm_test_container_restore -Atqc 'SELECT count(*) FROM customers')" = 2
 test "$(psql -d crm_test_container_restore -Atqc 'SELECT count(*) FROM vehicles v JOIN customers c ON c.id=v.customer_id AND c.organization_id=v.organization_id')" = 2
+for table in customers vehicles; do
+  source_hash=$(psql -d crm_test_container_source -Atqc "SELECT md5(coalesce(string_agg(row_to_json(t)::text, '|' ORDER BY id), '')) FROM $table t")
+  restore_hash=$(psql -d crm_test_container_restore -Atqc "SELECT md5(coalesce(string_agg(row_to_json(t)::text, '|' ORDER BY id), '')) FROM $table t")
+  test "$source_hash" = "$restore_hash"
+done
 echo CONTAINER_SYNTHETIC_RECOVERY_OK

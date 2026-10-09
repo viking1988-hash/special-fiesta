@@ -168,6 +168,19 @@ class TransferTests(unittest.TestCase):
         with patch.object(disk, "api", side_effect=forbidden), self.assertRaises(urllib.error.HTTPError):
             disk.ensure_folder()
 
+    def test_freshness_missing_stale_future_and_valid(self):
+        disk = FakeDisk()
+        now = dt.datetime(2026, 10, 9, tzinfo=dt.timezone.utc)
+        def item(stamp):
+            name = "clients-" + stamp + ".dump.age"
+            return {"name": name, "type": "file", "path": disk.folder + "/" + name,
+                    "custom_properties": {"client_backup_sha256": HASH}}
+        for items in ([], [item("20261007T000000Z")], [item("20261010T000000Z")]):
+            with patch.object(disk, "list_items", return_value=items), self.assertRaises(y.BackupError):
+                disk.check_freshness(now)
+        with patch.object(disk, "list_items", return_value=[item("20261008T000000Z")]):
+            disk.check_freshness(now)
+
 
 if __name__ == "__main__":
     unittest.main()

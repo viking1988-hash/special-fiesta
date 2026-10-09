@@ -98,7 +98,7 @@ This section supersedes older statements above about size-only verification and 
 - Job failure exits nonzero and emits CLIENT_BACKUP_JOB_FAILED. Temporary ciphertext is cleaned. Export/decrypt/restore errors use generic messages to avoid record leakage from database/provider diagnostics.
 - `backup/notify.py`: optional failure-only Telegram notification with fixed text and no raw logs, SQL, client records or credentials. Enable only on this new service with CLIENT_BACKUP_ALERTS_ENABLED=true, CLIENT_BACKUP_TELEGRAM_TOKEN and CLIENT_BACKUP_TELEGRAM_CHAT_ID. Existing alert services are not changed.
 - Mock tests check the fixed payload, invalid token rejection, no network call when disabled, and preserved job failure status. Actual delivery is still unverified; no test message was sent.
-- Missing-run monitoring is a separate acceptance requirement: alert if there has been no verified daily ciphertext for over 36 hours. Failure trap alone cannot detect a scheduler that never ran. No watchdog has been activated.
+- Missing-run monitoring is a separate acceptance requirement: alert if there has been no verified daily ciphertext for over 36 hours. Failure trap alone cannot detect a scheduler that never ran. Read-only `backup/watchdog.py` is prepared, disabled by default via CLIENT_BACKUP_MONITOR_ENABLED. Mock tests cover missing, stale, future and fresh archives. No watchdog has been activated.
 
 ### Thirty-day retention (non-destructive preparation)
 - Keep every backup younger than or exactly 30 days and ALWAYS keep the latest verified backup.
