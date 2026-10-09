@@ -17,6 +17,17 @@ jobs:
           bash -n scripts/crm-clients-yandex-upload.sh
           bash -n scripts/crm-clients-backup-job.sh
           bash -n scripts/crm-client-backup-verify.sh
+      - name: Verify missing safety gates fail closed
+        run: |
+          if CLIENT_BACKUP_ENABLED=true bash scripts/crm-clients-backup-job.sh >/dev/null 2>&1; then
+            echo "Unsafe backup job started"; exit 1
+          fi
+          if CLIENT_BACKUP_ENABLED=true bash scripts/crm-clients-export.sh >/dev/null 2>&1; then
+            echo "Unsafe export started"; exit 1
+          fi
+          if CLIENT_BACKUP_ENABLED=true bash scripts/crm-clients-yandex-upload.sh >/dev/null 2>&1; then
+            echo "Unsafe upload started"; exit 1
+          fi
       - name: Verify backup job stays disabled by default
         run: |
           result="$(env -u CLIENT_BACKUP_ENABLED bash scripts/crm-clients-backup-job.sh)"
