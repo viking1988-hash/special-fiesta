@@ -21,3 +21,18 @@
 
 ## Exit criteria
 Do not merge or deploy merely because a PR exists. Require reviewed code, passing automated tests, backup, and manual production smoke checks.
+
+## Evidence collected 2026-10-09
+- Automated checks passed on the feature branch: CRM auth, PostgreSQL integration, and Jarvis runtime.
+- Railway `Avtohirurg-CRM` has a production environment only. Staging has not been provisioned.
+- Backup log: `backup_ok file=crm-20261009-023155.dump bytes=76116`.
+- Backup checker: `BACKUP_CHECK_OK`, PostgreSQL dump signature verified.
+- Restore rehearsal: `RESTORE_TEST_OK tables=25 archive=crm-20261009-023155.dump`.
+- Yandex mirror: `yandex_mirror_ok` for the same archive.
+
+## Remaining release gates
+1. Create isolated staging with its own database and credentials. Never use the production database URL.
+2. Disable outgoing customer notifications, SMS, Telegram messages, and production webhooks in staging.
+3. Run schema setup and one-time owner bootstrap against staging only.
+4. Verify login, lockout, cookies, session revocation, owner/master access, CSRF, and legacy access through HTTP smoke tests.
+5. Record rollback results and obtain explicit approval before changing production.
