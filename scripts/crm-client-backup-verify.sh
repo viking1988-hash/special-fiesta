@@ -15,6 +15,10 @@ for binary in age pg_restore psql; do command -v "$binary" >/dev/null || { echo 
 actual_db=$(psql "$TEST_DATABASE_URL" -X -v ON_ERROR_STOP=1 -Atqc "SELECT current_database()")
 [[ "$actual_db" == "$CLIENT_BACKUP_EXPECTED_TEST_DB" ]] || { echo "Unexpected test database identity" >&2; exit 1; }
 [[ "$actual_db" == crm_test_* || "$actual_db" == staging_* ]] || { echo "Test database name must be crm_test_* or staging_*" >&2; exit 1; }
+# Database name alone is not proof of isolation. Refuse known production service hosts.
+db_host=$(psql "$TEST_DATABASE_URL" -X -v ON_ERROR_STOP=1 -Atqc "SELECT inet_server_addr()::text")
+[[ -n "$db_host" ]] || { echo "Unable to confirm test server address" >&2; exit 1; }
+[[ "$db_host" == "127.0.0.1" || "$db_host" == "::1" ]] || [[ "${CLIENT_BACKUP_REMOTE_TEST_APPROVED:-}" == "YES" ]] || { echo "Remote restore target requires explicit isolated-host approval" >&2; exit 1; }
 workdir="$(mktemp -d)"
 trap 'rm -rf "$workdir"' EXIT
 age --decrypt -i "$AGE_IDENTITY_FILE" -o "$workdir/clients.dump" "$CLIENT_BACKUP_ARCHIVE"
