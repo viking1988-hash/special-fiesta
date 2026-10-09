@@ -11,6 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get update -qq && sudo apt-get install -y shellcheck
+      - name: Static analysis of backup scripts
+        run: shellcheck -S warning scripts/crm-clients-export.sh scripts/crm-clients-yandex-upload.sh scripts/crm-clients-backup-job.sh scripts/crm-client-backup-verify.sh
       - name: Validate shell syntax
         run: |
           bash -n scripts/crm-clients-export.sh
