@@ -30,4 +30,6 @@ for table in customers vehicles; do
   restore_hash=$(psql -d crm_test_container_restore -Atqc "SELECT md5(coalesce(string_agg(row_to_json(t)::text, '|' ORDER BY id), '')) FROM $table t")
   test "$source_hash" = "$restore_hash"
 done
+psql -d crm_test_container_restore -X -v ON_ERROR_STOP=1 -f scripts/crm-client-schema-audit.sql >/dev/null
+echo CONTAINER_SYNTHETIC_METADATA_AUDIT_OK
 echo CONTAINER_SYNTHETIC_RECOVERY_OK

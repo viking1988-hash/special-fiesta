@@ -78,7 +78,7 @@ This section supersedes older statements above about size-only verification and 
 ### Separate container
 - `backup/Dockerfile`: PostgreSQL 18 client/server tool image with bash, age, curl, jq, Python and CA certificates. Runs as postgres (non-root); default entrypoint is the disabled backup job, not database initialization. The server tools are used ONLY by disposable synthetic tests.
 - `backup/railway.toml`: dedicated Dockerfile configuration, restart NEVER, no active cron. Planned daily schedule is `35 3 * * *` UTC = 06:35 Moscow.
-- No public domain, no production volume mount, no private decryption key in the image. Docker build context must never contain secrets. Image/package versions are to be recorded from the successful CI build; base digest pinning remains a deployment hardening step.
+- No public domain, no production volume mount, no private decryption key in the image. Docker build context must never contain secrets. Image/package versions are to be recorded from the successful CI build; base image digest is pinned to the digest verified in CI.
 
 ### Encryption keys
 - `backup/key-setup.sh` must be run on a trusted operator machine: `CLIENT_BACKUP_OFFLINE_KEY_SETUP=YES bash backup/key-setup.sh /new/private/key-directory`.
@@ -121,3 +121,13 @@ This section supersedes older statements above about size-only verification and 
 
 ### Activation remains blocked
 Live synthetic Yandex upload/download/restore; real schema/dependency audit; offline key custody/recovery; read-only source credentials; real notification delivery and missing-run monitoring; reviewed deletion implementation if needed; operator approval. Until then the dedicated Railway service remains staged, CLIENT_BACKUP_ENABLED=false, and has no active deployment or daily cron.
+
+
+## Verified preparation evidence
+- Commit 20ece20ce6b082a4f948833acc039001bd71ad66: CRM client backup checks run 37978214597 succeeded; 20 mock/unit safety tests passed; dedicated Docker image built; non-root runtime and default disabled mode verified.
+- Container tooling observed in CI: PostgreSQL 18.6, age 1.3.2, curl 8.22.0, jq 1.8.2, Python 3.14.8. Base image digest: sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873.
+- Same run reported SYNTHETIC_MOCK_TRANSPORT_READBACK_OK, CLIENT_BACKUP_RESTORE_OK and CONTAINER_SYNTHETIC_RECOVERY_OK. Both customer and vehicle table row hashes matched source after restore; counts/organization links matched.
+- An initial container test failed because inet_server_addr()::text included an address mask. The verifier now uses host(inet_server_addr()) to normalize the observed address while retaining isolated-target guards. A fresh container rerun passed; safeguards were not removed.
+- Railway staged configuration update returned Service instance not found. Read-back still shows the separate service as staged-create, zero deployments, old placeholder command and a staged (inactive) daily cron. Container configuration exists in GitHub but has NOT been applied in Railway.
+- No working CRM service, production table, existing backup job, token or real client archive was changed. No actual Yandex upload/download or Telegram delivery was performed.
+- Rollback of preparation is a reviewed revert of the backup-only commits in PR 9; no database rollback is required because no production database mutation occurred. Keep the service undeployed/disabled during rollback. Do not discard another operator's staged changes.
