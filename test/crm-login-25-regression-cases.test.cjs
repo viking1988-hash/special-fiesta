@@ -10,7 +10,7 @@ function setup(options={}){
  const id=++sequence,login="operator"+id,password="correct-password-123456",salt="salt-"+id;
  const hash=crypto.scryptSync(password,salt,64).toString("hex");
  const calls=[];
- const db={query:async(sql,params)=>{calls.push({sql,params});if(options.throwDb)throw Error("private database secret");if(sql.startsWith("SELECT"))return {rows:options.userMissing?[]:[{id:"staff-"+id,login,role:"owner",password_salt:salt,password_hash:hash}]};if(sql.startsWith("INSERT")){if(options.throwInsert)throw Error("insert failed");return {rowCount:1}};throw Error("unexpected SQL")}};
+ const db={query:async(sql,params)=>{calls.push({sql,params});if(options.throwDb)throw Error("private database secret");if(sql.includes("FROM crm_login_attempts"))return {rows:[]};if(sql.includes("FROM crm_staff WHERE"))return {rows:options.userMissing?[]:[{id:"staff-"+id,login,role:"owner",password_salt:salt,password_hash:hash}]};if(sql.startsWith("INSERT")){if(options.throwInsert&&sql.includes("crm_staff_sessions"))throw Error("insert failed");return {rowCount:1}};if(sql.startsWith("DELETE"))return {rowCount:1};throw Error("unexpected SQL")}};
  const res={statusCode:200,status(n){this.statusCode=n;return this},cookie(name,token,options){this.cookieData={name,token,options};return this},json(v){this.body=v;return this}};
  const req={body:{login,password},ip:"192.0.2."+(id%200+1)};
  return {db,res,req,calls,login,password};
