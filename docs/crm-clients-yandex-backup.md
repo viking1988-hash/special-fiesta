@@ -70,3 +70,54 @@ This archive contains ONLY customers and vehicles. It does not replace the full 
 
 ### Activation acceptance criteria
 Reviewed real schema/dependencies; read-only export account; persistent offline key custody and key recovery rehearsal; synthetic live Yandex upload + download + digest + restore; exact record/value comparisons; failure notifications; validated retention policy; operator approval. Keep CLIENT_BACKUP_ENABLED=false until all criteria pass.
+
+## Preparation packet: dedicated image, private transport, alerts (2026-10-09)
+
+This section supersedes older statements above about size-only verification and missing alert code. It does NOT certify live Yandex access or the real database schema.
+
+### Separate container
+- `backup/Dockerfile`: PostgreSQL 18 client/server tool image with bash, age, curl, jq, Python and CA certificates. Runs as postgres (non-root); default entrypoint is the disabled backup job, not database initialization. The server tools are used ONLY by disposable synthetic tests.
+- `backup/railway.toml`: dedicated Dockerfile configuration, restart NEVER, no active cron. Planned daily schedule is `35 3 * * *` UTC = 06:35 Moscow.
+- No public domain, no production volume mount, no private decryption key in the image. Docker build context must never contain secrets. Image/package versions are to be recorded from the successful CI build; base digest pinning remains a deployment hardening step.
+
+### Encryption keys
+- `backup/key-setup.sh` must be run on a trusted operator machine: `CLIENT_BACKUP_OFFLINE_KEY_SETUP=YES bash backup/key-setup.sh /new/private/key-directory`.
+- It refuses an existing directory, creates mode 700 directory and mode 600 files, never prints the identity. Keep `identity.agekey` offline with a second protected recovery copy; only public `recipient.txt` is configured as AGE_RECIPIENT.
+- Test recovery using an artificial archive on that trusted machine. Record recipient fingerprint/key ID and custody location without recording the identity. This custody/recovery check has NOT yet been performed for a real production key.
+- Use Railway sealed variables for Yandex/alert tokens when supported; otherwise private service variables with limited account access. Never paste tokens into chat, GitHub, Docker build args, logs or the image.
+
+### Transport and integrity
+- Existing Bash upload entrypoint delegates to `backup/yandex.py`.
+- Only `app:/clients-backups` and distinct `app:/clients-backups-test` folders are allowed. Plaintext headers, symlinks, unsafe filenames, unrelated hosts, non-HTTPS URLs, credentials in URLs, alternative ports, public folders/files and redirects are refused.
+- OAuth goes only to the fixed Yandex API; storage upload/download receives no OAuth header. Upload uses overwrite=false and bounded file size/timeouts.
+- Success requires complete download of the uploaded ciphertext and exact SHA-256 equality, not size alone. Only then a SHA-256 custom property is recorded. No decrypt key is needed on Railway.
+- Operator download: `python3 backup/yandex.py download clients-YYYYMMDDTHHMMSSZ.dump.age /private/new/archive.dump.age EXPECTED_SHA256` with CLIENT_BACKUP_ENABLED=true and the appropriate folder/token configured securely. This flag enables the invoked command, not a Railway cron by itself. Expected hash must come from a trusted verification record.
+- The API tests and container rehearsal use a test double. They do not contact the real Yandex account. Real API behavior, granted app-folder scope, storage host compatibility and eventual consistency remain live acceptance checks.
+
+### Failure monitoring
+- Job failure exits nonzero and emits CLIENT_BACKUP_JOB_FAILED. Temporary ciphertext is cleaned. Export/decrypt/restore errors use generic messages to avoid record leakage from database/provider diagnostics.
+- `backup/notify.py`: optional failure-only Telegram notification with fixed text and no raw logs, SQL, client records or credentials. Enable only on this new service with CLIENT_BACKUP_ALERTS_ENABLED=true, CLIENT_BACKUP_TELEGRAM_TOKEN and CLIENT_BACKUP_TELEGRAM_CHAT_ID. Existing alert services are not changed.
+- Mock tests check the fixed payload, invalid token rejection, no network call when disabled, and preserved job failure status. Actual delivery is still unverified; no test message was sent.
+- Missing-run monitoring is a separate acceptance requirement: alert if there has been no verified daily ciphertext for over 36 hours. Failure trap alone cannot detect a scheduler that never ran. No watchdog has been activated.
+
+### Thirty-day retention (non-destructive preparation)
+- Keep every backup younger than or exactly 30 days and ALWAYS keep the latest verified backup.
+- `retention-plan` paginates only the dedicated folder and considers only exact filenames, paths and a verified SHA-256 marker. Unknown files, unverified uploads, directories and another backup system's files are preserved.
+- Current implementation outputs candidate count only and NEVER calls DELETE. If no fresh verified upload exists, no deletion is permitted. Listing limits/errors fail closed.
+- Future deletion must go to Yandex Trash (not permanent deletion), preserve a verified recovery copy, and require a separately reviewed implementation and acceptance test. 30-day automatic deletion is NOT enabled or implemented in this packet.
+
+### Real schema audit and compatibility blockers
+- `scripts/crm-client-schema-audit.sql` contains metadata-only inspection. Execute on an isolated restored CRM snapshot, not by modifying production. No real customer names, phones or VINs should enter the audit output.
+- Exact columns, primary/foreign keys, organization dependencies, ID sequences, triggers/RLS, partitioning and PostgreSQL versions must be reviewed. This repository's initialization script covers staff authentication, not the full customers/vehicles schema.
+- Known isolated restore service code uses customers(organization_id,name,phone), vehicles(organization_id,customer_id,make,model). This is incomplete evidence, not a schema inventory.
+- Restore TOC now rejects anything beyond the two table data entries and reviewed conventional ID sequences. A real schema using other sequence names/partitions must be reviewed before adjusting this allowlist.
+- Existing isolated backup service and working database remain unchanged. This session has no authorized SQL execution surface or readable credentials for them. Metadata audit has not been executed.
+
+### Isolated recovery acceptance
+- CI creates artificial rows, exports with pg_dump, encrypts with age, transports through an in-memory Yandex API double, downloads and hashes ciphertext, decrypts/restores into empty separate PostgreSQL and checks counts and organization ownership.
+- Negative checks reject wrong keys, broken ciphertext, nonempty target, wrong database identity, invalid policy, failed export, unknown archive entries and cross-organization ownership.
+- Wrong organization data is detected AFTER a transactional restore commits; the disposable target must be discarded on any verification failure. Never promote a failed target. This script does not repair production or automatically switch CRM connections.
+- Before release compare full row digests/values, count and sequence behavior against the reviewed real schema. Restore the full CRM backup first when organizations/schema/other prerequisites are missing. Customer-only archives do not recover bookings, staff or full service history.
+
+### Activation remains blocked
+Live synthetic Yandex upload/download/restore; real schema/dependency audit; offline key custody/recovery; read-only source credentials; real notification delivery and missing-run monitoring; reviewed deletion implementation if needed; operator approval. Until then the dedicated Railway service remains staged, CLIENT_BACKUP_ENABLED=false, and has no active deployment or daily cron.

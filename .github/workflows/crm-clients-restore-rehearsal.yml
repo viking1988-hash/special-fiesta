@@ -2,12 +2,15 @@ name: CRM synthetic client restore rehearsal
 on:
   pull_request:
     paths:
+      - 'backup/**'
+      - 'test/backup/**'
       - 'scripts/crm-client*.sh'
       - '.github/workflows/crm-clients-restore-rehearsal.yml'
   workflow_dispatch:
 jobs:
   synthetic-restore:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     services:
       postgres:
         image: postgres:16

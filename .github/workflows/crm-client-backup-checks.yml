@@ -2,6 +2,8 @@ name: CRM client backup checks
 on:
   pull_request:
     paths:
+      - 'backup/**'
+      - 'test/backup/**'
       - 'scripts/crm-clients-*.sh'
       - 'scripts/crm-client-backup-verify.sh'
       - '.github/workflows/crm-client-backup-checks.yml'
@@ -9,6 +11,7 @@ on:
 jobs:
   shell-validation:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - name: Install shellcheck
@@ -66,3 +69,18 @@ jobs:
         run: |
           result="$(env -u CLIENT_BACKUP_ENABLED bash scripts/crm-clients-yandex-upload.sh)"
           test "$result" = "CLIENT_BACKUP_DISABLED"
+      - name: Verify private transport and retention planning
+        run: python3 -m unittest discover -s test/backup -v
+      - name: Validate supplemental shell scripts
+        run: |
+          shellcheck -S warning backup/key-setup.sh test/backup/container-rehearsal.sh
+          bash -n backup/key-setup.sh
+          bash -n test/backup/container-rehearsal.sh
+      - name: Build separate PostgreSQL 18 backup image
+        run: docker build -f backup/Dockerfile -t crm-client-backup:test .
+      - name: Verify disabled image and installed tools
+        run: |
+          test "$(docker run --rm --network none crm-client-backup:test)" = CLIENT_BACKUP_DISABLED
+          docker run --rm --network none --entrypoint bash crm-client-backup:test -c 'pg_dump --version; age --version; curl --version; jq --version; python3 --version; test "$(id -u)" != 0'
+      - name: Restore synthetic archive inside isolated PostgreSQL 18 container
+        run: docker run --rm --network none -v "$PWD/test:/app/test:ro" --entrypoint bash crm-client-backup:test test/backup/container-rehearsal.sh

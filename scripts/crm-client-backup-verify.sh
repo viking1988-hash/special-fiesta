@@ -12,6 +12,9 @@ umask 077
 : "${CLIENT_BACKUP_EXPECTED_TEST_DB:?Set exact isolated database name}"
 for binary in age pg_restore psql; do command -v "$binary" >/dev/null || { echo "Missing tool: $binary" >&2; exit 1; }; done
 [[ -s "$CLIENT_BACKUP_ARCHIVE" && -r "$AGE_IDENTITY_FILE" ]]
+[[ ! -L "$CLIENT_BACKUP_ARCHIVE" && ! -L "$AGE_IDENTITY_FILE" ]] || { echo "Symlink input refused" >&2; exit 1; }
+identity_mode=$(stat -c '%a' "$AGE_IDENTITY_FILE")
+[[ "$identity_mode" == 600 || "$identity_mode" == 400 ]] || { echo "Private identity permissions must be 600 or 400" >&2; exit 1; }
 actual_db=$(psql "$TEST_DATABASE_URL" -X -v ON_ERROR_STOP=1 -Atqc "SELECT current_database()")
 [[ "$actual_db" == "$CLIENT_BACKUP_EXPECTED_TEST_DB" ]] || { echo "Unexpected test database identity" >&2; exit 1; }
 [[ "$actual_db" == crm_test_* || "$actual_db" == staging_* ]] || { echo "Test database name must be crm_test_* or staging_*" >&2; exit 1; }
@@ -21,9 +24,17 @@ db_host=$(psql "$TEST_DATABASE_URL" -X -v ON_ERROR_STOP=1 -Atqc "SELECT inet_ser
 [[ "$db_host" == "127.0.0.1" || "$db_host" == "::1" ]] || [[ "${CLIENT_BACKUP_REMOTE_TEST_APPROVED:-}" == "YES" ]] || { echo "Remote restore target requires explicit isolated-host approval" >&2; exit 1; }
 workdir="$(mktemp -d)"
 trap 'rm -rf "$workdir"' EXIT
-age --decrypt -i "$AGE_IDENTITY_FILE" -o "$workdir/clients.dump" "$CLIENT_BACKUP_ARCHIVE"
+if ! age --decrypt -i "$AGE_IDENTITY_FILE" -o "$workdir/clients.dump" "$CLIENT_BACKUP_ARCHIVE" 2>/dev/null; then
+  echo "CLIENT_BACKUP_DECRYPT_FAILED" >&2; exit 1
+fi
 [[ "$(head -c 5 "$workdir/clients.dump")" == "PGDMP" ]] || { echo "Invalid PostgreSQL archive" >&2; exit 1; }
-pg_restore --list "$workdir/clients.dump" > "$workdir/contents.txt"
+if ! pg_restore --list "$workdir/clients.dump" > "$workdir/contents.txt" 2>/dev/null; then
+  echo "CLIENT_BACKUP_ARCHIVE_INVALID" >&2; exit 1
+fi
+# Review every noncomment TOC entry: reject SQL, large objects, other schemas and tables.
+if grep -vE '^(;|[[:space:]]*$)' "$workdir/contents.txt" | grep -Ev '^[0-9]+; [0-9]+ [0-9]+ (TABLE DATA public (customers|vehicles)|SEQUENCE SET public (customers_id_seq|vehicles_id_seq)) [^ ]+$' >/dev/null; then
+  echo "Unexpected archive entry refused" >&2; exit 1
+fi
 # Do not allow accidental restoration of any other data tables.
 if grep -E ' TABLE DATA public ' "$workdir/contents.txt" | grep -Ev ' TABLE DATA public (customers|vehicles) ' >/dev/null; then
   echo "Unexpected table in client archive" >&2; exit 1
@@ -35,7 +46,9 @@ done
 # Refuse a nonempty target: pg_restore --data-only can otherwise duplicate client data.
 existing=$(psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -Atqc "SELECT (SELECT count(*) FROM public.customers) + (SELECT count(*) FROM public.vehicles)")
 [[ "$existing" == "0" ]] || { echo "Test tables are not empty" >&2; exit 1; }
-pg_restore --exit-on-error --single-transaction --data-only --no-owner --no-acl --dbname="$TEST_DATABASE_URL" "$workdir/clients.dump"
+if ! pg_restore --exit-on-error --single-transaction --data-only --no-owner --no-acl --dbname="$TEST_DATABASE_URL" "$workdir/clients.dump" >/dev/null 2>&1; then
+  echo "CLIENT_BACKUP_RESTORE_FAILED" >&2; exit 1
+fi
 result=$(psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -Atqc "
 SELECT CASE WHEN EXISTS(
  SELECT 1 FROM public.vehicles v
