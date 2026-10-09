@@ -25,6 +25,11 @@ jobs:
         run: |
           grep -Fq 'bash "$here/crm-clients-export.sh" "$archive"' scripts/crm-clients-backup-job.sh
           grep -Fq 'bash "$here/crm-clients-yandex-upload.sh" "$archive"' scripts/crm-clients-backup-job.sh
+      - name: Verify invalid encryption policy fails closed
+        run: |
+          if CLIENT_BACKUP_ENABLED=true CLIENT_BACKUP_SCHEMA_VERIFIED=YES CLIENT_BACKUP_RESTORE_VERIFIED=YES CLIENT_BACKUP_REQUIRE_ENCRYPTION=false DATABASE_URL=invalid AGE_RECIPIENT=invalid YANDEX_DISK_TOKEN=invalid bash scripts/crm-clients-backup-job.sh >/dev/null 2>&1; then
+            echo 'Backup accepted disabled encryption'; exit 1
+          fi
       - name: Verify missing safety gates fail closed
         run: |
           if CLIENT_BACKUP_ENABLED=true bash scripts/crm-clients-backup-job.sh >/dev/null 2>&1; then
