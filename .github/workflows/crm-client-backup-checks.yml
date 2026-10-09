@@ -21,6 +21,12 @@ jobs:
           bash -n scripts/crm-clients-yandex-upload.sh
           bash -n scripts/crm-clients-backup-job.sh
           bash -n scripts/crm-client-backup-verify.sh
+      - name: Validate PostgreSQL archive tooling is available
+        run: |
+          command -v pg_dump
+          command -v pg_restore
+          pg_dump --version
+          pg_restore --version
       - name: Verify child scripts are launched through bash
         run: |
           grep -Fq 'bash "$here/crm-clients-export.sh" "$archive"' scripts/crm-clients-backup-job.sh
