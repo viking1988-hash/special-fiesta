@@ -5,7 +5,7 @@ async function main() {
  const url = process.env.DATABASE_URL;
  const login = String(process.env.CRM_OWNER_LOGIN || "").trim().toLowerCase();
  const password = process.env.CRM_OWNER_PASSWORD;
- if (!url || !/^[a-z0-9._-]{3,100}$/.test(login) || typeof password !== "string" || password.length < 16) {
+ if (!url || !/^[a-z0-9._-]{3,100}$/.test(login) || typeof password !== "string" || password.length < 16 || password.length > 256) {
   throw Error("Set DATABASE_URL, CRM_OWNER_LOGIN (3-100 safe chars), CRM_OWNER_PASSWORD (16+ chars)");
  }
  if (process.env.CRM_OWNER_BOOTSTRAP_CONFIRM !== "YES") throw Error("Set CRM_OWNER_BOOTSTRAP_CONFIRM=YES to authorize owner provisioning");
