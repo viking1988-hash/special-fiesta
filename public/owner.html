@@ -45,7 +45,12 @@ login.onclick=async()=>{
  sessionStorage.setItem("avtohirurg_ops_token",v);accessKey.value="";authStatus.textContent="Проверка доступа…";dashboard();
 };
 logout.onclick=async()=>{
- if(personalMode){try{await fetch("/api/auth/logout",{method:"POST",credentials:"same-origin"});}catch{}}
+ if(personalMode){
+  try{
+   const r=await fetch("/api/auth/logout",{method:"POST",credentials:"same-origin"});
+   if(!r.ok){authStatus.textContent="Не удалось завершить сессию на сервере. Повторите выход.";return;}
+  }catch{authStatus.textContent="Сервер недоступен. Сессия может оставаться активной.";return;}
+ }
  sessionStorage.removeItem("avtohirurg_ops_token");authStatus.textContent="Вы вышли из CRM.";
  queue.textContent="Нет доступа";history.textContent="";total.textContent="—";approved.textContent="—";handed.textContent="—";
 };
