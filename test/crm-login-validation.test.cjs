@@ -24,3 +24,28 @@ test("normalize uppercase and whitespace before login lookup",async()=>{
  assert.equal(searched,"owner.test");
  assert.equal(res.statusCode,401);
 });
+
+test("reject missing or oversized passwords without database access",async()=>{
+ for(const password of [undefined,null,12,"short","x".repeat(257)]){
+  let queries=0;
+  const db={query:async()=>{queries++;throw Error("unexpected query")}};
+  const res=response();
+  await makeLoginHandler(db)({body:{login:"owner.test",password},ip:"192.0.2.21"},res);
+  assert.equal(res.statusCode,401);
+  assert.equal(queries,0);
+ }
+});
+test("return service unavailable without leaking database errors",async()=>{
+ const db={query:async()=>{throw Error("database-secret-connection-details")}};
+ const res=response();
+ await makeLoginHandler(db)({body:{login:"owner.test",password:"valid-password-123456"},ip:"192.0.2.22"},res);
+ assert.equal(res.statusCode,503);
+ assert.equal(res.body.error,"auth_unavailable");
+ assert.doesNotMatch(JSON.stringify(res.body),/database-secret/);
+});
+test("reject missing request body without throwing",async()=>{
+ const db={query:async()=>{throw Error("unexpected query")}};
+ const res=response();
+ await makeLoginHandler(db)({ip:"192.0.2.23"},res);
+ assert.equal(res.statusCode,401);
+});
