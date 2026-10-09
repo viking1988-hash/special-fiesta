@@ -1,0 +1,511 @@
+{
+  "date": "2026-10-09",
+  "base_commit": "2f4856e4998ac3507276220e6538e650afed3d23",
+  "tested_commit": "f2a6ed8001831433d99aefbe92e74d6b5695673e",
+  "schema_recovery": {
+    "deployment_id": "a12160f8-3e96-420c-9d17-30d6a59e4e13",
+    "status": "SUCCESS",
+    "logs": [
+      {
+        "timestamp": "2026-10-09T19:43:02.748999126Z",
+        "message": " customers  | phone                    | text                     | pg_catalog | text        | NO          |                          |                   |                    | f"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749003276Z",
+        "message": " customers  | email                    | text                     | pg_catalog | text        | YES         |                          |                   |                    | f"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749010605Z",
+        "message": " customers  | created_at               | timestamp with time zone | pg_catalog | timestamptz | NO          |                          |                   |                  6 | t"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749012965Z",
+        "message": " customers  | consent_personal_data_at | timestamp with time zone | pg_catalog | timestamptz | YES         |                          |                   |                  6 | f"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749015325Z",
+        "message": " vehicles   | id                       | bigint                   | pg_catalog | int8        | NO          |                          |                64 |                    | t"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749018395Z",
+        "message": " vehicles   | organization_id          | bigint                   | pg_catalog | int8        | NO          |                          |                64 |                    | f"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749021285Z",
+        "message": " vehicles   | customer_id              | bigint                   | pg_catalog | int8        | YES         |                          |                64 |                    | f"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749023575Z",
+        "message": " vehicles   | make                     | text                     | pg_catalog | text        | NO          |                          |                   |                    | f"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749026185Z",
+        "message": " vehicles   | model                    | text                     | pg_catalog | text        | NO          |                          |                   |                    | f"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749028565Z",
+        "message": " vehicles   | year                     | integer                  | pg_catalog | int4        | YES         |                          |                32 |                    | f"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749031325Z",
+        "message": " vehicles   | plate                    | text                     | pg_catalog | text        | YES         |                          |                   |                    | f"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749033815Z",
+        "message": " vehicles   | vin                      | text                     | pg_catalog | text        | YES         |                          |                   |                    | f"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749034225Z",
+        "message": "SNAPSHOT_SCHEMA_SOURCE key=crm-20261009-023155.dump modified=2026-10-09T02:31:56+00:00 sha256=fb347019c47c07490f4586c341d922606aa83c4060d5b769d2a7cc7520e07310"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749037935Z",
+        "message": "SCHEMA_ONLY_RESTORE_OK databases=2 customer_rows=0 vehicle_rows=0 snapshot_removed=YES"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749041565Z",
+        "message": "REAL_SCHEMA_METADATA_BEGIN"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749044855Z",
+        "message": "BEGIN"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749048085Z",
+        "message": "SET"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749051175Z",
+        "message": "SET"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749054315Z",
+        "message": " table_name |       column_name        |        data_type         | udt_schema |  udt_name   | is_nullable | character_maximum_length | numeric_precision | datetime_precision | has_default "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749057675Z",
+        "message": "------------+--------------------------+--------------------------+------------+-------------+-------------+--------------------------+-------------------+--------------------+-------------"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749061395Z",
+        "message": " customers  | id                       | bigint                   | pg_catalog | int8        | NO          |                          |                64 |                    | t"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749064495Z",
+        "message": " customers  | organization_id          | bigint                   | pg_catalog | int8        | NO          |                          |                64 |                    | f"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749067925Z",
+        "message": " customers  | name                     | text                     | pg_catalog | text        | NO          |                          |                   |                    | f"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749239572Z",
+        "message": " vehicles   | created_at               | timestamp with time zone | pg_catalog | timestamptz | NO          |                          |                   |                  6 | t"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749240012Z",
+        "message": "------------+-------------------------------------+---------+------------------------------------------------------------+---------------+-------------+--------------"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749241302Z",
+        "message": " table_name | total_size "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749242702Z",
+        "message": " customers  | customers_created_at_not_null       | n       | NOT NULL created_at                                        | f             | f           | t"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749244222Z",
+        "message": "------------+------------"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749244602Z",
+        "message": " vehicles   | mileage                  | integer                  | pg_catalog | int4        | YES         |                          |                32 |                    | f"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749245932Z",
+        "message": " customers  | customers_id_not_null               | n       | NOT NULL id                                                | f             | f           | t"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749247342Z",
+        "message": " customers  | 24 kB"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749249422Z",
+        "message": "(17 rows)"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749249782Z",
+        "message": " customers  | customers_name_not_null             | n       | NOT NULL name                                              | f             | f           | t"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749253352Z",
+        "message": " customers  | customers_organization_id_fkey      | f       | FOREIGN KEY (organization_id) REFERENCES organizations(id) | f             | f           | t"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749253392Z",
+        "message": ""
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749258132Z",
+        "message": " vehicles   | 16 kB"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749264992Z",
+        "message": "(2 rows)"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749268722Z",
+        "message": ""
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749273672Z",
+        "message": " table_name |               conname               | contype |                   constraint_definition                    | condeferrable | condeferred | convalidated "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749397770Z",
+        "message": " customers  | customers_organization_id_not_null  | n       | NOT NULL organization_id                                   | f             | f           | t"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749401570Z",
+        "message": " customers  | customers_organization_id_phone_key | u       | UNIQUE (organization_id, phone)                            | f             | f           | t"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749404610Z",
+        "message": " customers  | customers_phone_not_null            | n       | NOT NULL phone                                             | f             | f           | t"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749408970Z",
+        "message": " customers  | customers_pkey                      | p       | PRIMARY KEY (id)                                           | f             | f           | t"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749410170Z",
+        "message": " vehicles   | vehicles_organization_id_fkey       | f       | FOREIGN KEY (organization_id) REFERENCES organizations(id) | f             | f           | t"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749412710Z",
+        "message": " vehicles   | vehicles_created_at_not_null        | n       | NOT NULL created_at                                        | f             | f           | t"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749415750Z",
+        "message": " vehicles   | vehicles_make_not_null              | n       | NOT NULL make                                              | f             | f           | t"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749422360Z",
+        "message": " vehicles   | vehicles_mileage_check              | c       | CHECK (mileage IS NULL OR mileage >= 0)                    | f             | f           | t"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749428320Z",
+        "message": " vehicles   | vehicles_model_not_null             | n       | NOT NULL model                                             | f             | f           | t"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749430130Z",
+        "message": " vehicles   | vehicles_customer_id_fkey           | f       | FOREIGN KEY (customer_id) REFERENCES customers(id)         | f             | f           | t"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749438580Z",
+        "message": " vehicles   | vehicles_id_not_null                | n       | NOT NULL id                                                | f             | f           | t"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749982754Z",
+        "message": " vehicles   | id                       |               |                | public.vehicles_id_seq"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749986844Z",
+        "message": " vehicles   | vehicles_organization_id_not_null   | n       | NOT NULL organization_id                                   | f             | f           | t"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749989074Z",
+        "message": " vehicles   | organization_id          |               |                | "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749993593Z",
+        "message": " vehicles   | vehicles_pkey                       | p       | PRIMARY KEY (id)                                           | f             | f           | t"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.749995843Z",
+        "message": " vehicles   | customer_id              |               |                | "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750000753Z",
+        "message": "(17 rows)"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750003243Z",
+        "message": " vehicles   | make                     |               |                | "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750006393Z",
+        "message": ""
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750013583Z",
+        "message": " table_name |       column_name        | identity_mode | generated_mode |     owned_sequence      "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750017003Z",
+        "message": "------------+--------------------------+---------------+----------------+-------------------------"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750020903Z",
+        "message": " customers  | id                       |               |                | public.customers_id_seq"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750023613Z",
+        "message": " customers  | organization_id          |               |                | "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750026323Z",
+        "message": " customers  | name                     |               |                | "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750029193Z",
+        "message": " customers  | phone                    |               |                | "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750032003Z",
+        "message": " customers  | email                    |               |                | "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750035363Z",
+        "message": " customers  | created_at               |               |                | "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750038833Z",
+        "message": " customers  | consent_personal_data_at |               |                | "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750506397Z",
+        "message": "    referencing_table    | client_table |                 conname                  |               constraint_definition                "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750506967Z",
+        "message": " vehicles   | model                    |               |                | "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750510007Z",
+        "message": "-------------------------+--------------+------------------------------------------+----------------------------------------------------"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750511997Z",
+        "message": ""
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750512437Z",
+        "message": " vehicles   | year                     |               |                | "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750516657Z",
+        "message": " vehicles   | plate                    |               |                | "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750516737Z",
+        "message": " parent_table | partition_table "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750520737Z",
+        "message": " vehicles   | vin                      |               |                | "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750521736Z",
+        "message": "--------------+-----------------"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750524556Z",
+        "message": " vehicles   | created_at               |               |                | "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750525226Z",
+        "message": "(0 rows)"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750528056Z",
+        "message": " vehicles   | mileage                  |               |                | "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750528426Z",
+        "message": ""
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750531646Z",
+        "message": "(17 rows)"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750534926Z",
+        "message": ""
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750538206Z",
+        "message": " table_name | relkind | relrowsecurity | relforcerowsecurity | trigger_name | trigger_enabled | trigger_function "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750542286Z",
+        "message": "------------+---------+----------------+---------------------+--------------+-----------------+------------------"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750545146Z",
+        "message": " customers  | r       | f              | f                   |              |                 | "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750548336Z",
+        "message": " vehicles   | r       | f              | f                   |              |                 | "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750551416Z",
+        "message": "(2 rows)"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750851503Z",
+        "message": " bookings                | customers    | bookings_customer_id_fkey                | FOREIGN KEY (customer_id) REFERENCES customers(id)"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750854353Z",
+        "message": " customer_contact_events | customers    | customer_contact_events_customer_id_fkey | FOREIGN KEY (customer_id) REFERENCES customers(id)"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750854553Z",
+        "message": ""
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750856813Z",
+        "message": " vehicles                | customers    | vehicles_customer_id_fkey                | FOREIGN KEY (customer_id) REFERENCES customers(id)"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750859073Z",
+        "message": " tablename |              indexname              |                                                     indexdef                                                     "
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750859743Z",
+        "message": " work_orders             | customers    | work_orders_customer_id_fkey             | FOREIGN KEY (customer_id) REFERENCES customers(id)"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750862433Z",
+        "message": " bookings                | vehicles     | bookings_vehicle_id_fkey                 | FOREIGN KEY (vehicle_id) REFERENCES vehicles(id)"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750863383Z",
+        "message": "-----------+-------------------------------------+------------------------------------------------------------------------------------------------------------------"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750865163Z",
+        "message": " customer_contact_events | vehicles     | customer_contact_events_vehicle_id_fkey  | FOREIGN KEY (vehicle_id) REFERENCES vehicles(id)"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750867303Z",
+        "message": " customers | customers_organization_id_phone_key | CREATE UNIQUE INDEX customers_organization_id_phone_key ON public.customers USING btree (organization_id, phone)"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750868133Z",
+        "message": " work_orders             | vehicles     | work_orders_vehicle_id_fkey              | FOREIGN KEY (vehicle_id) REFERENCES vehicles(id)"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750870473Z",
+        "message": "(7 rows)"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.750871213Z",
+        "message": " customers | customers_pkey                      | CREATE UNIQUE INDEX customers_pkey ON public.customers USING btree (id)"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.751119610Z",
+        "message": " vehicles  | vehicles_pkey                       | CREATE UNIQUE INDEX vehicles_pkey ON public.vehicles USING btree (id)"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.751122470Z",
+        "message": "(3 rows)"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.751125100Z",
+        "message": "REAL_SCHEMA_AUDIT_OK"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.751125200Z",
+        "message": ""
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.751127249Z",
+        "message": "created_at|timestamp with time zone|NO"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.751128639Z",
+        "message": "COMMIT"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.751128869Z",
+        "message": "KEY_CUSTODY_REHEARSAL_OK active_copy_removed=YES directories=700 identities=600 unsafe_permissions_rejected=YES recovered_recipient_match=YES decrypt_match=YES"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.751129369Z",
+        "message": "REAL_SCHEMA_SEQUENCE_RECOVERY_OK customer_insert=YES vehicle_insert=YES"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.751130849Z",
+        "message": "REAL_SCHEMA_METADATA_END"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.751132469Z",
+        "message": "REAL_SCHEMA_SOURCE_CONSTRAINTS_OK unique_phone=YES customer_fk=YES mileage_check=YES"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.751132929Z",
+        "message": "REAL_SCHEMA_REHEARSAL_DONE"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.751133089Z",
+        "message": ""
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.751135779Z",
+        "message": "CLIENT_BACKUP_ENCRYPTED_OK"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.751136079Z",
+        "message": "id|bigint|NO"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.751138649Z",
+        "message": "CLIENT_BACKUP_RESTORE_OK"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.751139199Z",
+        "message": "name|text|NO"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.751141689Z",
+        "message": "REAL_SCHEMA_RECOVERY_OK customers=2 vehicles=3 tenant_links=2 nullable_owner=1 full_row_digests=MATCH recovered_key=YES"
+      },
+      {
+        "timestamp": "2026-10-09T19:43:02.751141799Z",
+        "message": "timezone|text|NO"
+      }
+    ]
+  },
+  "live_alert": {
+    "deployment_id": "573adc16-6bfc-414d-8d8f-a0d8b44337dd",
+    "status": "SUCCESS",
+    "logs": [
+      {
+        "timestamp": "2026-10-09T19:39:45.553377219Z",
+        "message": "LIVE_ALERT_FAILURE_TRAP_OK exit=1 message_id=24"
+      }
+    ]
+  },
+  "scope": "Schema only from existing snapshot; rows and key material used in tests are artificial. No production DB connection or archive upload.",
+  "disabled_state_verification": {
+    "deployment_id": "6173ec24-5e21-48b4-b07c-896b0000836d",
+    "status": "SUCCESS",
+    "logs": [
+      {
+        "timestamp": "2026-10-09T19:44:11.859669624Z",
+        "message": "SCHEMA_REHEARSAL_DISABLED"
+      },
+      {
+        "timestamp": "2026-10-09T19:44:12.353964364Z",
+        "message": "Starting Container"
+      }
+    ],
+    "cron": "absent",
+    "restart_policy": "NEVER",
+    "temporary_snapshot_credentials": "cleared on new service only"
+  }
+}
