@@ -21,6 +21,7 @@ elif [[ "$status" != "200" ]]; then
 fi
 # Never overwrite a previous backup.
 href=$(curl -fsS -H "$auth" --get --data-urlencode "path=$remote" --data-urlencode 'overwrite=false' "$api/upload" | jq -er '.href')
+[[ "$href" == https://* ]] || { echo "Unexpected upload URL" >&2; exit 1; }
 curl -fsS -X PUT --upload-file "$archive" "$href" >/dev/null
 local_bytes=$(wc -c < "$archive" | tr -d ' ')
 remote_bytes=$(curl -fsS -H "$auth" --get --data-urlencode "path=$remote" "$api" | jq -er '.size')
