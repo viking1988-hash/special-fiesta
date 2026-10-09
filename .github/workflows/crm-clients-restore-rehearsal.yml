@@ -72,6 +72,12 @@ jobs:
           fi
           test ! -e /tmp/failed-export.dump.age
           test ! -e /tmp/failed-export.dump.age.partial
+          # Disabled export must not create an archive.
+          if CLIENT_BACKUP_ENABLED=false bash scripts/crm-clients-export.sh /tmp/disabled-export.dump.age; then
+            test ! -e /tmp/disabled-export.dump.age
+          else
+            echo 'Disabled export unexpectedly failed'; exit 1
+          fi
           # Cross-organization linkage must be rejected on a fresh isolated restore.
           psql -d crm_test_clients_source -v ON_ERROR_STOP=1 -c 'UPDATE public.vehicles SET organization_id=99 WHERE id=201'
           psql -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE crm_test_clients_mismatch'
