@@ -22,3 +22,8 @@ The isolated `crm-restore-test` command (read-only inspection, 2026-10-09) refer
 
 ## Implementation blocker verified 2026-10-09
 The staged Railway service has no database connection, Yandex token, or encryption recipient configured. It is intentionally set to fail and must **not** be activated. Before writing the export job, verify exact table dependencies in a restored snapshot. A streaming pipeline must propagate `pg_dump` failure (e.g. Bash `set -o pipefail`); successful encryption alone must never count as a successful dump. Use a distinct Yandex path and do not automatically delete historical copies until retention has been tested. A source upload attempt was blocked; no export script has been deployed.
+
+## CI verification — 2026-10-09
+- `CRM client backup checks` succeeded for commit `57b3cb1e` (run `37966169060`), including syntax, disabled defaults, and missing safety gate rejection.
+- CRM auth and Jarvis PR checks succeeded at the same commit. PostgreSQL integration checks were still running when inspected.
+- **CI success does not establish an actual encrypted export, Yandex upload, or recovery rehearsal.** Keep the Railway client-only backup service staged and disabled until a restore has been demonstrated.
