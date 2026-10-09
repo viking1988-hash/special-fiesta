@@ -19,6 +19,17 @@ if os.environ.get('CLIENT_BACKUP_YANDEX_PATH') != 'app:/clients-backups-test':
     raise SystemExit('WATCHDOG_ARTIFICIAL_FOLDER_REQUIRED')
 os.environ['CLIENT_BACKUP_MONITOR_ENABLED'] = 'true'
 os.environ['CLIENT_BACKUP_ALERTS_ENABLED'] = 'false'
+try:
+    diagnostic = Disk(os.environ.get('YANDEX_DISK_TOKEN'), os.environ['CLIENT_BACKUP_YANDEX_PATH'])
+    items = diagnostic.list_items()
+    markers = sum(bool(re.fullmatch('[a-f0-9]{64}', x.get('custom_properties', {}).get('client_backup_sha256', ''))) for x in items)
+    aliases = sum(x.get('path', '').startswith('app:/') for x in items)
+    canonical = sum(x.get('path', '').startswith('disk:/') for x in items)
+    print('WATCHDOG_METADATA_DIAGNOSTIC files=' + str(len(items)) + ' verified_markers=' + str(markers) + ' app_alias_paths=' + str(aliases) + ' canonical_disk_paths=' + str(canonical), flush=True)
+except Exception as exc:
+    import urllib.error
+    code = 'HTTP_' + str(exc.code) if isinstance(exc, urllib.error.HTTPError) else 'METADATA_REFUSED'
+    raise SystemExit('WATCHDOG_METADATA_DIAGNOSTIC_FAILED code=' + code)
 if watchdog.main() != 0:
     raise SystemExit('LIVE_WATCHDOG_FRESH_CHECK_FAILED')
 os.environ['CLIENT_BACKUP_ALERTS_ENABLED'] = 'true'
