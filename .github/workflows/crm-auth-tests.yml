@@ -13,4 +13,4 @@ jobs:
           node-version: '22'
       - run: npm install --ignore-scripts --no-audit --no-fund
       - run: node --check server.js
-      - run: node --test test/crm-*.test.js test/crm-*ui*.test.cjs test/crm-login-validation.test.cjs test/crm-session-security.test.cjs test/crm-auth-cryptography.test.cjs test/crm-role-boundaries.test.cjs test/crm-postgres.integration.test.cjs
+      - run: node --test test/crm-*.test.js test/crm-*ui*.test.cjs test/crm-login-validation.test.cjs test/crm-session-security.test.cjs test/crm-auth-cryptography.test.cjs test/crm-role-boundaries.test.cjs test/crm-csrf-boundaries.test.cjs test/crm-login-throttle.test.cjs test/crm-session-store-security.test.cjs test/crm-postgres.integration.test.cjs
