@@ -13,6 +13,7 @@ test("successful owner login creates session and sets secure cookie",async()=>{
  const queries=[];
  const db={query:async(sql,params)=>{
   queries.push({sql,params});
+  if(sql.includes("FROM crm_login_attempts"))return {rows:[]};
   if(sql.includes("SELECT id, login"))return {rows:[{id:"owner-1",login,role:"owner",password_salt:salt,password_hash:hash}]};
   return {rowCount:1};
  }};
@@ -25,20 +26,20 @@ test("successful owner login creates session and sets secure cookie",async()=>{
  assert.match(res.cookieValue,/^[0-9a-f]{64}$/);
  assert.equal(res.cookieOptions.secure,true);
  assert.equal(res.cookieOptions.httpOnly,true);
- assert.equal(queries.length,2);
- assert.equal(queries[1].params[1],crypto.createHash("sha256").update(res.cookieValue).digest("hex"));
+ assert.equal(queries.filter(q=>q.sql.includes("crm_staff_sessions")).length,1);
+ assert.equal(queries.find(q=>q.sql.includes("crm_staff_sessions")).params[1],crypto.createHash("sha256").update(res.cookieValue).digest("hex"));
 });
 test("failed password does not create session or cookie",async()=>{
  const login="owner.test",salt=crypto.randomBytes(16).toString("hex");
  const hash=crypto.scryptSync("correct-password-123",salt,64).toString("hex");
  let queries=0;
- const db={query:async()=>{queries++;return {rows:[{id:"owner-2",login,role:"owner",password_salt:salt,password_hash:hash}]}}};
+ const db={query:async(sql)=>{queries++;if(sql.includes("FROM crm_login_attempts"))return {rows:[]};if(sql.includes("FROM crm_staff WHERE"))return {rows:[{id:"owner-2",login,role:"owner",password_salt:salt,password_hash:hash}]};return {rowCount:1}}};
  const res=response();
  await makeLoginHandler(db)({body:{login,password:"wrong-password-123"},ip:"192.0.2.181"},res);
  assert.equal(res.statusCode,401);
  assert.equal(res.body.error,"invalid_credentials");
  assert.equal(res.cookieName,undefined);
- assert.equal(queries,1);
+ assert.ok(queries>=2);
 });
 test("session storage failure does not issue a cookie",async()=>{
  const login="owner.test",password="strong-owner-password-456",salt=crypto.randomBytes(16).toString("hex");
