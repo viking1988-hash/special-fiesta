@@ -27,3 +27,6 @@ The staged Railway service has no database connection, Yandex token, or encrypti
 - `CRM client backup checks` succeeded for commit `57b3cb1e` (run `37966169060`), including syntax, disabled defaults, and missing safety gate rejection.
 - CRM auth and Jarvis PR checks succeeded at the same commit. PostgreSQL integration checks were still running when inspected.
 - **CI success does not establish an actual encrypted export, Yandex upload, or recovery rehearsal.** Keep the Railway client-only backup service staged and disabled until a restore has been demonstrated.
+
+## Deployment blocker: shell executable permissions (verified 2026-10-09)
+GitHub tree inspection confirms all four client-backup shell scripts have mode `100644`, not executable `100755`. The orchestrator currently calls `crm-clients-export.sh` and `crm-clients-yandex-upload.sh` directly; that will fail with `Permission denied` in a deployment that preserves these modes. The attempted orchestrator edit was blocked, and **no fix was committed**. Before enabling the job, explicitly verify executable modes or make the orchestrator invoke each child with Bash, then exercise the end-to-end job in an isolated environment. Existing CI syntax and disabled-state checks do not cover this execution path.
