@@ -24,5 +24,5 @@ test("valid employee receives a session cookie backed by a hashed DB token", asy
  assert.equal(res.cookieData.options.secure,true);
  assert.equal(calls.filter(x=>x.sql.includes("INSERT INTO crm_staff_sessions")).length,1);
  assert.notEqual(calls.find(x=>x.sql.includes("INSERT INTO crm_staff_sessions")).params[1],res.cookieData.token);
- assert.equal(calls[1].params[1],crypto.createHash("sha256").update(res.cookieData.token).digest("hex"));
+ assert.equal(calls.find(x=>x.sql.includes("INSERT INTO crm_staff_sessions")).params[1],crypto.createHash("sha256").update(res.cookieData.token).digest("hex"));
 });
