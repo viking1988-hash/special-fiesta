@@ -24,6 +24,11 @@ href=$(curl -fsS -H "$auth" --get --data-urlencode "path=$remote" --data-urlenco
 [[ "$href" == https://* ]] || { echo "Unexpected upload URL" >&2; exit 1; }
 # Reject redirects so the OAuth token and encrypted archive cannot be sent to an unexpected host.
 [[ "$href" != *"@"* ]] || { echo "Upload URL contains credentials" >&2; exit 1; }
+# Yandex provides upload URLs on its storage hosts; reject unrelated destinations.
+upload_host="${href#https://}"
+upload_host="${upload_host%%/*}"
+upload_host="${upload_host%%:*}"
+[[ "$upload_host" == "uploader.disk.yandex.net" || "$upload_host" == *.disk.yandex.net || "$upload_host" == *.storage.yandex.net ]] || { echo "Untrusted Yandex upload host" >&2; exit 1; }
 curl --proto "=https" --max-redirs 0 -fsS -X PUT --upload-file "$archive" "$href" >/dev/null
 local_bytes=$(wc -c < "$archive" | tr -d ' ')
 remote_bytes=$(curl -fsS -H "$auth" --get --data-urlencode "path=$remote" "$api" | jq -er '.size')
