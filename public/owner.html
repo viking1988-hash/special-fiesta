@@ -13,7 +13,14 @@ async function initAuth(){
  try{
   const r=await fetch("/api/auth/status",{credentials:"same-origin"});
   const j=await r.json();personalMode=Boolean(j.enabled);
- }catch{personalMode=false;}
+ }catch{
+  authStatus.textContent="Не удалось проверить режим авторизации. Доступ временно заблокирован, повторите загрузку страницы.";
+  login.disabled=true;
+  accessKey.disabled=true;
+  staffLogin.disabled=true;
+  queue.textContent="Проверка режима доступа недоступна";
+  return;
+ }
  staffLogin.style.display=personalMode?"block":"none";
  accessKey.placeholder=personalMode?"Пароль сотрудника":"Ключ доступа CRM";
  if(personalMode){sessionStorage.removeItem("avtohirurg_ops_token");await dashboard();}else dashboard();
