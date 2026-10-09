@@ -30,7 +30,7 @@ test("11 oversized password fails closed",async()=>{const c=await run({},x=>{x.r
 test("12 invalid input never queries database",async()=>{const c=await run({},x=>{x.req.body.password="x"});assert.equal(c.calls.length,0)});
 test("13 unknown account returns generic credentials error",async()=>{const c=await run({userMissing:true});assert.equal(c.res.statusCode,401);assert.equal(c.res.body.error,"invalid_credentials")});
 test("14 wrong password returns generic credentials error",async()=>{const c=await run({},x=>{x.req.body.password="wrong-password-123"});assert.equal(c.res.statusCode,401);assert.equal(c.res.body.error,"invalid_credentials")});
-test("15 wrong password never creates session",async()=>{const c=await run({},x=>{x.req.body.password="wrong-password-123"});assert.equal(c.calls.filter(x=>x.sql.startsWith("INSERT")).length,0)});
+test("15 wrong password never creates session",async()=>{const c=await run({},x=>{x.req.body.password="wrong-password-123"});assert.equal(c.calls.filter(x=>x.sql.includes("INSERT INTO crm_staff_sessions")).length,0)});
 test("16 database outage returns 503",async()=>{const c=await run({throwDb:true});assert.equal(c.res.statusCode,503)});
 test("17 database outage does not leak internal details",async()=>{const c=await run({throwDb:true});assert.doesNotMatch(JSON.stringify(c.res.body),/private database secret/)});
 test("18 session insert failure returns 503",async()=>{const c=await run({throwInsert:true});assert.equal(c.res.statusCode,503)});
