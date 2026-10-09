@@ -36,7 +36,7 @@ result=$(psql "$TEST_DATABASE_URL" -v ON_ERROR_STOP=1 -Atqc "
 SELECT CASE WHEN EXISTS(
  SELECT 1 FROM public.vehicles v
  LEFT JOIN public.customers c ON c.id=v.customer_id
- WHERE v.customer_id IS NOT NULL AND c.id IS NULL
+ WHERE v.customer_id IS NOT NULL AND (c.id IS NULL OR c.organization_id IS DISTINCT FROM v.organization_id)
 ) THEN 'BROKEN_LINKS' ELSE 'LINKS_OK' END;")
 [[ "$result" == "LINKS_OK" ]] || { echo "Client vehicle links invalid" >&2; exit 1; }
 echo "CLIENT_BACKUP_RESTORE_OK"
