@@ -1,0 +1,8 @@
+[build]
+dockerfilePath = "backup/Dockerfile"
+
+[deploy]
+restartPolicyType = "NEVER"
+# After all acceptance checks AND operator approval only:
+# cronSchedule = "35 3 * * *"  # 06:35 Europe/Moscow (UTC+3)
+# Do not configure a public domain, volume, or production DB credentials in tests.

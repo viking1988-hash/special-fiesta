@@ -1,0 +1,12 @@
+FROM postgres:18-alpine@sha256:77f585114c32fbca283dc835b0596f4e52b51b4c6662d7810b2f4084f60a1873
+RUN apk add --no-cache bash age curl jq python3 ca-certificates aws-cli \
+    && mkdir -p /app && chown postgres:postgres /app
+WORKDIR /app
+COPY --chown=postgres:postgres scripts/crm-client* ./scripts/
+COPY --chown=postgres:postgres backup/ ./backup/
+COPY --chown=postgres:postgres test/backup/ ./test/backup/
+USER postgres
+ENV CLIENT_BACKUP_ENABLED=false CLIENT_BACKUP_REQUIRE_ENCRYPTION=true \
+    CLIENT_BACKUP_SCHEMA_REHEARSAL=false CLIENT_BACKUP_LIVE_ALERT_TEST=false \
+    CLIENT_BACKUP_LIVE_YANDEX_TEST=false SYNTHETIC_REHEARSAL_ONLY=YES
+ENTRYPOINT ["python3", "/app/test/backup/schema-rehearsal.py"]

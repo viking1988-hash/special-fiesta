@@ -3,6 +3,8 @@ import path from "node:path";
 import fs from "node:fs";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+const require = createRequire(import.meta.url);
 import WebSocket from "ws";
 import pg from "pg";
 const { Pool } = pg;
@@ -1066,9 +1068,67 @@ app.post("/api/route-transcript", async (req, res) => {
   }
 });
 
+// Personal authentication is isolated behind a feature flag for staged rollout.
+const personalAuthEnabled=()=>process.env.CRM_PERSONAL_AUTH_ENABLED==="true";
+app.get("/api/auth/status",(req,res)=>res.json({enabled:personalAuthEnabled(),legacy:true}));
+// Session-backed staff authentication (off until explicitly enabled).
+const staffCrypto=require("crypto");
+const staffPasswordHash=(password,salt)=>staffCrypto.scryptSync(password,salt,64);
+const staffPasswordVerify=(password,salt,expectedHex)=>{
+ if(typeof password!=="string"||typeof salt!=="string"||typeof expectedHex!=="string"||!/^[0-9a-f]{128}$/i.test(expectedHex))return false;
+ const actual=staffPasswordHash(password,salt);
+ return staffCrypto.timingSafeEqual(actual,Buffer.from(expectedHex,"hex"));
+};
+function staffCookies(req){
+ const raw=String(req.headers.cookie||"");
+ return Object.fromEntries(raw.split(";").map(x=>{const i=x.indexOf("=");return i<0?["",""]:[x.slice(0,i).trim(),x.slice(i+1).trim()];}).filter(x=>x[0]));
+}
+// Staff storage schema is created only during a future controlled rollout.
+async function ensureStaffSchema(){
+ if(!db)throw Error("database_unavailable");
+ await db.query(`CREATE TABLE IF NOT EXISTS crm_staff (
+  id UUID PRIMARY KEY,
+  login TEXT NOT NULL UNIQUE,
+  password_salt TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('owner','master')),
+  enabled BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+ )`);
+ await db.query(`CREATE TABLE IF NOT EXISTS crm_staff_sessions (
+  id UUID PRIMARY KEY,
+  staff_id UUID NOT NULL REFERENCES crm_staff(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at TIMESTAMPTZ NOT NULL,
+  revoked_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+ )`);
+}
+app.use("/api/auth", (req,res,next)=>{if(req.method==="POST")return require("./lib/crm-csrf").requireTrustedOrigin(req,res,next);next();});
+app.post("/api/auth/login",(req,res)=>{if(!personalAuthEnabled())return res.sendStatus(404);if(!db)return res.sendStatus(503);return require("./lib/crm-login-handler").makeLoginHandler(db)(req,res);});
+app.get("/api/auth/me",async(req,res)=>{
+ if(!personalAuthEnabled())return res.sendStatus(404);
+ const token=staffCookies(req).crm_session;
+ try{
+  const user=await require("./lib/crm-session-store").lookupSession(db,token);
+  if(!user)return res.sendStatus(401);
+  return res.json({ok:true,user:{id:user.id,login:user.login,role:user.role}});
+ }catch{return res.sendStatus(503);}
+});
+app.post("/api/auth/logout",async(req,res)=>{
+ if(!personalAuthEnabled())return res.sendStatus(404);
+ const token=staffCookies(req).crm_session;
+ res.clearCookie("crm_session",{httpOnly:true,secure:true,sameSite:"strict",path:"/api"});
+ try{await require("./lib/crm-session-store").revokeSession(db,token);return res.json({ok:true});}
+ catch{return res.sendStatus(503);}
+});
 app.use("/api/ops", (req,res,next)=>{
+ if(personalAuthEnabled()){
+  if(!db)return res.status(503).json({ok:false,error:"database_unavailable"});
+  return require("./lib/crm-csrf").requireTrustedOrigin(req,res,()=>require("./lib/crm-session-auth").staffSessionMiddleware(db)(req,res,next));
+ }
  const path=req.path;
- const masterOnly=(req.method==="POST"&&path==="/drafts")||(req.method==="GET"&&path.startsWith("/drafts/"));
+ const masterOnly=require("./lib/crm-role-policy").requiredRole(req.method,path)==="master";
  const ownerOnly=!masterOnly;
  const ownerSecret=String(process.env.OPS_ACCESS_TOKEN||"");
  const masterSecret=String(process.env.MASTER_ACCESS_TOKEN||"");

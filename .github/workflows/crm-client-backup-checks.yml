@@ -1,0 +1,108 @@
+name: CRM client backup checks
+on:
+  pull_request:
+    paths:
+      - 'backup/**'
+      - 'test/backup/**'
+      - 'scripts/crm-clients-*.sh'
+      - 'scripts/crm-client-backup-verify.sh'
+      - 'scripts/crm-client-*.sql'
+      - '.github/workflows/crm-client-backup-checks.yml'
+  workflow_dispatch:
+jobs:
+  shell-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get update -qq && sudo apt-get install -y shellcheck
+      - name: Static analysis of backup scripts
+        run: shellcheck -S warning scripts/crm-clients-export.sh scripts/crm-clients-yandex-upload.sh scripts/crm-clients-backup-job.sh scripts/crm-client-backup-verify.sh
+      - name: Validate shell syntax
+        run: |
+          bash -n scripts/crm-clients-export.sh
+          bash -n scripts/crm-clients-yandex-upload.sh
+          bash -n scripts/crm-clients-backup-job.sh
+          bash -n scripts/crm-client-backup-verify.sh
+      - name: Verify age encryption tooling
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq age
+          command -v age
+          command -v age-keygen
+          age --version
+      - name: Validate PostgreSQL archive tooling is available
+        run: |
+          command -v pg_dump
+          command -v pg_restore
+          pg_dump --version
+          pg_restore --version
+      - name: Verify child scripts are launched through bash
+        run: |
+          grep -Fq 'bash "$here/crm-clients-export.sh" "$archive"' scripts/crm-clients-backup-job.sh
+          grep -Fq 'bash "$here/crm-clients-yandex-upload.sh" "$archive"' scripts/crm-clients-backup-job.sh
+      - name: Verify invalid encryption policy fails closed
+        run: |
+          if CLIENT_BACKUP_ENABLED=true CLIENT_BACKUP_SCHEMA_VERIFIED=YES CLIENT_BACKUP_RESTORE_VERIFIED=YES CLIENT_BACKUP_REQUIRE_ENCRYPTION=false DATABASE_URL=invalid AGE_RECIPIENT=invalid YANDEX_DISK_TOKEN=invalid bash scripts/crm-clients-backup-job.sh >/dev/null 2>&1; then
+            echo 'Backup accepted disabled encryption'; exit 1
+          fi
+      - name: Verify missing safety gates fail closed
+        run: |
+          if CLIENT_BACKUP_ENABLED=true bash scripts/crm-clients-backup-job.sh >/dev/null 2>&1; then
+            echo "Unsafe backup job started"; exit 1
+          fi
+          if CLIENT_BACKUP_ENABLED=true bash scripts/crm-clients-export.sh >/dev/null 2>&1; then
+            echo "Unsafe export started"; exit 1
+          fi
+          if CLIENT_BACKUP_ENABLED=true bash scripts/crm-clients-yandex-upload.sh >/dev/null 2>&1; then
+            echo "Unsafe upload started"; exit 1
+          fi
+      - name: Verify backup job stays disabled by default
+        run: |
+          result="$(env -u CLIENT_BACKUP_ENABLED bash scripts/crm-clients-backup-job.sh)"
+          test "$result" = "CLIENT_BACKUP_DISABLED"
+      - name: Verify export stays disabled by default
+        run: |
+          result="$(env -u CLIENT_BACKUP_ENABLED bash scripts/crm-clients-export.sh)"
+          test "$result" = "CLIENT_BACKUP_DISABLED"
+      - name: Verify upload stays disabled by default
+        run: |
+          result="$(env -u CLIENT_BACKUP_ENABLED bash scripts/crm-clients-yandex-upload.sh)"
+          test "$result" = "CLIENT_BACKUP_DISABLED"
+      - name: Verify private transport and retention planning
+        run: python3 -m unittest discover -s test/backup -v
+      - name: Parse owner-only PowerShell procedure without running it
+        shell: pwsh
+        run: |
+          $tokens=$null; $errors=$null
+          $null=[System.Management.Automation.Language.Parser]::ParseFile((Join-Path $env:GITHUB_WORKSPACE 'backup/offline-key-setup.ps1'),[ref]$tokens,[ref]$errors)
+          if ($errors.Count -gt 0) { throw 'Offline key procedure syntax invalid' }
+      - name: Validate supplemental shell scripts
+        run: |
+          shellcheck -S warning backup/key-setup.sh test/backup/container-rehearsal.sh test/backup/reader-ci.sh
+          bash -n backup/key-setup.sh
+          bash -n test/backup/container-rehearsal.sh
+          bash -n test/backup/reader-ci.sh
+      - name: Build separate PostgreSQL 18 backup image
+        run: docker build -f backup/Dockerfile -t crm-client-backup:test .
+      - name: Verify disabled image and installed tools
+        run: |
+          test "$(docker run --rm --network none crm-client-backup:test)" = CLIENT_BACKUP_DISABLED
+          docker run --rm --network none --entrypoint bash crm-client-backup:test -c 'pg_dump --version; age --version; curl --version; jq --version; python3 --version; test "$(id -u)" != 0'
+      - name: Restore synthetic archive inside isolated PostgreSQL 18 container
+        run: docker run --rm --network none -v "$PWD/test:/app/test:ro" --entrypoint bash crm-client-backup:test test/backup/container-rehearsal.sh
+      - name: Build and verify one-shot Railway rehearsal image
+        run: |
+          docker build -f backup/Dockerfile.rehearsal -t crm-client-rehearsal:test .
+          docker run --rm --network none crm-client-rehearsal:test
+          docker run --rm --network none --entrypoint python3 crm-client-rehearsal:test test/backup/key-recovery.py
+      - name: Verify real-schema rehearsal is disabled without explicit gate
+        run: |
+          docker build -f backup/Dockerfile.schema-rehearsal -t crm-schema-rehearsal:test .
+          test "$(docker run --rm --network none crm-schema-rehearsal:test)" = SCHEMA_REHEARSAL_DISABLED
+          docker run --rm --network none --entrypoint bash crm-schema-rehearsal:test test/backup/reader-ci.sh
+      - name: Verify separate monitor is disabled by default
+        run: |
+          docker build -f backup/Dockerfile.watchdog -t crm-client-watchdog:test .
+          test "$(docker run --rm --network none crm-client-watchdog:test)" = CLIENT_BACKUP_MONITOR_DISABLED

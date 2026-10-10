@@ -1,0 +1,6 @@
+[build]
+dockerfilePath = "backup/Dockerfile.watchdog"
+[deploy]
+restartPolicyType = "NEVER"
+# After explicit rollout approval only: independent hourly check, no DB credentials.
+# cronSchedule = "5 * * * *"

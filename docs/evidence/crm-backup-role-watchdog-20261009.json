@@ -1,0 +1,144 @@
+{
+  "base_commit": "5052688de618c09a3c1a1f67a630edcb7b63910c",
+  "role_test_code_commit": "e46b06411f516f853da497b31ad64ddeb86ec22e",
+  "watchdog_fixed_code_commit": "210dc1f5368ebba6bb7fe48d7a93b4c4c91e893f",
+  "role_test": {
+    "deployment_id": "84dcfc9f-f428-4696-a5a9-16faa778e614",
+    "status": "SUCCESS",
+    "logs": [
+      {
+        "timestamp": "2026-10-09T19:58:12.255448544Z",
+        "message": "SNAPSHOT_SCHEMA_SOURCE key=crm-20261009-023155.dump modified=2026-10-09T02:31:56+00:00 sha256=fb347019c47c07490f4586c341d922606aa83c4060d5b769d2a7cc7520e07310"
+      },
+      {
+        "timestamp": "2026-10-09T19:58:12.255451453Z",
+        "message": "SCHEMA_ONLY_RESTORE_OK databases=2 customer_rows=0 vehicle_rows=0 snapshot_removed=YES"
+      },
+      {
+        "timestamp": "2026-10-09T19:58:12.260287808Z",
+        "message": "REAL_SCHEMA_REHEARSAL_DONE"
+      },
+      {
+        "timestamp": "2026-10-09T19:58:12.260349067Z",
+        "message": "KEY_CUSTODY_REHEARSAL_OK active_copy_removed=YES directories=700 identities=600 unsafe_permissions_rejected=YES recovered_recipient_match=YES decrypt_match=YES"
+      },
+      {
+        "timestamp": "2026-10-09T19:58:12.260358627Z",
+        "message": "READER_ROLE_ACL_OK login=reader tables_select=2 sequences_select=2 writes=DENIED deletes=DENIED ddl=DENIED nextval=DENIED setval=DENIED other_crm_tables=DENIED escalation=DENIED readonly_default_overridden_for_test=YES"
+      },
+      {
+        "timestamp": "2026-10-09T19:58:12.260363077Z",
+        "message": "READER_ROLE_CREATED scope=ISOLATED_ONLY login_password=UNSET"
+      },
+      {
+        "timestamp": "2026-10-09T19:58:12.260372477Z",
+        "message": "READER_ROLE_ENCRYPTED_EXPORT_OK"
+      },
+      {
+        "timestamp": "2026-10-09T19:58:12.260382567Z",
+        "message": "REAL_SCHEMA_RECOVERY_OK customers=2 vehicles=3 tenant_links=2 nullable_owner=1 full_row_digests=MATCH recovered_key=YES"
+      },
+      {
+        "timestamp": "2026-10-09T19:58:12.260386727Z",
+        "message": "REAL_SCHEMA_SEQUENCE_RECOVERY_OK customer_insert=YES vehicle_insert=YES"
+      }
+    ]
+  },
+  "watchdog_test": {
+    "deployment_id": "f663ea44-28db-4520-8f69-a6ae3c95b033",
+    "status": "SUCCESS",
+    "logs": [
+      {
+        "timestamp": "2026-10-09T20:02:23.796396996Z",
+        "message": "WATCHDOG_METADATA_DIAGNOSTIC files=4 verified_markers=1 app_alias_paths=4 canonical_disk_paths=0"
+      },
+      {
+        "timestamp": "2026-10-09T20:02:23.796403616Z",
+        "message": "CLIENT_BACKUP_FRESHNESS_OK"
+      },
+      {
+        "timestamp": "2026-10-09T20:02:23.796410896Z",
+        "message": "LIVE_WATCHDOG_OUTAGE_OK actual_disk_metadata=YES simulated_clock_offset_hours=37 writes=NONE exit=1 message_id=25"
+      }
+    ]
+  },
+  "disabled_backup": {
+    "deployment_id": "420135ee-98fd-4173-bebe-bb445cfdf685",
+    "status": "SUCCESS",
+    "logs": [
+      {
+        "timestamp": "2026-10-09T20:03:23.285226750Z",
+        "message": "SCHEMA_REHEARSAL_DISABLED"
+      }
+    ]
+  },
+  "disabled_monitor": {
+    "deployment_id": "4b12b759-e849-4a71-94bb-e41006885fd3",
+    "status": "SUCCESS",
+    "logs": [
+      {
+        "timestamp": "2026-10-09T20:03:19.940724991Z",
+        "message": "CLIENT_BACKUP_MONITOR_DISABLED"
+      }
+    ]
+  },
+  "github_actions": [
+    {
+      "id": 37984255491,
+      "name": "Jarvis voice runtime check",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 37984255507,
+      "name": "CRM auth checks",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 37984255535,
+      "name": "CRM PostgreSQL integration",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 37984255488,
+      "name": "CRM synthetic client restore rehearsal",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 37984255579,
+      "name": "CRM client backup checks",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 37984246969,
+      "name": "CRM auth checks",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 37984246956,
+      "name": "CRM PostgreSQL integration",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "existing_crm_backup": {
+    "deployment_id": "2a878d41-c8e0-40e0-af91-c4993f287b5d",
+    "cron": "27 2 * * *",
+    "unchanged": true
+  },
+  "boundaries": {
+    "production_database_connected": false,
+    "production_role_created": false,
+    "role_created_on_disposable_snapshot_schema": true,
+    "production_identity_generated": false,
+    "owner_powershell_procedure": "syntax verified, not executed with real USB/BitLocker",
+    "real_client_uploads": false,
+    "active_new_cron": false,
+    "deletion_operations": false
+  }
+}
