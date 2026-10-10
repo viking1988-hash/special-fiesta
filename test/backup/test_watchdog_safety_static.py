@@ -86,6 +86,26 @@ class WatchdogSafetyTests(unittest.TestCase):
         self.assertEqual(disk.call_args.args[1], "app:/clients-backups")
         notify.main.assert_not_called()
 
+    def test_freshness_failure_cannot_report_success(self):
+        module, notify = self.load_watchdog()
+        disk = mock.Mock()
+        disk.return_value.check_freshness.side_effect = TimeoutError("synthetic")
+        with mock.patch.dict(os.environ, {"CLIENT_BACKUP_MONITOR_ENABLED": "true"}):
+            with mock.patch("sys.stdout", new_callable=__import__("io").StringIO) as output:
+                self.assertEqual(module.main(disk_factory=disk), 1)
+        self.assertNotIn("CLIENT_BACKUP_FRESHNESS_OK", output.getvalue())
+        notify.main.assert_called_once_with(reason="missing")
+
+    def test_disabled_watchdog_ignores_misconfigured_credentials(self):
+        module, notify = self.load_watchdog()
+        disk = mock.Mock(side_effect=AssertionError("disk must not be constructed"))
+        with mock.patch.dict(os.environ, {"CLIENT_BACKUP_MONITOR_ENABLED": "false",
+                                           "YANDEX_DISK_TOKEN": "",
+                                           "CLIENT_BACKUP_YANDEX_PATH": "invalid"}):
+            self.assertEqual(module.main(disk_factory=disk), 0)
+        disk.assert_not_called()
+        notify.main.assert_not_called()
+
     def test_sources_parse(self):
         for path in (WATCHDOG, REHEARSAL):
             with self.subTest(path=path.name):
