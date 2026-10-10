@@ -106,6 +106,22 @@ class WatchdogSafetyTests(unittest.TestCase):
         disk.assert_not_called()
         notify.main.assert_not_called()
 
+    def test_watchdog_passes_explicit_clock_to_freshness(self):
+        module, notify = self.load_watchdog()
+        disk = mock.Mock()
+        clock = object()
+        with mock.patch.dict(os.environ, {"CLIENT_BACKUP_MONITOR_ENABLED": "true"}):
+            self.assertEqual(module.main(disk_factory=disk, now=clock), 0)
+        disk.return_value.check_freshness.assert_called_once_with(clock)
+        notify.main.assert_not_called()
+
+    def test_failed_disk_constructor_triggers_failure(self):
+        module, notify = self.load_watchdog()
+        disk = mock.Mock(side_effect=RuntimeError("synthetic constructor failure"))
+        with mock.patch.dict(os.environ, {"CLIENT_BACKUP_MONITOR_ENABLED": "true"}):
+            self.assertEqual(module.main(disk_factory=disk), 1)
+        notify.main.assert_called_once_with(reason="missing")
+
     def test_sources_parse(self):
         for path in (WATCHDOG, REHEARSAL):
             with self.subTest(path=path.name):
