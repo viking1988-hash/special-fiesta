@@ -67,6 +67,25 @@ class WatchdogSafetyTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {"CLIENT_BACKUP_MONITOR_ENABLED": "true"}):
             self.assertEqual(module.main(disk_factory=disk), 1)
 
+    def test_watchdog_rejects_missing_token_without_alert_delivery(self):
+        module, notify = self.load_watchdog()
+        def reject_token(token, folder):
+            if not token:
+                raise ValueError("missing token")
+            return mock.Mock()
+        with mock.patch.dict(os.environ, {"CLIENT_BACKUP_MONITOR_ENABLED": "true", "YANDEX_DISK_TOKEN": ""}):
+            self.assertEqual(module.main(disk_factory=reject_token), 1)
+        notify.main.assert_called_once_with(reason="missing")
+
+    def test_watchdog_uses_expected_backup_folder(self):
+        module, notify = self.load_watchdog()
+        disk = mock.Mock()
+        with mock.patch.dict(os.environ, {"CLIENT_BACKUP_MONITOR_ENABLED": "true",
+                                           "CLIENT_BACKUP_YANDEX_PATH": "app:/clients-backups"}):
+            self.assertEqual(module.main(disk_factory=disk), 0)
+        self.assertEqual(disk.call_args.args[1], "app:/clients-backups")
+        notify.main.assert_not_called()
+
     def test_sources_parse(self):
         for path in (WATCHDOG, REHEARSAL):
             with self.subTest(path=path.name):
