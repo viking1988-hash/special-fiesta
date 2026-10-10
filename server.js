@@ -1076,7 +1076,7 @@ app.use("/api/ops", (req,res,next)=>{
  if(!configured)return res.status(503).json({ok:false,error:"ops_auth_not_configured"});
  const provided=String(req.get("x-ops-token")||"");
  const a=Buffer.from(configured),b=Buffer.from(provided);
- if(a.length!==b.length||!require("crypto").timingSafeEqual(a,b))return res.status(401).json({ok:false,error:"ops_auth_required"});
+ if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return res.status(401).json({ok:false,error:"ops_auth_required"});
  next();
 });
 app.post("/api/ops/drafts", async (req,res)=>{
