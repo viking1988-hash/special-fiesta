@@ -1,0 +1,24 @@
+name: Client backup watchdog safety guards
+
+on:
+  pull_request:
+    paths:
+      - 'backup/watchdog.py'
+      - 'test/backup/schema-rehearsal.py'
+      - 'test/backup/test_watchdog_safety_static.py'
+      - '.github/workflows/client-backup-watchdog-guards.yml'
+  push:
+    branches:
+      - 'chore/clients-backup-watchdog-safety-20261010'
+
+permissions:
+  contents: read
+
+jobs:
+  offline-guardrails:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run offline safety tests
+        run: python3 -m unittest discover -s test/backup -p 'test_watchdog_safety_static.py' -v
