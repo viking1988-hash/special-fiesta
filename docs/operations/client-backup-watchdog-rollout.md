@@ -42,3 +42,10 @@ The current Python program returns exit code 0 when monitoring is disabled. An o
 - [ ] After an approved rollout, confirm two real cron runs and failure-notification evidence.
 
 **Stop conditions:** unknown environment, redacted/unknown test flag values, missing client archive, missing alert destination, or unclear rollback path. Do not infer green health from `SUCCESS` alone.
+
+
+## Additional blocker confirmed on 2026-10-11
+
+Railway `crm-clients-yandex-backup` is also in `production`, but its **actual start command** is `python3 /app/test/backup/schema-rehearsal.py`, with **no cron schedule**. This script restores schema only into loopback PostgreSQL, exercises artificial customer records and does not perform a live scheduled client backup. The general `crm-backup` dump is not interchangeable with an independently encrypted client archive. Do not enable the watchdog until the actual backup job is approved, configured and proven to create a verified client archive.
+
+The production rollout requires **two distinct services**: (1) scheduled encrypted client backup using the reviewed job, and (2) scheduled freshness watchdog with failure alerts. Each must have its own deployment and run evidence. A green Railway deployment alone proves neither.
