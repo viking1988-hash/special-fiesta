@@ -29,3 +29,16 @@ Restore the prior schedule and monitoring flag values, verify the new deployment
 ## Known caveat
 
 The current Python program returns exit code 0 when monitoring is disabled. An operational dashboard must explicitly distinguish **disabled** from **healthy**.
+
+## Operator verification worksheet (no secret values)
+
+- [ ] Confirm Railway project, `production` environment, and exact service ID before any change.
+- [ ] Confirm that the intended live watchdog is **not** a synthetic rehearsal. If ambiguous, stop.
+- [ ] In Railway UI, record only boolean status (not secret contents) for monitoring, alerts, live test, and synthetic rehearsal switches.
+- [ ] Verify a fresh, independently encrypted **client** archive in `app:/clients-backups`; the general CRM dump alone is not proof of a separate client archive.
+- [ ] Confirm the expected Telegram recipient and that controlled test messages are clearly labeled.
+- [ ] Confirm that cron `5 * * * *` (UTC) is acceptable for production; no scheduling change before approval.
+- [ ] Capture prior settings privately for rollback, without putting tokens in GitHub.
+- [ ] After an approved rollout, confirm two real cron runs and failure-notification evidence.
+
+**Stop conditions:** unknown environment, redacted/unknown test flag values, missing client archive, missing alert destination, or unclear rollback path. Do not infer green health from `SUCCESS` alone.
