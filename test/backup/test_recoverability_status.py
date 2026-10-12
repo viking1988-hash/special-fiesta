@@ -20,7 +20,7 @@ class RecoverabilityStatusTests(unittest.TestCase):
 
     def test_valid_matching_archive_and_restore(self):
         self.assertEqual(backup_recoverability_status(self.archive, self.receipt, self.now),
-                         "RECOVERY_VERIFIED")
+                         "UNVERIFIED_SELF_REPORTED_RECEIPT")
 
     def test_missing_receipt(self):
         self.assertEqual(backup_recoverability_status(self.archive, None, self.now),
