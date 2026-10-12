@@ -8,6 +8,7 @@ on:
       - 'backup/recovery_receipt_gate.py'
       - 'backup/recoverability_status.py'
       - 'backup/recovery_report.py'
+      - 'backup/production_launch_gate.py'
       - 'test/backup/test_live_export_preflight.py'
       - 'test/backup/test_archive_metadata_gate.py'
       - 'test/backup/test_archive_boundary.py'
@@ -15,6 +16,7 @@ on:
       - 'test/backup/test_recoverability_status.py'
       - 'test/backup/test_recovery_report.py'
       - 'test/backup/test_recovery_report_cli.py'
+      - 'test/backup/test_production_launch_gate.py'
       - 'test/backup/synthetic_export_rehearsal.py'
       - 'test/backup/test_synthetic_export_guards.py'
       - '.github/workflows/crm-client-export-preflight.yml'
@@ -25,6 +27,7 @@ on:
       - 'backup/recovery_receipt_gate.py'
       - 'backup/recoverability_status.py'
       - 'backup/recovery_report.py'
+      - 'backup/production_launch_gate.py'
       - 'test/backup/test_live_export_preflight.py'
       - 'test/backup/test_archive_metadata_gate.py'
       - 'test/backup/test_archive_boundary.py'
@@ -32,6 +35,7 @@ on:
       - 'test/backup/test_recoverability_status.py'
       - 'test/backup/test_recovery_report.py'
       - 'test/backup/test_recovery_report_cli.py'
+      - 'test/backup/test_production_launch_gate.py'
       - 'test/backup/synthetic_export_rehearsal.py'
       - 'test/backup/test_synthetic_export_guards.py'
       - '.github/workflows/crm-client-export-preflight.yml'
@@ -59,6 +63,8 @@ jobs:
         run: python3 -m unittest discover -s test/backup -p test_recovery_report.py -v
       - name: Check malformed evidence and safe CLI errors
         run: python3 -m unittest discover -s test/backup -p test_recovery_report_cli.py -v
+      - name: Deny automated production launch from self-asserted evidence
+        run: python3 -m unittest discover -s test/backup -p test_production_launch_gate.py -v
 
   synthetic-encryption:
     runs-on: ubuntu-latest
