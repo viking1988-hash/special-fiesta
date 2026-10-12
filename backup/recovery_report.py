@@ -1,6 +1,6 @@
 """Strict fail-closed report for customer backup recovery verification.
 
-This does not produce a successful status without archive AND receipt proof.
+JSON receipt fields are unauthenticated claims, NOT independent restore proof.
 No network calls or credentials; JSON-only local evaluation.
 """
 import json
@@ -13,9 +13,11 @@ from backup.recoverability_status import backup_recoverability_status
 def report(archive, receipt, now=None):
     status = backup_recoverability_status(archive, receipt, now)
     return {
-        "status": status,
-        "recovery_verified": status == "RECOVERY_VERIFIED",
+        "status": "UNVERIFIED_SELF_REPORTED_RECEIPT" if status == "RECOVERY_VERIFIED" else status,
+        "recovery_verified": False,
+        "metadata_checks_passed": status == "RECOVERY_VERIFIED",
         "archive_present_is_not_proof": True,
+        "independent_restore_evidence_required": True,
     }
 
 
