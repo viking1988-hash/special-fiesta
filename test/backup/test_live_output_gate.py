@@ -1,0 +1,43 @@
+import tempfile
+import unittest
+from pathlib import Path
+from backup.live_output_gate import validate
+
+
+class LiveOutputGateTests(unittest.TestCase):
+    def test_private_unused_archive_allowed(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "clients-20261012T120000Z.dump.age"
+            self.assertTrue(validate(d, str(p)))
+
+    def test_relative_and_traversal_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.assertFalse(validate(d, "clients-20261012T120000Z.dump.age"))
+            self.assertFalse(validate(d, str(Path(d) / ".." / "clients-20261012T120000Z.dump.age")))
+
+    def test_existing_file_and_partial_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "clients-20261012T120000Z.dump.age"
+            p.touch()
+            self.assertFalse(validate(d, str(p)))
+            p.unlink()
+            Path(str(p) + ".partial").touch()
+            self.assertFalse(validate(d, str(p)))
+
+    def test_public_directory_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "clients-20261012T120000Z.dump.age"
+            Path(d).chmod(0o755)
+            self.assertFalse(validate(d, str(p)))
+
+    def test_symlink_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "clients-20261012T120000Z.dump.age"
+            target = Path(d) / "real"
+            target.touch()
+            p.symlink_to(target)
+            self.assertFalse(validate(d, str(p)))
+
+
+if __name__ == "__main__":
+    unittest.main()
