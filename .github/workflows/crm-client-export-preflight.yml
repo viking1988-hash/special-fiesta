@@ -1,0 +1,25 @@
+name: CRM client export preflight tests
+
+on:
+  pull_request:
+    paths:
+      - 'backup/live_export_preflight.py'
+      - 'test/backup/test_live_export_preflight.py'
+      - '.github/workflows/crm-client-export-preflight.yml'
+  push:
+    paths:
+      - 'backup/live_export_preflight.py'
+      - 'test/backup/test_live_export_preflight.py'
+      - '.github/workflows/crm-client-export-preflight.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run fail-closed export preflight tests
+        run: python3 -m unittest discover -s test/backup -p test_live_export_preflight.py -v
