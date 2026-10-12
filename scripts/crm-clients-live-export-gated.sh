@@ -13,4 +13,5 @@ fi
 # The preflight verifies configuration only; human-reviewed ACL, key custody,
 # and independent recovery proof remain mandatory before deployment.
 python3 -m backup.live_export_preflight
+python3 -m backup.live_output_gate "$@"
 exec bash scripts/crm-clients-export.sh "$@"
