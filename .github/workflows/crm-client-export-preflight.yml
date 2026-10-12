@@ -16,6 +16,7 @@ on:
       - 'test/backup/test_gated_wrapper_static.py'
       - 'test/backup/test_live_output_gate.py'
       - 'test/backup/test_live_export_lock.py'
+      - 'test/backup/test_export_failure_injection.py'
       - 'test/backup/test_archive_metadata_gate.py'
       - 'test/backup/test_archive_boundary.py'
       - 'test/backup/test_recovery_receipt_gate.py'
@@ -41,6 +42,7 @@ on:
       - 'test/backup/test_gated_wrapper_static.py'
       - 'test/backup/test_live_output_gate.py'
       - 'test/backup/test_live_export_lock.py'
+      - 'test/backup/test_export_failure_injection.py'
       - 'test/backup/test_archive_metadata_gate.py'
       - 'test/backup/test_archive_boundary.py'
       - 'test/backup/test_recovery_receipt_gate.py'
@@ -71,6 +73,8 @@ jobs:
         run: python3 -m unittest discover -s test/backup -p test_live_output_gate.py -v
       - name: Verify exclusive live export locking
         run: python3 -m unittest discover -s test/backup -p test_live_export_lock.py -v
+      - name: Inject pg_dump and age failures without DB access
+        run: python3 -m unittest discover -s test/backup -p test_export_failure_injection.py -v
       - name: Validate encrypted archive metadata rules
         run: python3 -m unittest discover -s test/backup -p test_archive_metadata_gate.py -v
       - name: Validate archive time and size boundaries
