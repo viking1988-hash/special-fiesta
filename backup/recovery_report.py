@@ -13,9 +13,9 @@ from backup.recoverability_status import backup_recoverability_status
 def report(archive, receipt, now=None):
     status = backup_recoverability_status(archive, receipt, now)
     return {
-        "status": "UNVERIFIED_SELF_REPORTED_RECEIPT" if status == "RECOVERY_VERIFIED" else status,
+        "status": status,
         "recovery_verified": False,
-        "metadata_checks_passed": status == "RECOVERY_VERIFIED",
+        "metadata_checks_passed": status == "UNVERIFIED_SELF_REPORTED_RECEIPT",
         "archive_present_is_not_proof": True,
         "independent_restore_evidence_required": True,
     }
