@@ -24,6 +24,12 @@ class LiveOutputGateTests(unittest.TestCase):
             Path(str(p) + ".partial").touch()
             self.assertFalse(validate(d, str(p)))
 
+    def test_dangling_partial_symlink_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "clients-20261012T120000Z.dump.age"
+            Path(str(p) + ".partial").symlink_to(Path(d) / "missing-target")
+            self.assertFalse(validate(d, str(p)))
+
     def test_public_directory_rejected(self):
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / "clients-20261012T120000Z.dump.age"
