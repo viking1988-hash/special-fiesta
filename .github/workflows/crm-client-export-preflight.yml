@@ -5,11 +5,13 @@ on:
     paths:
       - 'backup/live_export_preflight.py'
       - 'test/backup/test_live_export_preflight.py'
+      - 'test/backup/synthetic_export_rehearsal.py'
       - '.github/workflows/crm-client-export-preflight.yml'
   push:
     paths:
       - 'backup/live_export_preflight.py'
       - 'test/backup/test_live_export_preflight.py'
+      - 'test/backup/synthetic_export_rehearsal.py'
       - '.github/workflows/crm-client-export-preflight.yml'
 
 permissions:
@@ -23,3 +25,15 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run fail-closed export preflight tests
         run: python3 -m unittest discover -s test/backup -p test_live_export_preflight.py -v
+
+  synthetic-encryption:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install age
+        run: sudo apt-get update -qq && sudo apt-get install -y age
+      - name: Prove encrypted synthetic export and recovery
+        env:
+          SYNTHETIC_REHEARSAL_ONLY: 'YES'
+        run: python3 test/backup/synthetic_export_rehearsal.py
