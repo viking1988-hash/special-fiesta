@@ -4,12 +4,14 @@ on:
   pull_request:
     paths:
       - 'backup/live_export_preflight.py'
+      - 'scripts/crm-clients-live-export-gated.sh'
       - 'backup/archive_metadata_gate.py'
       - 'backup/recovery_receipt_gate.py'
       - 'backup/recoverability_status.py'
       - 'backup/recovery_report.py'
       - 'backup/production_launch_gate.py'
       - 'test/backup/test_live_export_preflight.py'
+      - 'test/backup/test_gated_live_export.py'
       - 'test/backup/test_archive_metadata_gate.py'
       - 'test/backup/test_archive_boundary.py'
       - 'test/backup/test_recovery_receipt_gate.py'
@@ -23,12 +25,14 @@ on:
   push:
     paths:
       - 'backup/live_export_preflight.py'
+      - 'scripts/crm-clients-live-export-gated.sh'
       - 'backup/archive_metadata_gate.py'
       - 'backup/recovery_receipt_gate.py'
       - 'backup/recoverability_status.py'
       - 'backup/recovery_report.py'
       - 'backup/production_launch_gate.py'
       - 'test/backup/test_live_export_preflight.py'
+      - 'test/backup/test_gated_live_export.py'
       - 'test/backup/test_archive_metadata_gate.py'
       - 'test/backup/test_archive_boundary.py'
       - 'test/backup/test_recovery_receipt_gate.py'
@@ -51,6 +55,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run fail-closed export preflight tests
         run: python3 -m unittest discover -s test/backup -p test_live_export_preflight.py -v
+      - name: Refuse unapproved live export invocations
+        run: python3 -m unittest discover -s test/backup -p test_gated_live_export.py -v
       - name: Validate encrypted archive metadata rules
         run: python3 -m unittest discover -s test/backup -p test_archive_metadata_gate.py -v
       - name: Validate archive time and size boundaries
