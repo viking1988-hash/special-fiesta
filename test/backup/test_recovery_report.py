@@ -15,10 +15,12 @@ class RecoveryReportTests(unittest.TestCase):
             "archive_sha256": "a" * 64, "verified_at": "2026-10-12T11:30:00Z",
         }
 
-    def test_proven_recovery(self):
+    def test_self_reported_recovery_not_proof(self):
         result = report(self.archive, self.receipt, self.now)
-        self.assertEqual(result["status"], "RECOVERY_VERIFIED")
-        self.assertTrue(result["recovery_verified"])
+        self.assertEqual(result["status"], "UNVERIFIED_SELF_REPORTED_RECEIPT")
+        self.assertFalse(result["recovery_verified"])
+        self.assertTrue(result["metadata_checks_passed"])
+        self.assertTrue(result["independent_restore_evidence_required"])
 
     def test_archive_without_receipt_fails(self):
         result = report(self.archive, None, self.now)
