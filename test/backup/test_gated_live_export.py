@@ -19,14 +19,21 @@ class GatedLiveExportTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("CLIENT_BACKUP_LIVE_APPROVAL_REQUIRED", result.stderr)
 
+    def test_disabled_exporter_refuses_even_with_approval(self):
+        result = self.run_script({"CLIENT_BACKUP_LIVE_RUN_APPROVED": "YES"})
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("CLIENT_BACKUP_NOT_ENABLED", result.stderr)
+
     def test_synthetic_mode_refused_even_with_approval(self):
         result = self.run_script({"CLIENT_BACKUP_LIVE_RUN_APPROVED": "YES",
+                                  "CLIENT_BACKUP_ENABLED": "true",
                                   "SYNTHETIC_REHEARSAL_ONLY": "YES"})
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("CLIENT_BACKUP_SYNTHETIC_MODE_REFUSED", result.stderr)
 
     def test_missing_configuration_fails_before_export(self):
-        result = self.run_script({"CLIENT_BACKUP_LIVE_RUN_APPROVED": "YES"})
+        result = self.run_script({"CLIENT_BACKUP_LIVE_RUN_APPROVED": "YES",
+                                  "CLIENT_BACKUP_ENABLED": "true"})
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("CLIENT_EXPORT_PREFLIGHT_", result.stderr)
         self.assertNotIn("CLIENT_BACKUP_ENCRYPTED_OK", result.stdout)
