@@ -14,4 +14,5 @@ def backup_recoverability_status(archive, receipt, now=None):
         return "RESTORE_NOT_VERIFIED"
     if archive["sha256"] != receipt["archive_sha256"]:
         return "ARCHIVE_RECEIPT_MISMATCH"
-    return "RECOVERY_VERIFIED"
+    # A matching, self-reported receipt is not independent restore evidence.
+    return "UNVERIFIED_SELF_REPORTED_RECEIPT"
