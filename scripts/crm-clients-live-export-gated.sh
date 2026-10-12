@@ -6,6 +6,10 @@ if [[ "${CLIENT_BACKUP_LIVE_RUN_APPROVED:-}" != "YES" ]]; then
   echo "CLIENT_BACKUP_LIVE_APPROVAL_REQUIRED" >&2
   exit 1
 fi
+if [[ "${CLIENT_BACKUP_ENABLED:-false}" != "true" ]]; then
+  echo "CLIENT_BACKUP_NOT_ENABLED" >&2
+  exit 1
+fi
 if [[ "${SYNTHETIC_REHEARSAL_ONLY:-}" == "YES" ]]; then
   echo "CLIENT_BACKUP_SYNTHETIC_MODE_REFUSED" >&2
   exit 1
