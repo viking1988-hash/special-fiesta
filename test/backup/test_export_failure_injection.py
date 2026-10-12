@@ -29,7 +29,7 @@ class ExportFailureTests(unittest.TestCase):
                 "  if [ \"$1\" = -o ]; then shift; out=$1; fi\n"
                 "  shift\n"
                 "done\n"
-                ("printf 'INVALID-ENCRYPTED-HEADER\\n' > \"$out\"\n" if malformed_header else "printf 'age-encryption.org/v1\\n' > \"$out\"\n")
+                + ("printf 'INVALID-ENCRYPTED-HEADER\\n' > \"$out\"\n" if malformed_header else "printf 'age-encryption.org/v1\\n' > \"$out\"\n")
                 + "cat >> \"$out\"\n"
                 + "exit " + str(age_exit) + "\n"
             )
