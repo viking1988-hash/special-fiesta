@@ -7,6 +7,7 @@ on:
       - 'backup/archive_metadata_gate.py'
       - 'test/backup/test_live_export_preflight.py'
       - 'test/backup/test_archive_metadata_gate.py'
+      - 'test/backup/test_archive_boundary.py'
       - 'test/backup/synthetic_export_rehearsal.py'
       - 'test/backup/test_synthetic_export_guards.py'
       - '.github/workflows/crm-client-export-preflight.yml'
@@ -16,6 +17,7 @@ on:
       - 'backup/archive_metadata_gate.py'
       - 'test/backup/test_live_export_preflight.py'
       - 'test/backup/test_archive_metadata_gate.py'
+      - 'test/backup/test_archive_boundary.py'
       - 'test/backup/synthetic_export_rehearsal.py'
       - 'test/backup/test_synthetic_export_guards.py'
       - '.github/workflows/crm-client-export-preflight.yml'
@@ -33,6 +35,8 @@ jobs:
         run: python3 -m unittest discover -s test/backup -p test_live_export_preflight.py -v
       - name: Validate encrypted archive metadata rules
         run: python3 -m unittest discover -s test/backup -p test_archive_metadata_gate.py -v
+      - name: Validate archive time and size boundaries
+        run: python3 -m unittest discover -s test/backup -p test_archive_boundary.py -v
 
   synthetic-encryption:
     runs-on: ubuntu-latest
