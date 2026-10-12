@@ -34,6 +34,21 @@ class RecoveryReportCliTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertFalse(json.loads(out)["recovery_verified"])
 
+    def test_forged_all_true_receipt_never_returns_success(self):
+        archive = {"name": "clients-20261012T110000Z.dump.age",
+                   "size": 1200, "sha256": "a" * 64, "type": "file"}
+        receipt = {
+            "isolation": "isolated", "source": "encrypted-client-archive",
+            "decryption": True, "restore": True, "row_digests_match": True,
+            "foreign_keys_ok": True, "sequences_ok": True,
+            "tenant_boundaries_ok": True, "archive_sha256": "a" * 64,
+            "verified_at": "2026-10-12T11:30:00Z",
+        }
+        code, out, err = self.run_cli(json.dumps(archive), json.dumps(receipt))
+        self.assertEqual(code, 1)
+        self.assertFalse(json.loads(out)["recovery_verified"])
+        self.assertTrue(json.loads(out)["independent_restore_evidence_required"])
+
     def test_oversized_input_rejected(self):
         code, out, err = self.run_cli(" " * 16385, "{}")
         self.assertEqual(code, 2)
