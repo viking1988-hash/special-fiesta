@@ -14,7 +14,7 @@ SCRIPT = ROOT / "scripts/crm-clients-export.sh"
 
 
 class ExportFailureTests(unittest.TestCase):
-    def run_export(self, dump_exit=0, age_exit=0):
+    def run_export(self, dump_exit=0, age_exit=0, malformed_header=False):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
             commands = root / "bin"
@@ -29,7 +29,7 @@ class ExportFailureTests(unittest.TestCase):
                 "  if [ \"$1\" = -o ]; then shift; out=$1; fi\n"
                 "  shift\n"
                 "done\n"
-                "printf 'age-encryption.org/v1\\n' > \"$out\"\n"
+                ("printf 'INVALID-ENCRYPTED-HEADER\\n' > \"$out\"\n" if malformed_header else "printf 'age-encryption.org/v1\\n' > \"$out\"\n")
                 "cat >> \"$out\"\n"
                 "exit " + str(age_exit) + "\n"
             )
@@ -60,6 +60,13 @@ class ExportFailureTests(unittest.TestCase):
         self.assertFalse(final)
         self.assertFalse(partial)
         self.assertIn("CLIENT_BACKUP_EXPORT_FAILED", result.stderr)
+
+    def test_malformed_header_never_publishes_archive(self):
+        result, final, partial = self.run_export(malformed_header=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(final)
+        self.assertFalse(partial)
+        self.assertIn("CLIENT_BACKUP_INVALID_ENCRYPTED_HEADER", result.stderr)
 
     def test_synthetic_success_produces_only_final(self):
         result, final, partial = self.run_export()
