@@ -22,6 +22,11 @@ class RecoverabilityStatusTests(unittest.TestCase):
         self.assertEqual(backup_recoverability_status(self.archive, self.receipt, self.now),
                          "UNVERIFIED_SELF_REPORTED_RECEIPT")
 
+    def test_self_asserted_success_never_claims_verified(self):
+        status = backup_recoverability_status(self.archive, self.receipt, self.now)
+        self.assertNotEqual(status, "RECOVERY_VERIFIED")
+        self.assertEqual(status, "UNVERIFIED_SELF_REPORTED_RECEIPT")
+
     def test_missing_receipt(self):
         self.assertEqual(backup_recoverability_status(self.archive, None, self.now),
                          "RESTORE_NOT_VERIFIED")
