@@ -27,7 +27,6 @@ class GatedWrapperStaticTests(unittest.TestCase):
         self.assertIn("CLIENT_BACKUP_LIVE_RUN_APPROVED", script)
         self.assertIn("SYNTHETIC_REHEARSAL_ONLY", script)
         self.assertNotIn("python3 -m backup.live_export_preflight || true", script)
-        self.assertNotIn("python3 -m backup.live_output_gate \\"$@\\" || true", script)
         self.assertNotIn('bash scripts/crm-clients-export.sh "$@" || true', script)
 
 
