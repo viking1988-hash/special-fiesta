@@ -20,7 +20,7 @@ if ! PGOPTIONS="-c default_transaction_read_only=on -c statement_timeout=300000 
 fi
 [[ -s "$partial" ]] || exit 1
 # Refuse malformed output even when an encryption command exits successfully.
-[[ "$(head -c 22 -- "$partial")" == "age-encryption.org/v1" ]] || {
+[[ "$(head -c 21 -- "$partial")" == "age-encryption.org/v1" ]] || {
   echo "CLIENT_BACKUP_INVALID_ENCRYPTED_HEADER" >&2
   exit 1
 }
