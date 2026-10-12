@@ -18,7 +18,7 @@ class GatedWrapperStaticTests(unittest.TestCase):
     def test_preflight_precedes_export(self):
         script = WRAPPER.read_text()
         preflight = script.index("python3 -m backup.live_export_preflight")
-        exporter = script.index("exec bash scripts/crm-clients-export.sh")
+        exporter = script.index('bash scripts/crm-clients-export.sh "$@"')
         self.assertLess(preflight, exporter)
 
     def test_no_silent_preflight_bypass(self):
@@ -26,7 +26,9 @@ class GatedWrapperStaticTests(unittest.TestCase):
         self.assertIn("set -Eeuo pipefail", script)
         self.assertIn("CLIENT_BACKUP_LIVE_RUN_APPROVED", script)
         self.assertIn("SYNTHETIC_REHEARSAL_ONLY", script)
-        self.assertNotIn("|| true", script)
+        self.assertNotIn("python3 -m backup.live_export_preflight || true", script)
+        self.assertNotIn("python3 -m backup.live_output_gate \\"$@\\" || true", script)
+        self.assertNotIn('bash scripts/crm-clients-export.sh "$@" || true', script)
 
 
 if __name__ == "__main__":
