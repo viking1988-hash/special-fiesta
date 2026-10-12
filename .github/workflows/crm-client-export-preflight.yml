@@ -6,10 +6,12 @@ on:
       - 'backup/live_export_preflight.py'
       - 'backup/archive_metadata_gate.py'
       - 'backup/recovery_receipt_gate.py'
+      - 'backup/recoverability_status.py'
       - 'test/backup/test_live_export_preflight.py'
       - 'test/backup/test_archive_metadata_gate.py'
       - 'test/backup/test_archive_boundary.py'
       - 'test/backup/test_recovery_receipt_gate.py'
+      - 'test/backup/test_recoverability_status.py'
       - 'test/backup/synthetic_export_rehearsal.py'
       - 'test/backup/test_synthetic_export_guards.py'
       - '.github/workflows/crm-client-export-preflight.yml'
@@ -18,10 +20,12 @@ on:
       - 'backup/live_export_preflight.py'
       - 'backup/archive_metadata_gate.py'
       - 'backup/recovery_receipt_gate.py'
+      - 'backup/recoverability_status.py'
       - 'test/backup/test_live_export_preflight.py'
       - 'test/backup/test_archive_metadata_gate.py'
       - 'test/backup/test_archive_boundary.py'
       - 'test/backup/test_recovery_receipt_gate.py'
+      - 'test/backup/test_recoverability_status.py'
       - 'test/backup/synthetic_export_rehearsal.py'
       - 'test/backup/test_synthetic_export_guards.py'
       - '.github/workflows/crm-client-export-preflight.yml'
@@ -43,6 +47,8 @@ jobs:
         run: python3 -m unittest discover -s test/backup -p test_archive_boundary.py -v
       - name: Validate isolated recovery receipts
         run: python3 -m unittest discover -s test/backup -p test_recovery_receipt_gate.py -v
+      - name: Validate archive-to-restore proof binding
+        run: python3 -m unittest discover -s test/backup -p test_recoverability_status.py -v
 
   synthetic-encryption:
     runs-on: ubuntu-latest
