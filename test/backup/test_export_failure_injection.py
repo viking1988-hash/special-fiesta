@@ -30,8 +30,8 @@ class ExportFailureTests(unittest.TestCase):
                 "  shift\n"
                 "done\n"
                 ("printf 'INVALID-ENCRYPTED-HEADER\\n' > \"$out\"\n" if malformed_header else "printf 'age-encryption.org/v1\\n' > \"$out\"\n")
-                "cat >> \"$out\"\n"
-                "exit " + str(age_exit) + "\n"
+                + "cat >> \"$out\"\n"
+                + "exit " + str(age_exit) + "\n"
             )
             age.chmod(0o700)
             out = root / "clients-20261012T120000Z.dump.age"
