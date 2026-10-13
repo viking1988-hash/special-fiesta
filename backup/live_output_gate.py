@@ -18,6 +18,9 @@ def validate(directory, output):
     root, target = Path(directory), Path(output)
     if not root.is_absolute() or not target.is_absolute():
         return False
+    # Reject lexical traversal even when path normalization leads back to root.
+    if ".." in root.parts or ".." in target.parts:
+        return False
     if not ARCHIVE_NAME.fullmatch(target.name):
         return False
     try:
