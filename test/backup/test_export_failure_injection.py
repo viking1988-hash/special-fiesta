@@ -57,17 +57,17 @@ class ExportFailureTests(unittest.TestCase):
             out = root / "clients-20261012T120000Z.dump.age"
             partial = Path(str(out) + ".partial")
             dump = commands / "pg_dump"
-            dump.write_text("#!/bin/sh\\nprintf 'synthetic only'\\n")
+            dump.write_text("#!/bin/sh\nprintf 'synthetic only'\n")
             dump.chmod(0o700)
             age = commands / "age"
             age.write_text(
-                '#!/bin/sh\\n'
-                'while [ "$#" -gt 0 ]; do\\n'
-                '  if [ "$1" = -o ]; then shift; out=$1; fi\\n'
-                '  shift\\n'
-                'done\\n'
-                'ln -s "$SYNTHETIC_SENTINEL" "$out"\\n'
-                'exit 19\\n'
+                '#!/bin/sh\n'
+                'while [ "$#" -gt 0 ]; do\n'
+                '  if [ "$1" = -o ]; then shift; out=$1; fi\n'
+                '  shift\n'
+                'done\n'
+                'ln -s "$SYNTHETIC_SENTINEL" "$out"\n'
+                'exit 19\n'
             )
             age.chmod(0o700)
             env = {
