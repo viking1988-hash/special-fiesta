@@ -47,6 +47,45 @@ class ExportFailureTests(unittest.TestCase):
                                     text=True, capture_output=True, timeout=5)
             return result, out.exists(), Path(str(out) + ".partial").exists()
 
+    def test_cleanup_does_not_unlink_replaced_partial_symlink(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            commands = root / "bin"
+            commands.mkdir()
+            sentinel = root / "sentinel.txt"
+            sentinel.write_text("must survive")
+            out = root / "clients-20261012T120000Z.dump.age"
+            partial = Path(str(out) + ".partial")
+            dump = commands / "pg_dump"
+            dump.write_text("#!/bin/sh\\nprintf 'synthetic only'\\n")
+            dump.chmod(0o700)
+            age = commands / "age"
+            age.write_text(
+                "#!/bin/sh\\n"
+                "while [ \\"$#\\" -gt 0 ]; do\\n"
+                "  if [ \\"$1\\" = -o ]; then shift; out=$1; fi\\n"
+                "  shift\\n"
+                "done\\n"
+                "ln -s \\"$SYNTHETIC_SENTINEL\\" \\"$out\\"\\n"
+                "exit 19\\n"
+            )
+            age.chmod(0o700)
+            env = {
+                "PATH": str(commands) + ":" + os.environ.get("PATH", ""),
+                "CLIENT_BACKUP_ENABLED": "true",
+                "CLIENT_BACKUP_SCHEMA_VERIFIED": "YES",
+                "CLIENT_BACKUP_REQUIRE_ENCRYPTION": "true",
+                "DATABASE_URL": "postgresql://synthetic@localhost/synthetic",
+                "AGE_RECIPIENT": "age1" + "q" * 58,
+                "SYNTHETIC_SENTINEL": str(sentinel),
+            }
+            result = subprocess.run(["bash", str(SCRIPT), str(out)], env=env,
+                                    text=True, capture_output=True, timeout=5)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertFalse(out.exists())
+            self.assertTrue(partial.is_symlink())
+            self.assertEqual(sentinel.read_text(), "must survive")
+
     def test_pg_dump_failure_never_publishes_archive(self):
         result, final, partial = self.run_export(dump_exit=17)
         self.assertNotEqual(result.returncode, 0)
