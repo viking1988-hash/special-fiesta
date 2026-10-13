@@ -15,6 +15,16 @@ class LiveOutputGateTests(unittest.TestCase):
             self.assertFalse(validate(d, "clients-20261012T120000Z.dump.age"))
             self.assertFalse(validate(d, str(Path(d) / ".." / "clients-20261012T120000Z.dump.age")))
 
+    def test_normalizing_parent_traversal_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            filename = "clients-20261012T120000Z.dump.age"
+            # Both paths resolve to the same private directory, but the
+            # caller supplied a lexical parent traversal and must be refused.
+            target = str(root / "nested" / ".." / filename)
+            self.assertFalse(validate(d, target))
+            self.assertFalse(validate(str(root / "nested" / ".."), str(root / filename)))
+
     def test_existing_file_and_partial_rejected(self):
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / "clients-20261012T120000Z.dump.age"
