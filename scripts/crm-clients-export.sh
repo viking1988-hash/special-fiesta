@@ -14,7 +14,12 @@ output="${1:?Provide an encrypted output file path}"
 [[ "${CLIENT_BACKUP_REQUIRE_ENCRYPTION:-true}" == true ]] || exit 1
 partial="$output.partial"
 [[ ! -e "$partial" && ! -L "$partial" ]] || exit 1
-trap 'rm -f "$partial"' EXIT
+cleanup_partial() {
+  if [[ -f "$partial" && ! -L "$partial" ]]; then
+    rm -f -- "$partial"
+  fi
+}
+trap cleanup_partial EXIT
 if ! PGOPTIONS="-c default_transaction_read_only=on -c statement_timeout=300000 -c lock_timeout=10000" pg_dump --dbname="$DATABASE_URL" --format=custom --data-only --no-owner --no-acl --table=public.customers --table=public.vehicles 2>/dev/null | age -r "$AGE_RECIPIENT" -o "$partial" 2>/dev/null; then
   echo "CLIENT_BACKUP_EXPORT_FAILED" >&2; exit 1
 fi
