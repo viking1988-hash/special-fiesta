@@ -30,6 +30,18 @@ class LiveOutputGateTests(unittest.TestCase):
             Path(str(p) + ".partial").symlink_to(Path(d) / "missing-target")
             self.assertFalse(validate(d, str(p)))
 
+    def test_symlinked_parent_directory_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            base = Path(d)
+            private = base / "private"
+            private.mkdir(mode=0o700)
+            alias = base / "alias"
+            alias.symlink_to(private, target_is_directory=True)
+            nested = alias / "nested"
+            nested.mkdir(mode=0o700)
+            p = nested / "clients-20261012T120000Z.dump.age"
+            self.assertFalse(validate(str(nested), str(p)))
+
     def test_public_directory_rejected(self):
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / "clients-20261012T120000Z.dump.age"
