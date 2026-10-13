@@ -25,6 +25,13 @@ class LiveOutputGateTests(unittest.TestCase):
             self.assertFalse(validate(d, target))
             self.assertFalse(validate(str(root / "nested" / ".."), str(root / filename)))
 
+    def test_impossible_calendar_timestamp_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            for stamp in ("20260230T120000Z", "20261301T120000Z", "20261012T256100Z"):
+                with self.subTest(stamp=stamp):
+                    p = Path(d) / f"clients-{stamp}.dump.age"
+                    self.assertFalse(validate(d, str(p)))
+
     def test_existing_file_and_partial_rejected(self):
         with tempfile.TemporaryDirectory() as d:
             p = Path(d) / "clients-20261012T120000Z.dump.age"
