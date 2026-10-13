@@ -21,6 +21,12 @@ def validate(directory, output):
     # Reject lexical traversal even when path normalization leads back to root.
     if ".." in root.parts or ".." in target.parts:
         return False
+    # A filename without a valid UTC calendar date must never pass the gate.
+    from datetime import datetime
+    try:
+        datetime.strptime(target.name[8:24], "%Y%m%dT%H%M%SZ")
+    except ValueError:
+        return False
     if not ARCHIVE_NAME.fullmatch(target.name):
         return False
     try:
