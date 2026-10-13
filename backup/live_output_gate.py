@@ -21,7 +21,11 @@ def validate(directory, output):
     if not ARCHIVE_NAME.fullmatch(target.name):
         return False
     try:
-        if root.is_symlink() or target.parent.is_symlink() or target.is_symlink():
+        # Refuse symlinked ancestors as well as the leaf directory: a private
+        # directory reached through a mutable alias is not a stable output root.
+        if any(part.is_symlink() for part in (root, *root.parents)):
+            return False
+        if target.parent.is_symlink() or target.is_symlink():
             return False
         if root.resolve(strict=True) != target.parent.resolve(strict=True):
             return False
