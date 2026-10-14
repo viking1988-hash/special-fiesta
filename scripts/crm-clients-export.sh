@@ -29,5 +29,12 @@ fi
   echo "CLIENT_BACKUP_INVALID_ENCRYPTED_HEADER" >&2
   exit 1
 }
-mv -- "$partial" "$output"
+# Atomic no-clobber publication: hard-link creation fails if output already exists.
+# Both names are in the same private directory/filesystem.
+[[ -f "$partial" && ! -L "$partial" ]] || exit 1
+if ! ln -- "$partial" "$output"; then
+  echo "CLIENT_BACKUP_OUTPUT_ALREADY_EXISTS" >&2
+  exit 1
+fi
+rm -- "$partial"
 echo "CLIENT_BACKUP_ENCRYPTED_OK"
