@@ -1,0 +1,117 @@
+name: CRM client export preflight tests
+
+on:
+  pull_request:
+    paths:
+      - 'backup/live_export_preflight.py'
+      - 'backup/live_output_gate.py'
+      - 'scripts/crm-clients-live-export-gated.sh'
+      - 'backup/archive_metadata_gate.py'
+      - 'backup/recovery_receipt_gate.py'
+      - 'backup/recoverability_status.py'
+      - 'backup/recovery_report.py'
+      - 'backup/production_launch_gate.py'
+      - 'test/backup/test_live_export_preflight.py'
+      - 'test/backup/test_gated_live_export.py'
+      - 'test/backup/test_gated_wrapper_static.py'
+      - 'test/backup/test_live_output_gate.py'
+      - 'test/backup/test_client_export_scope.py'
+      - 'scripts/crm-clients-export.sh'
+      - 'docs/client-backup-data-completeness-and-go-no-go.md'
+      - 'test/backup/test_live_export_lock.py'
+      - 'test/backup/test_export_failure_injection.py'
+      - 'test/backup/test_export_no_overwrite.py'
+      - 'test/backup/test_archive_metadata_gate.py'
+      - 'test/backup/test_archive_boundary.py'
+      - 'test/backup/test_recovery_receipt_gate.py'
+      - 'test/backup/test_recoverability_status.py'
+      - 'test/backup/test_recovery_report.py'
+      - 'test/backup/test_recovery_report_cli.py'
+      - 'test/backup/test_production_launch_gate.py'
+      - 'test/backup/synthetic_export_rehearsal.py'
+      - 'test/backup/test_synthetic_export_guards.py'
+      - '.github/workflows/crm-client-export-preflight.yml'
+  push:
+    paths:
+      - 'backup/live_export_preflight.py'
+      - 'backup/live_output_gate.py'
+      - 'scripts/crm-clients-live-export-gated.sh'
+      - 'backup/archive_metadata_gate.py'
+      - 'backup/recovery_receipt_gate.py'
+      - 'backup/recoverability_status.py'
+      - 'backup/recovery_report.py'
+      - 'backup/production_launch_gate.py'
+      - 'test/backup/test_live_export_preflight.py'
+      - 'test/backup/test_gated_live_export.py'
+      - 'test/backup/test_gated_wrapper_static.py'
+      - 'test/backup/test_live_output_gate.py'
+      - 'test/backup/test_client_export_scope.py'
+      - 'scripts/crm-clients-export.sh'
+      - 'docs/client-backup-data-completeness-and-go-no-go.md'
+      - 'test/backup/test_live_export_lock.py'
+      - 'test/backup/test_export_failure_injection.py'
+      - 'test/backup/test_export_no_overwrite.py'
+      - 'test/backup/test_archive_metadata_gate.py'
+      - 'test/backup/test_archive_boundary.py'
+      - 'test/backup/test_recovery_receipt_gate.py'
+      - 'test/backup/test_recoverability_status.py'
+      - 'test/backup/test_recovery_report.py'
+      - 'test/backup/test_recovery_report_cli.py'
+      - 'test/backup/test_production_launch_gate.py'
+      - 'test/backup/synthetic_export_rehearsal.py'
+      - 'test/backup/test_synthetic_export_guards.py'
+      - '.github/workflows/crm-client-export-preflight.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run fail-closed export preflight tests
+        run: python3 -m unittest discover -s test/backup -p test_live_export_preflight.py -v
+      - name: Refuse unapproved live export invocations
+        run: python3 -m unittest discover -s test/backup -p test_gated_live_export.py -v
+      - name: Verify wrapper syntax and preflight ordering
+        run: python3 -m unittest discover -s test/backup -p test_gated_wrapper_static.py -v
+      - name: Refuse unsafe live archive paths
+        run: python3 -m unittest discover -s test/backup -p test_live_output_gate.py -v
+      - name: Enforce documented client-only export scope
+        run: python3 -m unittest discover -s test/backup -p test_client_export_scope.py -v
+      - name: Verify exclusive live export locking
+        run: python3 -m unittest discover -s test/backup -p test_live_export_lock.py -v
+      - name: Inject pg_dump and age failures without DB access
+        run: python3 -m unittest discover -s test/backup -p test_export_failure_injection.py -v
+      - name: Preserve existing archives and partial files
+        run: python3 -m unittest discover -s test/backup -p test_export_no_overwrite.py -v
+      - name: Validate encrypted archive metadata rules
+        run: python3 -m unittest discover -s test/backup -p test_archive_metadata_gate.py -v
+      - name: Validate archive time and size boundaries
+        run: python3 -m unittest discover -s test/backup -p test_archive_boundary.py -v
+      - name: Validate isolated recovery receipts
+        run: python3 -m unittest discover -s test/backup -p test_recovery_receipt_gate.py -v
+      - name: Validate archive-to-restore proof binding
+        run: python3 -m unittest discover -s test/backup -p test_recoverability_status.py -v
+      - name: Reject unverified recovery reports
+        run: python3 -m unittest discover -s test/backup -p test_recovery_report.py -v
+      - name: Check malformed evidence and safe CLI errors
+        run: python3 -m unittest discover -s test/backup -p test_recovery_report_cli.py -v
+      - name: Deny automated production launch from self-asserted evidence
+        run: python3 -m unittest discover -s test/backup -p test_production_launch_gate.py -v
+
+  synthetic-encryption:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install age
+        run: sudo apt-get update -qq && sudo apt-get install -y age
+      - name: Verify synthetic isolation rejects real credentials
+        run: python3 -m unittest discover -s test/backup -p test_synthetic_export_guards.py -v
+      - name: Prove encrypted synthetic export and recovery
+        env:
+          SYNTHETIC_REHEARSAL_ONLY: 'YES'
+        run: python3 test/backup/synthetic_export_rehearsal.py
