@@ -14,10 +14,27 @@ output="${1:?Provide an encrypted output file path}"
 [[ "${CLIENT_BACKUP_REQUIRE_ENCRYPTION:-true}" == true ]] || exit 1
 partial="$output.partial"
 [[ ! -e "$partial" && ! -L "$partial" ]] || exit 1
-trap 'rm -f "$partial"' EXIT
+cleanup_partial() {
+  if [[ -f "$partial" && ! -L "$partial" ]]; then
+    rm -f -- "$partial"
+  fi
+}
+trap cleanup_partial EXIT
 if ! PGOPTIONS="-c default_transaction_read_only=on -c statement_timeout=300000 -c lock_timeout=10000" pg_dump --dbname="$DATABASE_URL" --format=custom --data-only --no-owner --no-acl --table=public.customers --table=public.vehicles 2>/dev/null | age -r "$AGE_RECIPIENT" -o "$partial" 2>/dev/null; then
   echo "CLIENT_BACKUP_EXPORT_FAILED" >&2; exit 1
 fi
 [[ -s "$partial" ]] || exit 1
-mv -- "$partial" "$output"
+# Refuse malformed output even when an encryption command exits successfully.
+[[ "$(head -c 22 -- "$partial")" == "age-encryption.org/v1" ]] || {
+  echo "CLIENT_BACKUP_INVALID_ENCRYPTED_HEADER" >&2
+  exit 1
+}
+# Atomic no-clobber publication: hard-link creation fails if output already exists.
+# Both names are in the same private directory/filesystem.
+[[ -f "$partial" && ! -L "$partial" ]] || exit 1
+if ! ln -- "$partial" "$output"; then
+  echo "CLIENT_BACKUP_OUTPUT_ALREADY_EXISTS" >&2
+  exit 1
+fi
+rm -- "$partial"
 echo "CLIENT_BACKUP_ENCRYPTED_OK"
