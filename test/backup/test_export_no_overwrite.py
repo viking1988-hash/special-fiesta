@@ -72,6 +72,41 @@ class ExistingArchiveTests(unittest.TestCase):
             self.assertEqual(output.read_bytes(), b"ORIGINAL-ARCHIVE")
             self.assertFalse(Path(str(output) + ".partial").exists())
 
+    def test_dangling_symlink_created_during_encryption_is_preserved(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            output = root / "clients-20261016T120001Z.dump.age"
+            missing_target = root / "not-created"
+            dump = bin_dir / "pg_dump"
+            dump.write_text("#!/bin/sh\\nprintf 'synthetic'\\n".replace("\\n", "\n"))
+            dump.chmod(0o700)
+            age = bin_dir / "age"
+            age.write_text(
+                "#!/bin/sh\n"
+                "while [ \"$1\" != \"-o\" ]; do shift; done\n"
+                "shift\n"
+                "printf 'age-encryption.org/v1\\nFAKE' > \"$1\"\n"
+                "ln -s '" + str(missing_target) + "' '" + str(output) + "'\n"
+            )
+            age.chmod(0o700)
+            env = {
+                "PATH": str(bin_dir) + ":" + os.environ.get("PATH", ""),
+                "CLIENT_BACKUP_ENABLED": "true",
+                "CLIENT_BACKUP_SCHEMA_VERIFIED": "YES",
+                "CLIENT_BACKUP_REQUIRE_ENCRYPTION": "true",
+                "DATABASE_URL": "postgresql://synthetic@localhost/synthetic",
+                "AGE_RECIPIENT": "age1" + "q" * 58,
+            }
+            result = subprocess.run(["bash", str(SCRIPT), str(output)], env=env,
+                                    capture_output=True, text=True, timeout=5)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertTrue(output.is_symlink())
+            self.assertEqual(output.readlink(), missing_target)
+            self.assertFalse(missing_target.exists())
+            self.assertFalse(Path(str(output) + ".partial").exists())
+
     def test_existing_archive_preserved(self):
         self.run_case("archive")
 
