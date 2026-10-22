@@ -2,6 +2,7 @@
 # Mandatory live-only gate; never invoke the exporter in synthetic CI.
 set -Eeuo pipefail
 umask 077
+here="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 if [[ "${CLIENT_BACKUP_LIVE_RUN_APPROVED:-}" != "YES" ]]; then
   echo "CLIENT_BACKUP_LIVE_APPROVAL_REQUIRED" >&2
   exit 1
@@ -31,5 +32,5 @@ cleanup() { rmdir -- "$lock" 2>/dev/null || true; }
 trap cleanup EXIT
 # Recheck after obtaining the lock, before pg_dump is invoked.
 python3 -m backup.live_output_gate "$@"
-bash scripts/crm-clients-export.sh "$@"
+bash "$here/crm-clients-export.sh" "$@"
 
