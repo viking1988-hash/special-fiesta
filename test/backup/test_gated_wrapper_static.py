@@ -21,6 +21,15 @@ class GatedWrapperStaticTests(unittest.TestCase):
         exporter = script.index('bash scripts/crm-clients-export.sh "$@"')
         self.assertLess(preflight, exporter)
 
+    def test_scheduled_job_must_use_gated_wrapper(self):
+        job = (ROOT / "scripts/crm-clients-backup-job.sh").read_text()
+        self.assertIn('bash "$here/crm-clients-live-export-gated.sh" "$archive"', job)
+        self.assertNotIn('bash "$here/crm-clients-export.sh" "$archive"', job)
+        self.assertIn('export CLIENT_BACKUP_OUTPUT_DIR="$workdir"', job)
+        self.assertIn('bash "$here/crm-clients-yandex-upload.sh" "$archive"', job)
+        self.assertLess(job.index('bash "$here/crm-clients-live-export-gated.sh" "$archive"'),
+                        job.index('bash "$here/crm-clients-yandex-upload.sh" "$archive"'))
+
     def test_no_silent_preflight_bypass(self):
         script = WRAPPER.read_text()
         self.assertIn("set -Eeuo pipefail", script)
