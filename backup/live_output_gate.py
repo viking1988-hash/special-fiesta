@@ -16,6 +16,8 @@ def validate(directory, output):
     if not directory or not output:
         return False
     root, target = Path(directory), Path(output)
+    if not target.name.startswith("clients-"):
+        return False
     if not root.is_absolute() or not target.is_absolute():
         return False
     # Reject lexical traversal even when path normalization leads back to root.
