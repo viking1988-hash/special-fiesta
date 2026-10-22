@@ -21,10 +21,11 @@ psql -X -d crm_test_reader_ci -v ON_ERROR_STOP=1 -v expected_database=crm_test_r
 python3 test/backup/reader-permissions.py crm_test_reader_ci
 age-keygen -o "$work/identity" 2>/dev/null
 age-keygen -o "$work/recovery-identity" 2>/dev/null
-export AGE_RECIPIENT_PRIMARY="$(age-keygen -y "$work/identity")"
-export AGE_RECIPIENT_RECOVERY="$(age-keygen -y "$work/recovery-identity")"
+AGE_RECIPIENT_PRIMARY="$(age-keygen -y "$work/identity")"
+AGE_RECIPIENT_RECOVERY="$(age-keygen -y "$work/recovery-identity")"
 export CLIENT_BACKUP_ENABLED=true CLIENT_BACKUP_SCHEMA_VERIFIED=YES
 test "$AGE_RECIPIENT_PRIMARY" != "$AGE_RECIPIENT_RECOVERY"
+export AGE_RECIPIENT_PRIMARY AGE_RECIPIENT_RECOVERY
 export DATABASE_URL=postgresql://crm_clients_backup_reader@127.0.0.1/crm_test_reader_ci
 bash scripts/crm-clients-export.sh "$work/reader.dump.age"
 age -d -i "$work/recovery-identity" "$work/reader.dump.age" | pg_restore -l >/dev/null
