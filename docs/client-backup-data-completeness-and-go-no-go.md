@@ -20,6 +20,20 @@ existing parent rows, verified row digests and tested sequences/foreign keys.
 A successful age encryption, matching SHA-256 or an all-true JSON receipt
 does **not** establish that customer records are independently recoverable.
 
+## Dual-recipient encryption status (Draft PR #13, 2026-10-22)
+- The exporter and backup job require **both** `AGE_RECIPIENT_PRIMARY` and
+  `AGE_RECIPIENT_RECOVERY`, each a distinct syntactically valid public age
+  recipient. Missing, malformed, or identical recipients fail before `pg_dump`.
+- The same ciphertext is encrypted to both public recipients; disposable CI
+  identities independently decrypt it. No real offline private key is used in CI.
+- Two independently held USB keys were verified in an owner-side **synthetic**
+  recovery exercise; this does not prove real client archive recoverability,
+  key custody durability, or authorization for production use.
+- Legacy `AGE_RECIPIENT` is **not** an accepted replacement for either variable
+  in this export path. Historical instructions mentioning it are superseded.
+- GitHub CI PASS means synthetic code paths passed, not that a live service is
+  deployed, production ACLs are correct, or the subset is independently restorable.
+
 ## What is verified
 - GitHub CI synthetic failure injection for pg_dump/age and existing-file
   overwrite protection, without real DB access.
@@ -42,5 +56,5 @@ does **not** establish that customer records are independently recoverable.
 7. Require explicit launch approval after all evidence is reviewed.
 8. Keep existing full-CRM S3/Yandex backup, restore test and alerts intact.
 
-**Do not merge PR #12 or enable live client-only backup services merely
+**Do not merge PR #12 or PR #13, or enable live client-only backup services merely
 because GitHub Actions are green.**
