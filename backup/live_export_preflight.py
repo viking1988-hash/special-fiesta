@@ -9,7 +9,7 @@ import sys
 from urllib.parse import urlsplit
 
 REQUIRED = (
-    "DATABASE_URL", "AGE_RECIPIENT", "YANDEX_DISK_TOKEN",
+    "DATABASE_URL", "AGE_RECIPIENT_PRIMARY", "AGE_RECIPIENT_RECOVERY", "YANDEX_DISK_TOKEN",
     "CLIENT_BACKUP_YANDEX_PATH",
 )
 AGE_RECIPIENT = re.compile(r"age1[023456789acdefghjklmnpqrstuvwxyz]{58}$")
@@ -34,9 +34,14 @@ def check(env):
         errors.append("DESTINATION_NOT_APPROVED")
     if env.get("SYNTHETIC_REHEARSAL_ONLY") == "YES":
         errors.append("SYNTHETIC_MODE_NOT_LIVE")
-    recipient = env.get("AGE_RECIPIENT", "")
-    if not AGE_RECIPIENT.fullmatch(recipient):
-        errors.append("INVALID_AGE_RECIPIENT")
+    primary = env.get("AGE_RECIPIENT_PRIMARY", "")
+    recovery = env.get("AGE_RECIPIENT_RECOVERY", "")
+    if not AGE_RECIPIENT.fullmatch(primary):
+        errors.append("INVALID_AGE_RECIPIENT_PRIMARY")
+    if not AGE_RECIPIENT.fullmatch(recovery):
+        errors.append("INVALID_AGE_RECIPIENT_RECOVERY")
+    if primary and recovery and primary == recovery:
+        errors.append("AGE_RECIPIENTS_NOT_DISTINCT")
     try:
         url = urlsplit(env.get("DATABASE_URL", ""))
         if url.scheme not in ("postgres", "postgresql") or not url.hostname or not url.username:
