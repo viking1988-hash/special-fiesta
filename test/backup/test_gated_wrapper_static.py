@@ -18,7 +18,7 @@ class GatedWrapperStaticTests(unittest.TestCase):
     def test_preflight_precedes_export(self):
         script = WRAPPER.read_text()
         preflight = script.index("python3 -m backup.live_export_preflight")
-        exporter = script.index('bash scripts/crm-clients-export.sh "$@"')
+        exporter = script.index('bash "$here/crm-clients-export.sh" "$@"')
         self.assertLess(preflight, exporter)
 
     def test_scheduled_job_must_use_gated_wrapper(self):
