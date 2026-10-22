@@ -20,7 +20,8 @@ trap on_exit EXIT
 [[ "${CLIENT_BACKUP_RESTORE_VERIFIED:-}" == "YES" ]] || { echo "CLIENT_BACKUP_RESTORE_UNVERIFIED" >&2; exit 1; }
 [[ "${CLIENT_BACKUP_REQUIRE_ENCRYPTION:-true}" == "true" ]] || { echo "CLIENT_BACKUP_ENCRYPTION_REQUIRED" >&2; exit 1; }
 : "${DATABASE_URL:?}"
-: "${AGE_RECIPIENT:?}"
+: "${AGE_RECIPIENT_PRIMARY:?}"
+: "${AGE_RECIPIENT_RECOVERY:?}"
 : "${YANDEX_DISK_TOKEN:?}"
 workdir="$(mktemp -d)"
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"
