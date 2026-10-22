@@ -18,9 +18,10 @@ done
 psql -d crm_test_container_source -v ON_ERROR_STOP=1 -c 'INSERT INTO customers VALUES(1,1,$$ARTIFICIAL ONLY$$),(2,2,NULL); INSERT INTO vehicles VALUES(1,1,1),(2,2,2);' >/dev/null
 age-keygen -o /tmp/identity 2>/dev/null
 age-keygen -o /tmp/recovery-identity 2>/dev/null
-export AGE_RECIPIENT_PRIMARY="$(age-keygen -y /tmp/identity)"
-export AGE_RECIPIENT_RECOVERY="$(age-keygen -y /tmp/recovery-identity)"
+AGE_RECIPIENT_PRIMARY="$(age-keygen -y /tmp/identity)"
+AGE_RECIPIENT_RECOVERY="$(age-keygen -y /tmp/recovery-identity)"
 test "$AGE_RECIPIENT_PRIMARY" != "$AGE_RECIPIENT_RECOVERY"
+export AGE_RECIPIENT_PRIMARY AGE_RECIPIENT_RECOVERY
 export CLIENT_BACKUP_ENABLED=true CLIENT_BACKUP_SCHEMA_VERIFIED=YES
 export DATABASE_URL=postgresql://postgres@127.0.0.1/crm_test_container_source
 archive="/tmp/clients-$(date -u +%Y%m%dT%H%M%SZ).dump.age"
