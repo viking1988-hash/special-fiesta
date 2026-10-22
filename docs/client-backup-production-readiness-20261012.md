@@ -9,6 +9,23 @@ Status: **NOT ENABLED**. This is a review checklist, not deployment approval.
 - The existing full-CRM backup to S3 and Yandex mirror is a **separate working path**. Do not change it while building this optional customer-data backup.
 - Tests of encryption, isolated restore, row digests, sequences, and Telegram outage simulation use artificial data and do **not** establish production readiness.
 
+## 2026-10-22 follow-up: dual independent recipients
+
+Draft PR #13 requires both `AGE_RECIPIENT_PRIMARY` and
+`AGE_RECIPIENT_RECOVERY`, distinct syntactically valid public AGE keys.
+Synthetic tests independently decrypt the same ciphertext with two ephemeral
+identities. A single identity copied onto two USB drives is **not** sufficient.
+The existing owner-only script and older documentation describe copies of
+one identity and are historical; do not overwrite previously tested keys.
+
+**Outstanding live evidence:** production database reader effective ACLs
+verified independently; source schema/tenant/sequence compatibility;
+actual encrypted archive retrieved from approved private storage and restored
+into a fresh isolated database; hash-bound authenticated recovery evidence;
+privacy/retention approval and explicit owner production authorization.
+Until then keep `CLIENT_BACKUP_ENABLED=false`, cron absent, existing full-CRM
+backup untouched, and the launch gate at `NOT_AUTHORIZED`.
+
 ## Required implementation and evidence before enablement
 1. Define exact scope: `customers`, `vehicles`, their relationships, organization tenancy, and sequence state. Avoid exporting unrelated CRM records.
 2. Create a dedicated read-only DB principal with `SELECT` only on the approved tables and sequences. Review grants and revoke inherited privileges. Never use production superuser credentials in the exporter.
