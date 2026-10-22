@@ -17,6 +17,7 @@ if [[ "${SYNTHETIC_REHEARSAL_ONLY:-}" == "YES" ]]; then
 fi
 # The preflight verifies configuration only; human-reviewed ACL, key custody,
 # and independent recovery proof remain mandatory before deployment.
+cd -- "$here/.."
 python3 -m backup.live_export_preflight
 python3 -m backup.live_output_gate "$@"
 # Reserve the final filename atomically. The legacy exporter refuses to
