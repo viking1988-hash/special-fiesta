@@ -32,7 +32,8 @@ class ExistingArchiveTests(unittest.TestCase):
                 "CLIENT_BACKUP_SCHEMA_VERIFIED": "YES",
                 "CLIENT_BACKUP_REQUIRE_ENCRYPTION": "true",
                 "DATABASE_URL": "postgresql://synthetic@localhost/synthetic",
-                "AGE_RECIPIENT": "age1" + "q" * 58,
+                "AGE_RECIPIENT_PRIMARY": "age1" + "q" * 58,
+            "AGE_RECIPIENT_RECOVERY": "age1" + "p" * 58,
             }
             result = subprocess.run(["bash", str(SCRIPT), str(output)], env=env,
                                     capture_output=True, text=True, timeout=5)
@@ -64,7 +65,8 @@ class ExistingArchiveTests(unittest.TestCase):
                 "CLIENT_BACKUP_SCHEMA_VERIFIED": "YES",
                 "CLIENT_BACKUP_REQUIRE_ENCRYPTION": "true",
                 "DATABASE_URL": "postgresql://synthetic@localhost/synthetic",
-                "AGE_RECIPIENT": "age1" + "q" * 58,
+                "AGE_RECIPIENT_PRIMARY": "age1" + "q" * 58,
+            "AGE_RECIPIENT_RECOVERY": "age1" + "p" * 58,
             }
             result = subprocess.run(["bash", str(SCRIPT), str(output)], env=env,
                                     capture_output=True, text=True, timeout=5)
@@ -97,7 +99,8 @@ class ExistingArchiveTests(unittest.TestCase):
                 "CLIENT_BACKUP_SCHEMA_VERIFIED": "YES",
                 "CLIENT_BACKUP_REQUIRE_ENCRYPTION": "true",
                 "DATABASE_URL": "postgresql://synthetic@localhost/synthetic",
-                "AGE_RECIPIENT": "age1" + "q" * 58,
+                "AGE_RECIPIENT_PRIMARY": "age1" + "q" * 58,
+            "AGE_RECIPIENT_RECOVERY": "age1" + "p" * 58,
             }
             result = subprocess.run(["bash", str(SCRIPT), str(output)], env=env,
                                     capture_output=True, text=True, timeout=5)
