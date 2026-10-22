@@ -15,6 +15,11 @@ class GatedWrapperStaticTests(unittest.TestCase):
     def test_bash_syntax(self):
         subprocess.run(["bash", "-n", str(WRAPPER)], check=True, timeout=5)
 
+    def test_python_modules_resolve_from_repository_root(self):
+        script = WRAPPER.read_text()
+        self.assertIn('cd -- "$here/.."', script)
+        self.assertLess(script.index('cd -- "$here/.."'), script.index("python3 -m backup.live_export_preflight"))
+
     def test_preflight_precedes_export(self):
         script = WRAPPER.read_text()
         preflight = script.index("python3 -m backup.live_export_preflight")
