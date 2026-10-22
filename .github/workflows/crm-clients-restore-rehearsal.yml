@@ -43,10 +43,16 @@ jobs:
       - name: Encrypt, restore and verify synthetic clients
         run: |
           age-keygen -o /tmp/client-ci-identity.txt 2>/dev/null
-          export AGE_RECIPIENT="$(age-keygen -y /tmp/client-ci-identity.txt)"
+          age-keygen -o /tmp/client-ci-recovery-identity.txt 2>/dev/null
+          export AGE_RECIPIENT_PRIMARY="$(age-keygen -y /tmp/client-ci-identity.txt)"
+          export AGE_RECIPIENT_RECOVERY="$(age-keygen -y /tmp/client-ci-recovery-identity.txt)"
+          test "$AGE_RECIPIENT_PRIMARY" != "$AGE_RECIPIENT_RECOVERY"
           export CLIENT_BACKUP_ENABLED=true CLIENT_BACKUP_SCHEMA_VERIFIED=YES
           export DATABASE_URL='postgresql://postgres:ci-only@localhost:5432/crm_test_clients_source'
           bash scripts/crm-clients-export.sh /tmp/clients-20261009T000000Z.dump.age
+          # Independently verify both recipients can decrypt the same archive.
+          age -d -i /tmp/client-ci-identity.txt /tmp/clients-20261009T000000Z.dump.age | pg_restore -l >/dev/null
+          age -d -i /tmp/client-ci-recovery-identity.txt /tmp/clients-20261009T000000Z.dump.age | pg_restore -l >/dev/null
           export CLIENT_BACKUP_ARCHIVE=/tmp/clients-20261009T000000Z.dump.age
           export AGE_IDENTITY_FILE=/tmp/client-ci-identity.txt
           export TEST_DATABASE_URL='postgresql://postgres:ci-only@localhost:5432/crm_test_clients_restore'
@@ -94,4 +100,4 @@ jobs:
             echo 'Cross-organization client vehicle mismatch was accepted'; exit 1
           fi
           rm -f /tmp/mismatch.dump.age
-          rm -f /tmp/client-ci-identity.txt /tmp/wrong-identity.txt /tmp/clients-20261009T000000Z.dump.age /tmp/truncated.dump.age
+          rm -f /tmp/client-ci-identity.txt /tmp/client-ci-recovery-identity.txt /tmp/wrong-identity.txt /tmp/clients-20261009T000000Z.dump.age /tmp/truncated.dump.age
