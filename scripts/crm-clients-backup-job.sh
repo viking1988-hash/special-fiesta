@@ -26,7 +26,8 @@ trap on_exit EXIT
 workdir="$(mktemp -d)"
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"
 archive="$workdir/clients-$stamp.dump.age"
-bash "$here/crm-clients-export.sh" "$archive"
+export CLIENT_BACKUP_OUTPUT_DIR="$workdir"
+bash "$here/crm-clients-live-export-gated.sh" "$archive"
 [[ -s "$archive" ]] || { echo "CLIENT_BACKUP_EMPTY" >&2; exit 1; }
 bash "$here/crm-clients-yandex-upload.sh" "$archive"
 python3 "$here/../backup/yandex.py" retention-plan
