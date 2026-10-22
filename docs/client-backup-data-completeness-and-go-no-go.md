@@ -58,3 +58,6 @@ does **not** establish that customer records are independently recoverable.
 
 **Do not merge PR #12 or PR #13, or enable live client-only backup services merely
 because GitHub Actions are green.**
+
+## Scheduled job gate verification (Draft PR #13)
+The scheduled client backup job now calls the live export wrapper rather than the low-level exporter directly. The wrapper checks an explicit live-run approval flag, preflight configuration, private output directory and exclusive lock before database export. CI includes a static regression test for this path. These checks do not authenticate operator approval or independently prove production database privileges and genuine archive recovery. Production remains NO-GO.
