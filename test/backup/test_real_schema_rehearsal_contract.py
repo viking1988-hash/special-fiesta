@@ -61,6 +61,13 @@ class RealSchemaRehearsalContract(unittest.TestCase):
                     runpy.run_path(str(REHEARSAL), run_name="__main__")
                 self.assertEqual(exit_context.exception.code, 1)
 
+    def test_pinned_schema_archive_digest_required(self):
+        self.assertIn("CLIENT_BACKUP_SCHEMA_ONLY_SHA256", self.source)
+        self.assertIn("SCHEMA_ONLY_EXPECTED_SHA256_REQUIRED", self.source)
+        self.assertIn("SCHEMA_ONLY_SHA256_MISMATCH", self.source)
+        self.assertLess(self.source.index("SCHEMA_ONLY_EXPECTED_SHA256_REQUIRED"), self.source.index('"get-object"'))
+        self.assertLess(self.source.index("SCHEMA_ONLY_SHA256_MISMATCH"), self.source.index('"pg_restore", "--list"'))
+
     def test_schema_only_and_artificial_records(self):
         self.assertIn('"--schema-only"', self.source)
         self.assertIn("ARTIFICIAL ONE", self.source)
