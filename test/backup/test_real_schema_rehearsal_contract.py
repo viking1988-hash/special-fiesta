@@ -46,6 +46,20 @@ class RealSchemaRehearsalContract(unittest.TestCase):
         self.assertIn('x["Key"] == reviewed_key', self.source)
         self.assertNotIn('"--prefix", "crm-"', self.source)
 
+    def test_rehearsal_gate_is_enforced_before_any_subprocess(self):
+        import os
+        import runpy
+        from unittest.mock import patch
+
+        with patch.dict(os.environ, {
+            "CLIENT_BACKUP_SCHEMA_REHEARSAL": "true",
+            "SYNTHETIC_REHEARSAL_ONLY": "YES",
+            "CLIENT_BACKUP_SCHEMA_ONLY_SOURCE_REVIEWED": "NO",
+        }):
+            with patch("subprocess.run", side_effect=AssertionError("unexpected subprocess")):
+                with self.assertRaisesRegex(RuntimeError, "SCHEMA_ONLY_SOURCE_REVIEW_REQUIRED"):
+                    runpy.run_path(str(REHEARSAL), run_name="__main__")
+
     def test_schema_only_and_artificial_records(self):
         self.assertIn('"--schema-only"', self.source)
         self.assertIn("ARTIFICIAL ONE", self.source)
