@@ -11,27 +11,20 @@ jobs:
   synthetic-restore:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_PASSWORD: ci-only
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 15
     env:
       PGHOST: localhost
       PGUSER: postgres
       PGPASSWORD: ci-only
-      CLIENT_BACKUP_REMOTE_TEST_APPROVED: 'YES' # Ephemeral GitHub Actions PostgreSQL service container only
     steps:
       - uses: actions/checkout@v4
       - name: Install backup tools
         run: sudo apt-get update -qq && sudo apt-get install -y -qq age postgresql-client
+      - name: Start local disposable PostgreSQL on runner
+        run: |
+          sudo apt-get install -y -qq postgresql-16
+          sudo pg_ctlcluster 16 main start
+          sudo -u postgres psql -v ON_ERROR_STOP=1 -c "ALTER USER postgres PASSWORD 'ci-only'"
+          test "$(psql -h 127.0.0.1 -d postgres -Atqc 'SELECT host(inet_server_addr())')" = '127.0.0.1'
       - name: Create synthetic source and empty restore database
         run: |
           psql -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE crm_test_clients_source'
