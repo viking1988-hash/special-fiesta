@@ -122,6 +122,10 @@ END $test$;
                           DATABASE_URL="postgresql://crm_clients_backup_reader@127.0.0.1/" + source)
         encrypted = work / "clients-artificial.dump.age"
         print(run(["bash", "scripts/crm-clients-export.sh", str(encrypted)]).strip(), flush=True)
+        # Prove the independent recovery identity decrypts this same archive.
+        # Discard plaintext; do not print or persist customer data.
+        run(["age", "--decrypt", "-i", str(recovery_identity), "-o", os.devnull, str(encrypted)])
+        print("READER_ROLE_DUAL_RECIPIENT_DECRYPT_OK", flush=True)
         print('READER_ROLE_ENCRYPTED_EXPORT_OK', flush=True)
         backup_key = secondary / "identity.agekey"
         shutil.copyfile(identity, backup_key)
