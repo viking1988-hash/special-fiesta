@@ -45,6 +45,16 @@ def main():
         run(["initdb", "-D", os.environ["PGDATA"], "-A", "trust"])
         run(["pg_ctl", "-D", os.environ["PGDATA"], "-l", str(work / "pg.log"), "-o", "-c listen_addresses=127.0.0.1", "-w", "start"])
         started = True
+        # Fail closed on malformed reviewed-source selectors before storage access.
+        import importlib.util
+        validator_path = Path(__file__).with_name("schema_source_preflight.py")
+        validator_spec = importlib.util.spec_from_file_location("schema_source_preflight", validator_path)
+        validator = importlib.util.module_from_spec(validator_spec)
+        validator_spec.loader.exec_module(validator)
+        validator.validate_schema_source(
+            os.environ.get("CLIENT_BACKUP_SCHEMA_ONLY_OBJECT_KEY", ""),
+            os.environ.get("CLIENT_BACKUP_SCHEMA_ONLY_SHA256", ""),
+        )
         bucket = os.environ["BACKUP_BUCKET"]
         endpoint = os.environ["BACKUP_ENDPOINT"]
         # endpoint comes from the existing restore service, not caller-supplied URLs.
