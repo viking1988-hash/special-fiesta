@@ -23,3 +23,13 @@ The existing GitHub Actions synthetic restore is **not** evidence of an executed
 Before considering activation, a separate authorized operator must independently attest the **effective** production reader privileges, including inherited/PUBLIC grants, RLS and actual access to only intended tables/sequences. Separately verify offline custody, rotation/recovery of both age private identities, retention/privacy/incident handling, archive authenticity and recoverability, and the impact on existing full-CRM backup schedules.
 
 Require written owner approval tied to the exact reviewed PR SHA and evidence bundle. Until then: **Draft PR, no merge, no live schedules, no Production database/storage access, no deployment.**
+
+### Offline archive inspection command
+
+For an independently prepared **non-customer** archive, run on the reviewer's isolated workstation (with `pg_restore` available):
+
+```bash
+python3 scripts/inspect-schema-only-archive.py /private/path/crm-schema-only-YYYYMMDD-HHMMSS.dump
+```
+
+A successful result prints `SCHEMA_ONLY_TOC_PASS`, the byte size and SHA-256. Compare the digest with an independently supplied value, record reviewer sign-off, and separately inspect SQL definitions/comments for sensitive literals. A pass does **not** authorize uploading the archive or setting `CLIENT_BACKUP_SCHEMA_ONLY_SOURCE_REVIEWED=YES` without independent review. Never attach the archive to a public issue or PR.
