@@ -51,6 +51,11 @@ jobs:
           export TEST_DATABASE_URL='postgresql://postgres:ci-only@localhost:5432/crm_test_clients_restore'
           export CLIENT_BACKUP_TEST_CONFIRM=ISOLATED CLIENT_BACKUP_TEST_DB_EMPTY_CONFIRMED=YES
           export CLIENT_BACKUP_EXPECTED_TEST_DB=crm_test_clients_restore
+          export CLIENT_BACKUP_EXPECTED_CLUSTER_ID="$(psql -d postgres -Atqc 'SELECT system_identifier FROM pg_control_system()')"
+          test -n "$CLIENT_BACKUP_EXPECTED_CLUSTER_ID"
+          if CLIENT_BACKUP_EXPECTED_CLUSTER_ID=1234567890123456789 bash scripts/crm-client-backup-verify.sh; then
+            echo "Wrong cluster identity was accepted"; exit 1
+          fi
           bash scripts/crm-client-backup-verify.sh
           test "$(psql -d crm_test_clients_restore -Atqc 'SELECT count(*) FROM public.customers')" = 2
           test "$(psql -d crm_test_clients_restore -Atqc 'SELECT count(*) FROM public.vehicles')" = 2
