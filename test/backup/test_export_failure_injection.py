@@ -135,10 +135,10 @@ class ExportFailureTests(unittest.TestCase):
             commands.mkdir()
             marker = root / "pg-dump-invoked"
             dump = commands / "pg_dump"
-            dump.write_text("#!/bin/sh\\ntouch '" + str(marker) + "'\\nexit 17\\n")
+            dump.write_text("#!/bin/sh\ntouch '" + str(marker) + "'\nexit 17\n")
             dump.chmod(0o700)
             age = commands / "age"
-            age.write_text("#!/bin/sh\\ncat >/dev/null\\nexit 18\\n")
+            age.write_text("#!/bin/sh\ncat >/dev/null\nexit 18\n")
             age.chmod(0o700)
             out = root / "clients-20261022T120000Z.dump.age"
             env = {
