@@ -32,7 +32,7 @@ def main():
         print("SCHEMA_REHEARSAL_DISABLED", flush=True)
         return
     os.umask(0o077)
-    for key in ("DATABASE_URL", "TEST_DATABASE_URL", "PGDATABASE", "PGSERVICE", "PGSERVICEFILE", "PGHOSTADDR", "PGPORT", "PGPASSWORD"):
+    for key in ("DATABASE_URL", "TEST_DATABASE_URL", "PGDATABASE", "PGSERVICE", "PGSERVICEFILE", "PGHOSTADDR", "PGPORT", "PGPASSWORD", "PGOPTIONS"):
         os.environ.pop(key, None)
     if os.environ.get("CLIENT_BACKUP_LIVE_ALERT_TEST") == "true":
         print(run(["python3", "test/backup/live-alert.py"]).strip(), flush=True)
