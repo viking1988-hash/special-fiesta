@@ -96,10 +96,10 @@ class ExportFailureTests(unittest.TestCase):
                 bin_dir.mkdir()
                 marker = root / "pg-dump-invoked"
                 dump = bin_dir / "pg_dump"
-                dump.write_text("#!/bin/sh\ntouch '" + str(marker) + "'\\nexit 1\\n")
+                dump.write_text("#!/bin/sh\ntouch '" + str(marker) + "'\nexit 1\n")
                 dump.chmod(0o700)
                 age = bin_dir / "age"
-                age.write_text("#!/bin/sh\\nexit 1\\n")
+                age.write_text("#!/bin/sh\nexit 1\n")
                 age.chmod(0o700)
                 env = {
                     "PATH": str(bin_dir) + ":" + os.environ.get("PATH", ""),
