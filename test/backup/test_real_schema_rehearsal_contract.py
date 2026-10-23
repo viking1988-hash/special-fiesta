@@ -29,6 +29,11 @@ class RealSchemaRehearsalContract(unittest.TestCase):
         self.assertIn('CLIENT_BACKUP_EXPECTED_CLUSTER_ID=query("postgres", "SELECT system_identifier FROM pg_control_system()")', self.source)
         self.assertIn("CLIENT_BACKUP_EXPECTED_TEST_DB=target", self.source)
 
+    def test_reviewed_schema_only_source_required_before_storage_access(self):
+        self.assertIn("SCHEMA_ONLY_SOURCE_REVIEW_REQUIRED", self.source)
+        self.assertIn('CLIENT_BACKUP_SCHEMA_ONLY_SOURCE_REVIEWED") != "YES"', self.source)
+        self.assertLess(self.source.index("SCHEMA_ONLY_SOURCE_REVIEW_REQUIRED"), self.source.index('"get-object"'))
+
     def test_schema_only_and_artificial_records(self):
         self.assertIn('"--schema-only"', self.source)
         self.assertIn("ARTIFICIAL ONE", self.source)
