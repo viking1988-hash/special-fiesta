@@ -44,7 +44,7 @@ def check(env):
         errors.append("AGE_RECIPIENTS_NOT_DISTINCT")
     try:
         url = urlsplit(env.get("DATABASE_URL", ""))
-        if url.scheme not in ("postgres", "postgresql") or not url.hostname or not url.username:
+        if (url.scheme not in ("postgres", "postgresql") or not url.hostname or not url.username\n                or url.password is None or url.fragment or url.query):
             errors.append("INVALID_DATABASE_URL")
         if url.username in ("postgres", "root", "admin"):
             errors.append("PRIVILEGED_DATABASE_ROLE_REFUSED")
