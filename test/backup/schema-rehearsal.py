@@ -31,8 +31,10 @@ def main():
     if os.environ.get("CLIENT_BACKUP_SCHEMA_REHEARSAL") != "true" or os.environ.get("SYNTHETIC_REHEARSAL_ONLY") != "YES":
         print("SCHEMA_REHEARSAL_DISABLED", flush=True)
         return
+    if os.environ.get("CLIENT_BACKUP_SCHEMA_ONLY_SOURCE_REVIEWED") != "YES":
+        raise RuntimeError("SCHEMA_ONLY_SOURCE_REVIEW_REQUIRED")
     os.umask(0o077)
-    for key in ("DATABASE_URL", "TEST_DATABASE_URL", "PGDATABASE", "PGSERVICE", "PGSERVICEFILE", "PGHOSTADDR", "PGPORT", "PGPASSWORD"):
+    for key in ("DATABASE_URL", "TEST_DATABASE_URL", "PGDATABASE", "PGSERVICE", "PGSERVICEFILE", "PGHOSTADDR", "PGPORT", "PGPASSWORD", "PGOPTIONS"):
         os.environ.pop(key, None)
     if os.environ.get("CLIENT_BACKUP_LIVE_ALERT_TEST") == "true":
         print(run(["python3", "test/backup/live-alert.py"]).strip(), flush=True)
@@ -43,17 +45,35 @@ def main():
         run(["initdb", "-D", os.environ["PGDATA"], "-A", "trust"])
         run(["pg_ctl", "-D", os.environ["PGDATA"], "-l", str(work / "pg.log"), "-o", "-c listen_addresses=127.0.0.1", "-w", "start"])
         started = True
+        # Fail closed on malformed reviewed-source selectors before storage access.
+        import importlib.util
+        validator_path = Path(__file__).with_name("schema_source_preflight.py")
+        validator_spec = importlib.util.spec_from_file_location("schema_source_preflight", validator_path)
+        validator = importlib.util.module_from_spec(validator_spec)
+        validator_spec.loader.exec_module(validator)
+        validator.validate_schema_source(
+            os.environ.get("CLIENT_BACKUP_SCHEMA_ONLY_OBJECT_KEY", ""),
+            os.environ.get("CLIENT_BACKUP_SCHEMA_ONLY_SHA256", ""),
+        )
         bucket = os.environ["BACKUP_BUCKET"]
         endpoint = os.environ["BACKUP_ENDPOINT"]
         # endpoint comes from the existing restore service, not caller-supplied URLs.
         if not endpoint.startswith("https://"):
             raise RuntimeError("SNAPSHOT_ENDPOINT_TLS_REQUIRED")
+        reviewed_key = os.environ.get("CLIENT_BACKUP_SCHEMA_ONLY_OBJECT_KEY", "")
+        if not re.fullmatch(r"crm-schema-only-\d{8}-\d{6}\.dump", reviewed_key):
+            raise RuntimeError("SCHEMA_ONLY_OBJECT_KEY_REQUIRED")
         objects = json.loads(run(["aws", "s3api", "list-objects-v2", "--bucket", bucket,
-                                  "--prefix", "crm-", "--endpoint-url", endpoint, "--output", "json"]))
-        archives = [x for x in objects.get("Contents", []) if re.fullmatch(r"crm-\d{8}-\d{6}\.dump", x["Key"])]
-        latest = max(archives, key=lambda x: x["LastModified"])
+                                  "--prefix", reviewed_key, "--endpoint-url", endpoint, "--output", "json"]))
+        archives = [x for x in objects.get("Contents", []) if x["Key"] == reviewed_key]
+        if len(archives) != 1:
+            raise RuntimeError("SNAPSHOT_ARCHIVE_NOT_FOUND")
+        latest = archives[0]
         if not 1024 <= latest["Size"] <= 500 * 1024 * 1024:
             raise RuntimeError("SNAPSHOT_SIZE_REFUSED")
+        expected_hash = os.environ.get("CLIENT_BACKUP_SCHEMA_ONLY_SHA256", "").lower()
+        if not re.fullmatch(r"[0-9a-f]{64}", expected_hash):
+            raise RuntimeError("SCHEMA_ONLY_EXPECTED_SHA256_REQUIRED")
         archive = work / "snapshot.dump"
         run(["aws", "s3api", "get-object", "--bucket", bucket, "--key", latest["Key"],
              "--endpoint-url", endpoint, str(archive)])
@@ -62,6 +82,13 @@ def main():
                 raise RuntimeError("SNAPSHOT_ARCHIVE_INVALID")
             stream.seek(0)
             snapshot_hash = hashlib.file_digest(stream, "sha256").hexdigest()
+        if snapshot_hash != expected_hash:
+            raise RuntimeError("SCHEMA_ONLY_SHA256_MISMATCH")
+        # A reviewed source flag is not proof of content: refuse data-bearing archives.
+        toc = run(["pg_restore", "--list", str(archive)])
+        if any(re.search(r"\b(TABLE DATA|BLOBS|BLOB|LARGE OBJECT|MATERIALIZED VIEW DATA)\b", line)
+               for line in toc.splitlines() if line and not line.startswith(";")):
+            raise RuntimeError("SNAPSHOT_CONTAINS_DATA_REFUSED")
         print("SNAPSHOT_SCHEMA_SOURCE key=" + latest["Key"] + " modified=" + latest["LastModified"] + " sha256=" + snapshot_hash, flush=True)
         source = "crm_test_real_schema_source"
         target = "crm_test_real_schema_restore"
@@ -112,10 +139,20 @@ END $test$;
         identity = active / "identity.agekey"
         run(["age-keygen", "-o", str(identity)])
         recipient = run(["age-keygen", "-y", str(identity)]).strip()
+        recovery_identity = secondary / "recovery-identity.agekey"
+        run(["age-keygen", "-o", str(recovery_identity)])
+        recovery_recipient = run(["age-keygen", "-y", str(recovery_identity)]).strip()
+        if recipient == recovery_recipient:
+            raise RuntimeError("REHEARSAL_RECIPIENTS_NOT_DISTINCT")
         os.environ.update(CLIENT_BACKUP_ENABLED="true", CLIENT_BACKUP_SCHEMA_VERIFIED="YES",
-                          AGE_RECIPIENT=recipient, DATABASE_URL="postgresql://crm_clients_backup_reader@127.0.0.1/" + source)
+                          AGE_RECIPIENT_PRIMARY=recipient, AGE_RECIPIENT_RECOVERY=recovery_recipient,
+                          DATABASE_URL="postgresql://crm_clients_backup_reader@127.0.0.1/" + source)
         encrypted = work / "clients-artificial.dump.age"
         print(run(["bash", "scripts/crm-clients-export.sh", str(encrypted)]).strip(), flush=True)
+        # Prove the independent recovery identity decrypts this same archive.
+        # Discard plaintext; do not print or persist customer data.
+        run(["age", "--decrypt", "-i", str(recovery_identity), "-o", os.devnull, str(encrypted)])
+        print("READER_ROLE_DUAL_RECIPIENT_DECRYPT_OK", flush=True)
         print('READER_ROLE_ENCRYPTED_EXPORT_OK', flush=True)
         backup_key = secondary / "identity.agekey"
         shutil.copyfile(identity, backup_key)
@@ -129,7 +166,8 @@ END $test$;
         os.environ.update(CLIENT_BACKUP_ARCHIVE=str(encrypted), AGE_IDENTITY_FILE=str(recovered_key),
                           TEST_DATABASE_URL="postgresql://postgres@127.0.0.1/" + target,
                           CLIENT_BACKUP_TEST_CONFIRM="ISOLATED", CLIENT_BACKUP_TEST_DB_EMPTY_CONFIRMED="YES",
-                          CLIENT_BACKUP_EXPECTED_TEST_DB=target)
+                          CLIENT_BACKUP_EXPECTED_TEST_DB=target,
+                          CLIENT_BACKUP_EXPECTED_CLUSTER_ID=query("postgres", "SELECT system_identifier FROM pg_control_system()"))
         print(run(["bash", "scripts/crm-client-backup-verify.sh"]).strip(), flush=True)
         for table in ("customers", "vehicles"):
             sql = "SELECT md5(coalesce(string_agg(row_to_json(t)::text, '|' ORDER BY id), '')) FROM " + table + " t"

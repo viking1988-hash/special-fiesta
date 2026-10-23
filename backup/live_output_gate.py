@@ -16,6 +16,8 @@ def validate(directory, output):
     if not directory or not output:
         return False
     root, target = Path(directory), Path(output)
+    if not target.name.startswith("clients-"):
+        return False
     if not root.is_absolute() or not target.is_absolute():
         return False
     # Reject lexical traversal even when path normalization leads back to root.
@@ -41,7 +43,7 @@ def validate(directory, output):
         mode = root.stat().st_mode
         if not stat.S_ISDIR(mode) or mode & 0o077:
             return False
-        if (target.exists() or target.with_name(target.name + ".partial").exists()
+        if (target.exists() or target.is_symlink() or target.with_name(target.name + ".partial").exists()
                 or target.with_name(target.name + ".partial").is_symlink()):
             return False
     except (OSError, RuntimeError):

@@ -135,6 +135,13 @@ class TransferTests(unittest.TestCase):
         with self.assertRaises(y.BackupError):
             disk.request("https://evil.invalid")
 
+    def test_oauth_endpoint_prefix_confusion_refused(self):
+        disk = y.Disk("fake", "app:/clients-backups")
+        for url in (y.API + ".evil?path=x", y.API + "-other?path=x",
+                    "https://cloud-api.yandex.net/v1/disk/resources-other"):
+            with self.subTest(url=url), self.assertRaises(y.BackupError):
+                disk.request(url)
+
     def test_redirect_blocked(self):
         with self.assertRaises(y.BackupError):
             y.NoRedirect().redirect_request(None, None, 302, "redirect", {}, "https://evil")
