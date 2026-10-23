@@ -36,6 +36,8 @@ fi
 export CLIENT_BACKUP_ARCHIVE="$readback"
 export AGE_IDENTITY_FILE=/tmp/identity TEST_DATABASE_URL=postgresql://postgres@127.0.0.1/crm_test_container_restore
 export CLIENT_BACKUP_TEST_CONFIRM=ISOLATED CLIENT_BACKUP_TEST_DB_EMPTY_CONFIRMED=YES CLIENT_BACKUP_EXPECTED_TEST_DB=crm_test_container_restore
+export CLIENT_BACKUP_EXPECTED_CLUSTER_ID="$(psql -d postgres -X -v ON_ERROR_STOP=1 -Atqc 'SELECT system_identifier FROM pg_control_system()')"
+test -n "$CLIENT_BACKUP_EXPECTED_CLUSTER_ID"
 bash scripts/crm-client-backup-verify.sh
 test "$(psql -d crm_test_container_restore -Atqc 'SELECT count(*) FROM customers')" = 2
 test "$(psql -d crm_test_container_restore -Atqc 'SELECT count(*) FROM vehicles v JOIN customers c ON c.id=v.customer_id AND c.organization_id=v.organization_id')" = 2
