@@ -112,8 +112,14 @@ END $test$;
         identity = active / "identity.agekey"
         run(["age-keygen", "-o", str(identity)])
         recipient = run(["age-keygen", "-y", str(identity)]).strip()
+        recovery_identity = secondary / "recovery-identity.agekey"
+        run(["age-keygen", "-o", str(recovery_identity)])
+        recovery_recipient = run(["age-keygen", "-y", str(recovery_identity)]).strip()
+        if recipient == recovery_recipient:
+            raise RuntimeError("REHEARSAL_RECIPIENTS_NOT_DISTINCT")
         os.environ.update(CLIENT_BACKUP_ENABLED="true", CLIENT_BACKUP_SCHEMA_VERIFIED="YES",
-                          AGE_RECIPIENT=recipient, DATABASE_URL="postgresql://crm_clients_backup_reader@127.0.0.1/" + source)
+                          AGE_RECIPIENT_PRIMARY=recipient, AGE_RECIPIENT_RECOVERY=recovery_recipient,
+                          DATABASE_URL="postgresql://crm_clients_backup_reader@127.0.0.1/" + source)
         encrypted = work / "clients-artificial.dump.age"
         print(run(["bash", "scripts/crm-clients-export.sh", str(encrypted)]).strip(), flush=True)
         print('READER_ROLE_ENCRYPTED_EXPORT_OK', flush=True)
@@ -129,7 +135,8 @@ END $test$;
         os.environ.update(CLIENT_BACKUP_ARCHIVE=str(encrypted), AGE_IDENTITY_FILE=str(recovered_key),
                           TEST_DATABASE_URL="postgresql://postgres@127.0.0.1/" + target,
                           CLIENT_BACKUP_TEST_CONFIRM="ISOLATED", CLIENT_BACKUP_TEST_DB_EMPTY_CONFIRMED="YES",
-                          CLIENT_BACKUP_EXPECTED_TEST_DB=target)
+                          CLIENT_BACKUP_EXPECTED_TEST_DB=target,
+                          CLIENT_BACKUP_EXPECTED_CLUSTER_ID=query("postgres", "SELECT system_identifier FROM pg_control_system()"))
         print(run(["bash", "scripts/crm-client-backup-verify.sh"]).strip(), flush=True)
         for table in ("customers", "vehicles"):
             sql = "SELECT md5(coalesce(string_agg(row_to_json(t)::text, '|' ORDER BY id), '')) FROM " + table + " t"
