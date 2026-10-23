@@ -39,6 +39,13 @@ class RealSchemaRehearsalContract(unittest.TestCase):
         self.assertIn("pg_restore", self.source)
         self.assertLess(self.source.index("SNAPSHOT_CONTAINS_DATA_REFUSED"), self.source.index("SCHEMA_ONLY_RESTORE_OK"))
 
+    def test_explicit_schema_only_object_selection(self):
+        self.assertIn("CLIENT_BACKUP_SCHEMA_ONLY_OBJECT_KEY", self.source)
+        self.assertIn("SCHEMA_ONLY_OBJECT_KEY_REQUIRED", self.source)
+        self.assertIn("crm-schema-only-", self.source)
+        self.assertIn('x["Key"] == reviewed_key', self.source)
+        self.assertNotIn('"--prefix", "crm-"', self.source)
+
     def test_schema_only_and_artificial_records(self):
         self.assertIn('"--schema-only"', self.source)
         self.assertIn("ARTIFICIAL ONE", self.source)
