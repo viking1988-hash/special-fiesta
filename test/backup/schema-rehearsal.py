@@ -50,12 +50,15 @@ def main():
         # endpoint comes from the existing restore service, not caller-supplied URLs.
         if not endpoint.startswith("https://"):
             raise RuntimeError("SNAPSHOT_ENDPOINT_TLS_REQUIRED")
+        reviewed_key = os.environ.get("CLIENT_BACKUP_SCHEMA_ONLY_OBJECT_KEY", "")
+        if not re.fullmatch(r"crm-schema-only-\d{8}-\d{6}\.dump", reviewed_key):
+            raise RuntimeError("SCHEMA_ONLY_OBJECT_KEY_REQUIRED")
         objects = json.loads(run(["aws", "s3api", "list-objects-v2", "--bucket", bucket,
-                                  "--prefix", "crm-", "--endpoint-url", endpoint, "--output", "json"]))
-        archives = [x for x in objects.get("Contents", []) if re.fullmatch(r"crm-\d{8}-\d{6}\.dump", x["Key"])]
-        if not archives:
+                                  "--prefix", reviewed_key, "--endpoint-url", endpoint, "--output", "json"]))
+        archives = [x for x in objects.get("Contents", []) if x["Key"] == reviewed_key]
+        if len(archives) != 1:
             raise RuntimeError("SNAPSHOT_ARCHIVE_NOT_FOUND")
-        latest = max(archives, key=lambda x: x["LastModified"])
+        latest = archives[0]
         if not 1024 <= latest["Size"] <= 500 * 1024 * 1024:
             raise RuntimeError("SNAPSHOT_SIZE_REFUSED")
         archive = work / "snapshot.dump"
