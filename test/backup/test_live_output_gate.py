@@ -52,6 +52,12 @@ class LiveOutputGateTests(unittest.TestCase):
             Path(str(p) + ".partial").symlink_to(Path(d) / "missing-target")
             self.assertFalse(validate(d, str(p)))
 
+    def test_dangling_final_symlink_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "clients-20261012T120000Z.dump.age"
+            p.symlink_to(Path(d) / "missing-target")
+            self.assertFalse(validate(d, str(p)))
+
     def test_symlinked_parent_directory_rejected(self):
         with tempfile.TemporaryDirectory() as d:
             base = Path(d)
