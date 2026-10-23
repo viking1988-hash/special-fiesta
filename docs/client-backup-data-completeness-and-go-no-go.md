@@ -61,3 +61,8 @@ because GitHub Actions are green.**
 
 ## Scheduled job gate verification (Draft PR #13)
 The scheduled client backup job now calls the live export wrapper rather than the low-level exporter directly. The wrapper checks an explicit live-run approval flag, preflight configuration, private output directory and exclusive lock before database export. CI includes a static regression test for this path. These checks do not authenticate operator approval or independently prove production database privileges and genuine archive recovery. Production remains NO-GO.
+
+## CI verification and remaining launch gates (2026-10-23)
+On Draft PR #13 commit `db59a57997723b24bc98f8b60390331b9c091b96`, all five GitHub Actions workflows completed successfully: authentication, PostgreSQL integration, export preflight, synthetic restore rehearsal, and client backup checks. These are **synthetic/CI checks**, not production evidence. The wrapper also now resolves Python modules from the repository root when invoked from another working directory, and the live output gate rejects malformed archive prefixes.
+
+**Release decision remains NO-GO:** production reader privileges, real encrypted archive restore in an isolated environment, authenticated evidence, data completeness, retention/privacy approval, and explicit owner launch authorization have not been independently established by these tests. Do not merge or enable the scheduled job based on CI alone.
