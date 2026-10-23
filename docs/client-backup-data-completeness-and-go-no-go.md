@@ -77,3 +77,10 @@ The disposable container rehearsal creates only simplified `customers` and `vehi
 
 ## Restore target restriction (2026-10-23)
 The repository's `scripts/crm-client-backup-verify.sh` now refuses remote PostgreSQL server addresses even when `CLIENT_BACKUP_REMOTE_TEST_APPROVED=YES` is set. The supported synthetic verification path requires a local disposable database. Loopback addressing alone does not prove the underlying instance is disposable (for example, a forwarded port could reach another server); operators must independently establish process/container isolation before any restore. No genuine customer archive restore is authorized by this change.
+
+## Verified synthetic checkpoint and remaining trust boundary (2026-10-23)
+Draft PR #13 HEAD `836fccaa2914ca4eab3e57e8d2de106b8439a899` completed all five GitHub Actions workflows successfully, including PostgreSQL 18 container rehearsal and the negative test for a mismatched cluster system identifier. This is a synthetic CI result only.
+
+The restore verifier now requires `CLIENT_BACKUP_EXPECTED_CLUSTER_ID` and compares it with `pg_control_system().system_identifier` before invoking `pg_restore`. The expected value must be established independently from the disposable PostgreSQL instance during provisioning; copying it from an arbitrary connection string would defeat this control. Cluster ID matching and loopback address checks do not establish that a server is disposable or exclude an SSH/port-forwarded remote database. An operator must independently attest to the instance/container identity, network isolation, fresh schema and absence of real data. Do not run the restore against a forwarded port or any production/staging database.
+
+**Release gate remains NO-GO.** Before enabling live client-only backups, perform an authorized production-schema-compatible isolated recovery rehearsal, independently validate production reader ACLs, custody of both recovery identities, encrypted archive provenance and row-level/tenant integrity, and obtain explicit owner and privacy/retention approval. No live backup job or production restoration is authorized by these synthetic tests.
