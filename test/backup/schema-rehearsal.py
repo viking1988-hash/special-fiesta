@@ -66,6 +66,11 @@ def main():
                 raise RuntimeError("SNAPSHOT_ARCHIVE_INVALID")
             stream.seek(0)
             snapshot_hash = hashlib.file_digest(stream, "sha256").hexdigest()
+        # A reviewed source flag is not proof of content: refuse data-bearing archives.
+        toc = run(["pg_restore", "--list", str(archive)])
+        if any(re.search(r"\b(TABLE DATA|BLOBS|BLOB|LARGE OBJECT|MATERIALIZED VIEW DATA)\b", line)
+               for line in toc.splitlines() if line and not line.startswith(";")):
+            raise RuntimeError("SNAPSHOT_CONTAINS_DATA_REFUSED")
         print("SNAPSHOT_SCHEMA_SOURCE key=" + latest["Key"] + " modified=" + latest["LastModified"] + " sha256=" + snapshot_hash, flush=True)
         source = "crm_test_real_schema_source"
         target = "crm_test_real_schema_restore"
