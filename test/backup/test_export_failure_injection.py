@@ -127,6 +127,36 @@ class ExportFailureTests(unittest.TestCase):
                 self.assertFalse(out.exists())
                 self.assertFalse(Path(str(out) + ".partial").exists())
 
+    def test_valid_recipients_reach_synthetic_pg_dump(self):
+        """Positive control: prove the negative recipient tests can detect pg_dump."""
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            commands = root / "bin"
+            commands.mkdir()
+            marker = root / "pg-dump-invoked"
+            dump = commands / "pg_dump"
+            dump.write_text("#!/bin/sh\\ntouch '" + str(marker) + "'\\nexit 17\\n")
+            dump.chmod(0o700)
+            age = commands / "age"
+            age.write_text("#!/bin/sh\\ncat >/dev/null\\nexit 18\\n")
+            age.chmod(0o700)
+            out = root / "clients-20261022T120000Z.dump.age"
+            env = {
+                "PATH": str(commands) + ":" + os.environ.get("PATH", ""),
+                "CLIENT_BACKUP_ENABLED": "true",
+                "CLIENT_BACKUP_SCHEMA_VERIFIED": "YES",
+                "CLIENT_BACKUP_REQUIRE_ENCRYPTION": "true",
+                "DATABASE_URL": "postgresql://synthetic@localhost/synthetic",
+                "AGE_RECIPIENT_PRIMARY": "age1" + "q" * 58,
+                "AGE_RECIPIENT_RECOVERY": "age1" + "p" * 58,
+            }
+            result = subprocess.run(["bash", str(SCRIPT), str(out)], env=env,
+                                    text=True, capture_output=True, timeout=5)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertTrue(marker.exists(), "positive control never invoked pg_dump")
+            self.assertFalse(out.exists())
+            self.assertFalse(Path(str(out) + ".partial").exists())
+
     def test_pg_dump_failure_never_publishes_archive(self):
         result, final, partial = self.run_export(dump_exit=17)
         self.assertNotEqual(result.returncode, 0)
