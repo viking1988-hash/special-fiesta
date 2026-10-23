@@ -68,6 +68,10 @@ class RealSchemaRehearsalContract(unittest.TestCase):
         self.assertLess(self.source.index("SCHEMA_ONLY_EXPECTED_SHA256_REQUIRED"), self.source.index('"get-object"'))
         self.assertLess(self.source.index("SCHEMA_ONLY_SHA256_MISMATCH"), self.source.index('"pg_restore", "--list"'))
 
+    def test_selector_preflight_precedes_storage_listing(self):
+        self.assertIn("validator.validate_schema_source(", self.source)
+        self.assertLess(self.source.index("validator.validate_schema_source("), self.source.index('"list-objects-v2"'))
+
     def test_schema_only_and_artificial_records(self):
         self.assertIn('"--schema-only"', self.source)
         self.assertIn("ARTIFICIAL ONE", self.source)
