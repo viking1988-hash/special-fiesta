@@ -61,6 +61,9 @@ def main():
         latest = archives[0]
         if not 1024 <= latest["Size"] <= 500 * 1024 * 1024:
             raise RuntimeError("SNAPSHOT_SIZE_REFUSED")
+        expected_hash = os.environ.get("CLIENT_BACKUP_SCHEMA_ONLY_SHA256", "").lower()
+        if not re.fullmatch(r"[0-9a-f]{64}", expected_hash):
+            raise RuntimeError("SCHEMA_ONLY_EXPECTED_SHA256_REQUIRED")
         archive = work / "snapshot.dump"
         run(["aws", "s3api", "get-object", "--bucket", bucket, "--key", latest["Key"],
              "--endpoint-url", endpoint, str(archive)])
@@ -69,6 +72,8 @@ def main():
                 raise RuntimeError("SNAPSHOT_ARCHIVE_INVALID")
             stream.seek(0)
             snapshot_hash = hashlib.file_digest(stream, "sha256").hexdigest()
+        if snapshot_hash != expected_hash:
+            raise RuntimeError("SCHEMA_ONLY_SHA256_MISMATCH")
         # A reviewed source flag is not proof of content: refuse data-bearing archives.
         toc = run(["pg_restore", "--list", str(archive)])
         if any(re.search(r"\b(TABLE DATA|BLOBS|BLOB|LARGE OBJECT|MATERIALIZED VIEW DATA)\b", line)
