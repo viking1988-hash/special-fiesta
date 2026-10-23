@@ -51,6 +51,8 @@ def main():
         objects = json.loads(run(["aws", "s3api", "list-objects-v2", "--bucket", bucket,
                                   "--prefix", "crm-", "--endpoint-url", endpoint, "--output", "json"]))
         archives = [x for x in objects.get("Contents", []) if re.fullmatch(r"crm-\d{8}-\d{6}\.dump", x["Key"])]
+        if not archives:
+            raise RuntimeError("SNAPSHOT_ARCHIVE_NOT_FOUND")
         latest = max(archives, key=lambda x: x["LastModified"])
         if not 1024 <= latest["Size"] <= 500 * 1024 * 1024:
             raise RuntimeError("SNAPSHOT_SIZE_REFUSED")
