@@ -43,7 +43,7 @@ def validate(directory, output):
         mode = root.stat().st_mode
         if not stat.S_ISDIR(mode) or mode & 0o077:
             return False
-        if (target.exists() or target.with_name(target.name + ".partial").exists()
+        if (target.exists() or target.is_symlink() or target.with_name(target.name + ".partial").exists()
                 or target.with_name(target.name + ".partial").is_symlink()):
             return False
     except (OSError, RuntimeError):
