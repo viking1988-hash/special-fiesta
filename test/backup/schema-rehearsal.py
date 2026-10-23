@@ -31,6 +31,8 @@ def main():
     if os.environ.get("CLIENT_BACKUP_SCHEMA_REHEARSAL") != "true" or os.environ.get("SYNTHETIC_REHEARSAL_ONLY") != "YES":
         print("SCHEMA_REHEARSAL_DISABLED", flush=True)
         return
+    if os.environ.get("CLIENT_BACKUP_SCHEMA_ONLY_SOURCE_REVIEWED") != "YES":
+        raise RuntimeError("SCHEMA_ONLY_SOURCE_REVIEW_REQUIRED")
     os.umask(0o077)
     for key in ("DATABASE_URL", "TEST_DATABASE_URL", "PGDATABASE", "PGSERVICE", "PGSERVICEFILE", "PGHOSTADDR", "PGPORT", "PGPASSWORD", "PGOPTIONS"):
         os.environ.pop(key, None)
