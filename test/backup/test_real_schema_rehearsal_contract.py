@@ -34,6 +34,11 @@ class RealSchemaRehearsalContract(unittest.TestCase):
         self.assertIn('CLIENT_BACKUP_SCHEMA_ONLY_SOURCE_REVIEWED") != "YES"', self.source)
         self.assertLess(self.source.index("SCHEMA_ONLY_SOURCE_REVIEW_REQUIRED"), self.source.index('"get-object"'))
 
+    def test_archive_contents_checked_before_restore(self):
+        self.assertIn("SNAPSHOT_CONTAINS_DATA_REFUSED", self.source)
+        self.assertIn("pg_restore", self.source)
+        self.assertLess(self.source.index("SNAPSHOT_CONTAINS_DATA_REFUSED"), self.source.index("SCHEMA_ONLY_RESTORE_OK"))
+
     def test_schema_only_and_artificial_records(self):
         self.assertIn('"--schema-only"', self.source)
         self.assertIn("ARTIFICIAL ONE", self.source)
