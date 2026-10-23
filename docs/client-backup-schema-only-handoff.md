@@ -1,0 +1,25 @@
+# Schema-only source: independent handoff and E2E evidence
+
+Status: **NOT APPROVED FOR PRODUCTION**. This document is a checklist, not proof that a schema-only source exists.
+
+## 1. Prepare an approved source (outside Production)
+
+Use an authorized, isolated schema-equivalent database with **no customer records**. Generate a new PostgreSQL custom-format **schema-only** archive using `pg_dump --schema-only --format=custom`. Do not download or repurpose a full CRM backup as a substitute. Never put passwords, private age identities or customer rows in the repository, CI logs or issue comments.
+
+Record the archive SHA-256, PostgreSQL major version, migration/commit reference, creation date, approving operator and the approved private object key `crm-schema-only-YYYYMMDD-HHMMSS.dump`. Keep the archive private. An object name, `CLIENT_BACKUP_SCHEMA_ONLY_SOURCE_REVIEWED=YES` flag, or checksum alone does not prove content safety.
+
+Before any upload or rehearsal, an independent reviewer must inspect `pg_restore --list <archive>` **offline**. Reject any archive containing `TABLE DATA`, `BLOBS`, `BLOB`, `LARGE OBJECT`, or `MATERIALIZED VIEW DATA` entries. This is a structural check, not a guarantee that SQL definitions or comments contain no sensitive literals; inspect those separately. Record a second operator's approval without disclosing secrets.
+
+## 2. Isolated rehearsal
+
+Run only with a disposable PostgreSQL cluster, synthetic customer/vehicle rows, explicit schema-only object key and the reviewed-source gate. Confirm no production connection strings or live notification destinations are available to the runner. Never run against a real customer-data archive.
+
+Collect: source archive SHA-256 and schema reference; test runner isolation attestation; independently generated primary and recovery age identities; evidence each identity decrypts the **same** encrypted artificial-data archive; exact target cluster ID; source/target row digests; tenant links, FK/uniqueness/check constraints, sequence state, post-restore inserts, cleanup and negative tests. No private keys or personal records in logs.
+
+The existing GitHub Actions synthetic restore is **not** evidence of an executed real-schema rehearsal.
+
+## 3. Separate production release gate
+
+Before considering activation, a separate authorized operator must independently attest the **effective** production reader privileges, including inherited/PUBLIC grants, RLS and actual access to only intended tables/sequences. Separately verify offline custody, rotation/recovery of both age private identities, retention/privacy/incident handling, archive authenticity and recoverability, and the impact on existing full-CRM backup schedules.
+
+Require written owner approval tied to the exact reviewed PR SHA and evidence bundle. Until then: **Draft PR, no merge, no live schedules, no Production database/storage access, no deployment.**
