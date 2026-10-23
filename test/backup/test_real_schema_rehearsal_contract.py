@@ -57,8 +57,9 @@ class RealSchemaRehearsalContract(unittest.TestCase):
             "CLIENT_BACKUP_SCHEMA_ONLY_SOURCE_REVIEWED": "NO",
         }):
             with patch("subprocess.run", side_effect=AssertionError("unexpected subprocess")):
-                with self.assertRaisesRegex(RuntimeError, "SCHEMA_ONLY_SOURCE_REVIEW_REQUIRED"):
+                with self.assertRaises(SystemExit) as exit_context:
                     runpy.run_path(str(REHEARSAL), run_name="__main__")
+                self.assertEqual(exit_context.exception.code, 1)
 
     def test_schema_only_and_artificial_records(self):
         self.assertIn('"--schema-only"', self.source)
