@@ -49,6 +49,26 @@ class SchemaArchiveInspectorTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "ARCHIVE_CONTAINS_DATA_REFUSED"):
                     module.inspect(archive)
 
+    def test_rejects_tiny_archive_without_invoking_pg_restore(self):
+        with tempfile.TemporaryDirectory() as folder:
+            archive = Path(folder) / "sample.dump"
+            archive.write_bytes(b"PGDMP")
+            with patch.object(module.subprocess, "run") as runner:
+                with self.assertRaisesRegex(ValueError, "ARCHIVE_SIZE_REFUSED"):
+                    module.inspect(archive)
+                runner.assert_not_called()
+
+    def test_rejects_symlink_without_invoking_pg_restore(self):
+        with tempfile.TemporaryDirectory() as folder:
+            original = Path(folder) / "original.dump"
+            original.write_bytes(b"PGDMP" + b"0" * 2048)
+            linked = Path(folder) / "linked.dump"
+            linked.symlink_to(original)
+            with patch.object(module.subprocess, "run") as runner:
+                with self.assertRaisesRegex(ValueError, "ARCHIVE_MUST_BE_REGULAR_FILE"):
+                    module.inspect(linked)
+                runner.assert_not_called()
+
     def test_rejects_bad_magic_without_invoking_pg_restore(self):
         with tempfile.TemporaryDirectory() as folder:
             archive = Path(folder) / "sample.dump"
