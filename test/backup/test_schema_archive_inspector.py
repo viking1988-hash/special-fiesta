@@ -32,6 +32,23 @@ class SchemaArchiveInspectorTests(unittest.TestCase):
             self.assertIn("SCHEMA_ONLY_TOC_PASS", output)
             self.assertIn("sha256=", output)
 
+    def test_rejects_unreadable_toc(self):
+        with tempfile.TemporaryDirectory() as folder:
+            archive = Path(folder) / "sample.dump"
+            archive.write_bytes(b"PGDMP" + b"0" * 2048)
+            with patch.object(module.subprocess, "run", return_value=subprocess.CompletedProcess([], 1, "", "private error")):
+                with self.assertRaisesRegex(ValueError, "ARCHIVE_TOC_UNREADABLE"):
+                    module.inspect(archive)
+
+    def test_rejects_large_object_entry(self):
+        with tempfile.TemporaryDirectory() as folder:
+            archive = Path(folder) / "sample.dump"
+            archive.write_bytes(b"PGDMP" + b"0" * 2048)
+            toc = "123; 0 456 BLOBS - BLOBS postgres\\n"
+            with patch.object(module.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, toc, "")):
+                with self.assertRaisesRegex(ValueError, "ARCHIVE_CONTAINS_DATA_REFUSED"):
+                    module.inspect(archive)
+
     def test_rejects_bad_magic_without_invoking_pg_restore(self):
         with tempfile.TemporaryDirectory() as folder:
             archive = Path(folder) / "sample.dump"
