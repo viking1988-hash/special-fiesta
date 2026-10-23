@@ -53,6 +53,12 @@ jobs:
           export CLIENT_BACKUP_EXPECTED_TEST_DB=crm_test_clients_restore
           export CLIENT_BACKUP_EXPECTED_CLUSTER_ID="$(psql -d postgres -Atqc 'SELECT system_identifier FROM pg_control_system()')"
           test -n "$CLIENT_BACKUP_EXPECTED_CLUSTER_ID"
+          if env -u CLIENT_BACKUP_EXPECTED_CLUSTER_ID bash scripts/crm-client-backup-verify.sh; then
+            echo "Missing cluster identity was accepted"; exit 1
+          fi
+          if CLIENT_BACKUP_EXPECTED_CLUSTER_ID=not-a-cluster-id bash scripts/crm-client-backup-verify.sh; then
+            echo "Malformed cluster identity was accepted"; exit 1
+          fi
           if CLIENT_BACKUP_EXPECTED_CLUSTER_ID=1234567890123456789 bash scripts/crm-client-backup-verify.sh; then
             echo "Wrong cluster identity was accepted"; exit 1
           fi
