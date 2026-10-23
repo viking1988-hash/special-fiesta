@@ -74,3 +74,6 @@ Draft PR #13 HEAD `0b07fd87492b170d609bdb1056da16d78167946f` passed all five Git
 
 ## Restore rehearsal fidelity limits
 The disposable container rehearsal creates only simplified `customers` and `vehicles` tables, with synthetic rows and a local trusted PostgreSQL server. It checks both age identities, row round-trip and a schema audit; it does **not** reproduce production migrations, tenant parent tables, role permissions, triggers, full foreign-key graph, or application-level recovery. It therefore cannot establish that the two-table data-only dump restores into a clean production-equivalent CRM database. Independent production-schema-compatible isolated restore is a hard prerequisite before launch.
+
+## Restore target restriction (2026-10-23)
+The repository's `scripts/crm-client-backup-verify.sh` now refuses remote PostgreSQL server addresses even when `CLIENT_BACKUP_REMOTE_TEST_APPROVED=YES` is set. The supported synthetic verification path requires a local disposable database. Loopback addressing alone does not prove the underlying instance is disposable (for example, a forwarded port could reach another server); operators must independently establish process/container isolation before any restore. No genuine customer archive restore is authorized by this change.
