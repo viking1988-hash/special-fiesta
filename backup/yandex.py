@@ -88,7 +88,7 @@ class Disk:
     def request(self, url, method="GET", data=None, authenticated=True):
         headers = {"Content-Type": "application/json"}
         if authenticated:
-            if not url.startswith(API):
+            if not (url == API or url.startswith(API + "?") or url.startswith(API + "/")):
                 raise BackupError("AUTH_DESTINATION_REFUSED")
             headers["Authorization"] = "OAuth " + self.token
         else:
