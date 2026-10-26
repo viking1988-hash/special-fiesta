@@ -39,6 +39,12 @@ class RealSchemaRehearsalContract(unittest.TestCase):
         self.assertIn("pg_restore", self.source)
         self.assertLess(self.source.index("SNAPSHOT_CONTAINS_DATA_REFUSED"), self.source.index("SCHEMA_ONLY_RESTORE_OK"))
 
+    def test_required_client_tables_checked_before_schema_restore(self):
+        self.assertIn("SNAPSHOT_REQUIRED_CLIENT_TABLE_MISSING", self.source)
+        self.assertIn('for table in ("customers", "vehicles"):', self.source)
+        self.assertLess(self.source.index("SNAPSHOT_REQUIRED_CLIENT_TABLE_MISSING"),
+                        self.source.index("SCHEMA_ONLY_RESTORE_OK"))
+
     def test_explicit_schema_only_object_selection(self):
         self.assertIn("CLIENT_BACKUP_SCHEMA_ONLY_OBJECT_KEY", self.source)
         self.assertIn("SCHEMA_ONLY_OBJECT_KEY_REQUIRED", self.source)
