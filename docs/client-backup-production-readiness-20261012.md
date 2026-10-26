@@ -48,3 +48,24 @@ backup untouched, and the launch gate at `NOT_AUTHORIZED`.
 
 ## Stop conditions
 Missing read-only role, missing independently recoverable key, any plaintext upload, unverifiable remote archive, incorrect tenancy, failed isolated restore, or unverified alert delivery => **NO GO**.
+
+## Verified PR #13 checkpoint — 2026-10-26
+
+- PR head checked: `c91ace67b29249870d0ccee78e61e3fd45768b22` (Draft, unmerged).
+- All five GitHub Actions runs on that **exact HEAD** finished successfully: CRM auth checks, CRM PostgreSQL integration, CRM client export preflight tests, CRM synthetic client restore rehearsal, and CRM client backup checks.
+- Code inspection confirms the scheduled backup job invokes `scripts/crm-clients-live-export-gated.sh`; the wrapper requires an explicit live flag, executes configuration and output preflight, and uses an exclusive output lock. These guards do not independently authenticate an operator or verify production ACLs.
+- The source-completeness document confirms the client export is a `pg_dump --data-only` subset of `public.customers` and `public.vehicles`, **not** a standalone complete CRM backup. A compatible schema, parent/tenant records, sequences and integrity checks are required for restoration.
+
+### Evidence matrix: current release blockers
+
+| Gate | Evidence required | Current result |
+| --- | --- | --- |
+| CI on exact PR HEAD | Five successful workflows | PASS (synthetic/code-level only) |
+| Independent schema-only source | Trusted provenance, offline TOC/SQL inspection, independently pinned SHA-256, private approved object | NOT VERIFIED |
+| Isolated real-schema rehearsal | Independently attested disposable cluster, artificial rows, both distinct offline decryption identities, tenant/FK/sequence/digest checks | NOT VERIFIED |
+| Effective production reader privileges | Independent role membership, PUBLIC/inherited/SECURITY DEFINER/RLS and least-privilege review | NOT VERIFIED |
+| Actual client archive recoverability | Approved provenance, authentic encrypted archive and independently evidenced fresh isolated restore | NOT VERIFIED |
+| Key custody and privacy | Separate offline primary/recovery custody, key recovery, retention/privacy decision | NOT VERIFIED |
+| Launch authorization | Owner approval bound to reviewed SHA and evidence | NOT AUTHORIZED |
+
+**Decision: Production NO-GO.** This checkpoint changes documentation only; no access to production database/storage, no customer records, no deployment, no cron and no changes to existing full-CRM backups are authorized. Green CI must never be described as independent actual-client recovery proof.
