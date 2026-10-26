@@ -26,11 +26,22 @@ class SchemaArchiveInspectorTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             archive = Path(folder) / "sample.dump"
             archive.write_bytes(b"PGDMP" + b"0" * 2048)
-            toc = "123; 0 456 TABLE public customers postgres\n"
+            toc = "123; 0 456 TABLE public customers postgres\n124; 0 457 TABLE public vehicles postgres\n"
             with patch.object(module.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, toc, "")):
                 output = module.inspect(archive)
             self.assertIn("SCHEMA_ONLY_TOC_PASS", output)
             self.assertIn("sha256=", output)
+
+    def test_rejects_missing_client_table(self):
+        for toc in ("123; 0 456 TABLE public customers postgres\n",
+                    "124; 0 457 TABLE public vehicles postgres\n"):
+            with self.subTest(toc=toc):
+                with tempfile.TemporaryDirectory() as folder:
+                    archive = Path(folder) / "sample.dump"
+                    archive.write_bytes(b"PGDMP" + b"0" * 2048)
+                    with patch.object(module.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, toc, "")):
+                        with self.assertRaisesRegex(ValueError, "ARCHIVE_REQUIRED_CLIENT_TABLE_MISSING"):
+                            module.inspect(archive)
 
     def test_rejects_unreadable_toc(self):
         with tempfile.TemporaryDirectory() as folder:
