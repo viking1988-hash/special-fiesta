@@ -86,8 +86,12 @@ def main():
             raise RuntimeError("SCHEMA_ONLY_SHA256_MISMATCH")
         # A reviewed source flag is not proof of content: refuse data-bearing archives.
         toc = run(["pg_restore", "--list", str(archive)])
-        if any(re.search(r"\b(TABLE DATA|BLOBS|BLOB|LARGE OBJECT|MATERIALIZED VIEW DATA)\b", line)
-               for line in toc.splitlines() if line and not line.startswith(";")):
+        # Reuse the offline TOC validator: avoid divergence between review and rehearsal.
+        import importlib.util as _importlib_util
+        inspector_spec = _importlib_util.spec_from_file_location("schema_archive_inspector", Path("scripts/inspect-schema-only-archive.py"))
+        inspector = _importlib_util.module_from_spec(inspector_spec)
+        inspector_spec.loader.exec_module(inspector)
+        if any(inspector.DATA_ENTRY.search(line) for line in toc.splitlines() if line and not line.startswith(";")):
             raise RuntimeError("SNAPSHOT_CONTAINS_DATA_REFUSED")
         print("SNAPSHOT_SCHEMA_SOURCE key=" + latest["Key"] + " modified=" + latest["LastModified"] + " sha256=" + snapshot_hash, flush=True)
         source = "crm_test_real_schema_source"
