@@ -29,6 +29,10 @@ def inspect(path: Path) -> str:
         raise ValueError("ARCHIVE_TOC_UNREADABLE")
     if any(DATA_ENTRY.search(line) for line in result.stdout.splitlines() if line and not line.startswith(";")):
         raise ValueError("ARCHIVE_CONTAINS_DATA_REFUSED")
+    for table in ("customers", "vehicles"):
+        pattern = re.compile(r"^\d+; \d+ \d+ TABLE public " + table + r" ")
+        if not any(pattern.search(line) for line in result.stdout.splitlines()):
+            raise ValueError("ARCHIVE_REQUIRED_CLIENT_TABLE_MISSING")
     return f"SCHEMA_ONLY_TOC_PASS size={size} sha256={digest}"
 
 
