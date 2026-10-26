@@ -33,3 +33,17 @@ python3 scripts/inspect-schema-only-archive.py /private/path/crm-schema-only-YYY
 ```
 
 A successful result prints `SCHEMA_ONLY_TOC_PASS`, the byte size and SHA-256. Compare the digest with an independently supplied value, record reviewer sign-off, and separately inspect SQL definitions/comments for sensitive literals. A pass does **not** authorize uploading the archive or setting `CLIENT_BACKUP_SCHEMA_ONLY_SOURCE_REVIEWED=YES` without independent review. Never attach the archive to a public issue or PR.
+
+## Operator execution checklist — 2026-10-26
+
+This checklist is for an independently authorized operator, not a claim that a rehearsal has run.
+
+1. Provision a **new disposable** PostgreSQL cluster outside production and staging; attest its instance identity, isolated network, empty initial state, and absence of production credentials. Never use forwarded localhost ports.
+2. Prepare the schema-only custom-format archive from a permitted **non-customer** schema-equivalent source. Record the PostgreSQL major version, migration SHA, operator and UTC time. Do not use a full CRM backup.
+3. Independently inspect the archive offline with `python3 scripts/inspect-schema-only-archive.py /private/path/archive.dump`; review SQL definitions and comments for sensitive literals as well. Record reviewer identity, SHA-256 and approved private object key. Do not upload before approval.
+4. Only after this review, provide a least-privilege **read-only** private-object credential to the disposable rehearsal runner, pin `CLIENT_BACKUP_SCHEMA_ONLY_OBJECT_KEY` and `CLIENT_BACKUP_SCHEMA_ONLY_SHA256`, and set the documented reviewed-source and synthetic-only gates. No production database URL or live alert destination may be present.
+5. Run the existing one-shot `test/backup/schema-rehearsal.py` in the disposable environment. Collect safe stdout markers `SCHEMA_ONLY_RESTORE_OK`, `REAL_SCHEMA_RECOVERY_OK`, `REAL_SCHEMA_SEQUENCE_RECOVERY_OK`, and `REAL_SCHEMA_REHEARSAL_DONE`, plus exit code and immutable runner/cluster identity. Redact credentials, private keys and row data.
+6. Independent reviewer verifies the evidence, including both distinct recipient decryptions, tenant/foreign-key constraints, sequence state, source/target digests, post-restore inserts, and cleanup. Any missing marker, nonzero exit, mismatched digest or ambiguous cluster identity is FAIL/NO-GO.
+7. Do not substitute this synthetic rehearsal for an authenticated restore of a separately approved genuine encrypted client archive; that is a distinct production release gate requiring privacy and owner authorization.
+
+**Execution status at this checkpoint: NOT RUN — no independently verified schema-only archive or disposable runner attestation was available. Production remains NO-GO.**
