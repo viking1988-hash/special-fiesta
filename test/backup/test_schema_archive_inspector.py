@@ -43,6 +43,19 @@ class SchemaArchiveInspectorTests(unittest.TestCase):
                         with self.assertRaisesRegex(ValueError, "ARCHIVE_REQUIRED_CLIENT_TABLE_MISSING"):
                             module.inspect(archive)
 
+    def test_rejects_empty_or_wrong_schema_toc(self):
+        cases = ("",
+                 "123; 0 456 TABLE staging customers postgres\n124; 0 457 TABLE staging vehicles postgres\n",
+                 "; 123; 0 456 TABLE public customers postgres\n; 124; 0 457 TABLE public vehicles postgres\n")
+        for toc in cases:
+            with self.subTest(toc=toc):
+                with tempfile.TemporaryDirectory() as folder:
+                    archive = Path(folder) / "sample.dump"
+                    archive.write_bytes(b"PGDMP" + b"0" * 2048)
+                    with patch.object(module.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, toc, "")):
+                        with self.assertRaisesRegex(ValueError, "ARCHIVE_REQUIRED_CLIENT_TABLE_MISSING"):
+                            module.inspect(archive)
+
     def test_rejects_unreadable_toc(self):
         with tempfile.TemporaryDirectory() as folder:
             archive = Path(folder) / "sample.dump"
