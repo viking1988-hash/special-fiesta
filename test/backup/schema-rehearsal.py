@@ -93,6 +93,10 @@ def main():
         inspector_spec.loader.exec_module(inspector)
         if any(inspector.DATA_ENTRY.search(line) for line in toc.splitlines() if line and not line.startswith(";")):
             raise RuntimeError("SNAPSHOT_CONTAINS_DATA_REFUSED")
+        for table in ("customers", "vehicles"):
+            pattern = re.compile(r"^\d+; \d+ \d+ TABLE public " + table + r" ")
+            if not any(pattern.search(line) for line in toc.splitlines()):
+                raise RuntimeError("SNAPSHOT_REQUIRED_CLIENT_TABLE_MISSING")
         print("SNAPSHOT_SCHEMA_SOURCE key=" + latest["Key"] + " modified=" + latest["LastModified"] + " sha256=" + snapshot_hash, flush=True)
         source = "crm_test_real_schema_source"
         target = "crm_test_real_schema_restore"
