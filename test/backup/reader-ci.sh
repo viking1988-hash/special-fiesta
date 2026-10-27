@@ -17,6 +17,23 @@ CREATE TABLE bookings(id bigint); CREATE TABLE work_orders(id bigint); CREATE TA
 INSERT INTO customers(organization_id,name,phone) VALUES(1,'ARTIFICIAL','+70000000001'),(2,'ARTIFICIAL','+70000000002');
 INSERT INTO vehicles(organization_id,customer_id,make,model) VALUES(1,1,'ARTIFICIAL','ONE'),(2,2,'ARTIFICIAL','TWO'),(1,NULL,'ARTIFICIAL','THREE');
 SQL
+# Reject installation even when the supplied expected_database matches a non-test DB.
+createdb crm_reader_ci_unsafe
+if psql -X -d crm_reader_ci_unsafe -v ON_ERROR_STOP=1 \
+  -v expected_database=crm_reader_ci_unsafe -v reader_role_install=REVIEWED_ROLE_ONLY \
+  -f scripts/crm-client-reader-role.sql >"$work/non-test-guard.log" 2>&1; then
+  echo NON_TEST_DATABASE_GUARD_FAILED >&2
+  exit 1
+fi
+if ! grep -q 'ROLE_INSTALL_TARGET_UNCONFIRMED' "$work/non-test-guard.log"; then
+  echo NON_TEST_DATABASE_GUARD_WRONG_FAILURE >&2
+  exit 1
+fi
+if psql -X -d crm_reader_ci_unsafe -Atqc "SELECT 1 FROM pg_roles WHERE rolname='crm_clients_backup_reader'" | grep -q 1; then
+  echo NON_TEST_DATABASE_ROLE_CREATED >&2
+  exit 1
+fi
+echo NON_TEST_DATABASE_GUARD_OK
 psql -X -d crm_test_reader_ci -v ON_ERROR_STOP=1 -v expected_database=crm_test_reader_ci -v reader_role_install=REVIEWED_ROLE_ONLY -f scripts/crm-client-reader-role.sql >/dev/null
 python3 test/backup/reader-permissions.py crm_test_reader_ci
 age-keygen -o "$work/identity" 2>/dev/null
