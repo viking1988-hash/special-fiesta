@@ -94,7 +94,7 @@ def open_checked_archive(path):
         info = os.fstat(stream.fileno())
         if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= MAX_BYTES:
             raise BackupError("INVALID_ARCHIVE_SIZE")
-        if stream.read(22) != b"age-encryption.org/v1\\n":
+        if stream.read(22) != b"age-encryption.org/v1\n":
             raise BackupError("AGE_HEADER_REQUIRED")
         stream.seek(0)
         yield p, stream
