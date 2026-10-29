@@ -111,6 +111,24 @@ class TransferTests(unittest.TestCase):
                 self.assertEqual(disk.upload(p), HASH)
             self.assertEqual(disk.data, DATA)
 
+    def test_in_place_ciphertext_change_refuses_verified_marker(self):
+        with tempfile.TemporaryDirectory() as work:
+            p = Path(work) / NAME
+            p.write_bytes(DATA)
+            disk = FakeDisk()
+            original_api = disk.api
+            def mutate_before_storage_url(suffix="", method="GET", payload=None, **query):
+                if suffix == "/upload":
+                    # Mutate the same inode after hashing, before PUT reads it.
+                    with p.open("r+b") as stream:
+                        stream.seek(0)
+                        stream.write(b"age-encryption.org/v1\\n" + b"X" * (len(DATA) - 22))
+                return original_api(suffix, method, payload, **query)
+            with patch.object(disk, "api", side_effect=mutate_before_storage_url):
+                with self.assertRaises(y.BackupError):
+                    disk.upload(p)
+            self.assertFalse(any(call[1] == "PATCH" for call in disk.calls))
+
     def test_upload_readback_and_no_overwrite(self):
         with tempfile.TemporaryDirectory() as work:
             p = Path(work) / NAME
