@@ -3,7 +3,12 @@ set -Eeuo pipefail
 umask 077
 [[ "${CLIENT_BACKUP_ENABLED:-false}" == "true" ]] || { echo "CLIENT_BACKUP_DISABLED"; exit 0; }
 : "${DATABASE_URL:?}"
-: "${AGE_RECIPIENT:?}"
+: "${AGE_RECIPIENT_PRIMARY:?}"
+: "${AGE_RECIPIENT_RECOVERY:?}"
+recipient_pattern='^age1[023456789acdefghjklmnpqrstuvwxyz]{58}$'
+[[ "$AGE_RECIPIENT_PRIMARY" =~ $recipient_pattern ]] || { echo "CLIENT_BACKUP_PRIMARY_RECIPIENT_INVALID" >&2; exit 1; }
+[[ "$AGE_RECIPIENT_RECOVERY" =~ $recipient_pattern ]] || { echo "CLIENT_BACKUP_RECOVERY_RECIPIENT_INVALID" >&2; exit 1; }
+[[ "$AGE_RECIPIENT_PRIMARY" != "$AGE_RECIPIENT_RECOVERY" ]] || { echo "CLIENT_BACKUP_RECIPIENTS_NOT_DISTINCT" >&2; exit 1; }
 : "${CLIENT_BACKUP_SCHEMA_VERIFIED:?}"
 [[ "$CLIENT_BACKUP_SCHEMA_VERIFIED" == "YES" ]] || exit 1
 command -v pg_dump >/dev/null
@@ -20,7 +25,7 @@ cleanup_partial() {
   fi
 }
 trap cleanup_partial EXIT
-if ! PGOPTIONS="-c default_transaction_read_only=on -c statement_timeout=300000 -c lock_timeout=10000" pg_dump --dbname="$DATABASE_URL" --format=custom --data-only --no-owner --no-acl --table=public.customers --table=public.vehicles 2>/dev/null | age -r "$AGE_RECIPIENT" -o "$partial" 2>/dev/null; then
+if ! PGOPTIONS="-c default_transaction_read_only=on -c statement_timeout=300000 -c lock_timeout=10000" pg_dump --dbname="$DATABASE_URL" --format=custom --data-only --no-owner --no-acl --table=public.customers --table=public.vehicles 2>/dev/null | age -r "$AGE_RECIPIENT_PRIMARY" -r "$AGE_RECIPIENT_RECOVERY" -o "$partial" 2>/dev/null; then
   echo "CLIENT_BACKUP_EXPORT_FAILED" >&2; exit 1
 fi
 [[ -s "$partial" ]] || exit 1
@@ -29,11 +34,30 @@ fi
   echo "CLIENT_BACKUP_INVALID_ENCRYPTED_HEADER" >&2
   exit 1
 }
+# Record the ciphertext digest before publication; compare the published bytes.
+# This detects a swapped .partial during publication, but cannot protect
+# against a malicious process with write access to the private directory.
+command -v sha256sum >/dev/null
+expected_sha256="$(sha256sum -- "$partial")"
+expected_sha256="${expected_sha256%% *}"
 # Atomic no-clobber publication: hard-link creation fails if output already exists.
 # Both names are in the same private directory/filesystem.
 [[ -f "$partial" && ! -L "$partial" ]] || exit 1
 if ! ln -- "$partial" "$output"; then
   echo "CLIENT_BACKUP_OUTPUT_ALREADY_EXISTS" >&2
+  exit 1
+fi
+# Verify both hard-link names still reference the same inode after publication.
+# This detects a swapped partial path at this point; directory ownership and
+# isolation remain mandatory because inode checks alone cannot eliminate TOCTOU.
+if [[ ! -f "$output" || -L "$output" || ! "$partial" -ef "$output" ]]; then
+  echo "CLIENT_BACKUP_PUBLISHED_INODE_MISMATCH" >&2
+  exit 1
+fi
+published_sha256="$(sha256sum -- "$output")"
+published_sha256="${published_sha256%% *}"
+if [[ "$expected_sha256" != "$published_sha256" ]]; then
+  echo "CLIENT_BACKUP_PUBLISHED_DIGEST_MISMATCH" >&2
   exit 1
 fi
 rm -- "$partial"

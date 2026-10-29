@@ -41,7 +41,8 @@ class ExportFailureTests(unittest.TestCase):
                 "CLIENT_BACKUP_SCHEMA_VERIFIED": "YES",
                 "CLIENT_BACKUP_REQUIRE_ENCRYPTION": "true",
                 "DATABASE_URL": "postgresql://synthetic@localhost/synthetic",
-                "AGE_RECIPIENT": "age1" + "q" * 58,
+                "AGE_RECIPIENT_PRIMARY": "age1" + "q" * 58,
+                "AGE_RECIPIENT_RECOVERY": "age1" + "p" * 58,
             }
             result = subprocess.run(["bash", str(SCRIPT), str(out)], env=env,
                                     text=True, capture_output=True, timeout=5)
@@ -76,7 +77,8 @@ class ExportFailureTests(unittest.TestCase):
                 "CLIENT_BACKUP_SCHEMA_VERIFIED": "YES",
                 "CLIENT_BACKUP_REQUIRE_ENCRYPTION": "true",
                 "DATABASE_URL": "postgresql://synthetic@localhost/synthetic",
-                "AGE_RECIPIENT": "age1" + "q" * 58,
+                "AGE_RECIPIENT_PRIMARY": "age1" + "q" * 58,
+            "AGE_RECIPIENT_RECOVERY": "age1" + "p" * 58,
                 "SYNTHETIC_SENTINEL": str(sentinel),
             }
             result = subprocess.run(["bash", str(SCRIPT), str(out)], env=env,
@@ -85,6 +87,75 @@ class ExportFailureTests(unittest.TestCase):
             self.assertFalse(out.exists())
             self.assertTrue(partial.is_symlink())
             self.assertEqual(sentinel.read_text(), "must survive")
+
+    def test_missing_or_duplicate_recipients_never_run_pg_dump(self):
+        for mode in ("missing_primary", "missing_recovery", "same", "invalid_primary", "invalid_recovery"):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as d:
+                root = Path(d)
+                bin_dir = root / "bin"
+                bin_dir.mkdir()
+                marker = root / "pg-dump-invoked"
+                dump = bin_dir / "pg_dump"
+                dump.write_text("#!/bin/sh\ntouch '" + str(marker) + "'\nexit 1\n")
+                dump.chmod(0o700)
+                age = bin_dir / "age"
+                age.write_text("#!/bin/sh\nexit 1\n")
+                age.chmod(0o700)
+                env = {
+                    "PATH": str(bin_dir) + ":" + os.environ.get("PATH", ""),
+                    "CLIENT_BACKUP_ENABLED": "true",
+                    "CLIENT_BACKUP_SCHEMA_VERIFIED": "YES",
+                    "DATABASE_URL": "postgresql://synthetic@localhost/synthetic",
+                    "AGE_RECIPIENT_PRIMARY": "age1" + "q" * 58,
+                    "AGE_RECIPIENT_RECOVERY": "age1" + "p" * 58,
+                }
+                if mode == "missing_primary":
+                    del env["AGE_RECIPIENT_PRIMARY"]
+                elif mode == "missing_recovery":
+                    del env["AGE_RECIPIENT_RECOVERY"]
+                elif mode == "same":
+                    env["AGE_RECIPIENT_RECOVERY"] = env["AGE_RECIPIENT_PRIMARY"]
+                elif mode == "invalid_primary":
+                    env["AGE_RECIPIENT_PRIMARY"] = "invalid"
+                else:
+                    env["AGE_RECIPIENT_RECOVERY"] = "invalid"
+                out = root / "clients-20261022T120000Z.dump.age"
+                result = subprocess.run(["bash", str(SCRIPT), str(out)], env=env,
+                                        text=True, capture_output=True, timeout=5)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertFalse(marker.exists(), "pg_dump ran before recipient validation")
+                self.assertFalse(out.exists())
+                self.assertFalse(Path(str(out) + ".partial").exists())
+
+    def test_valid_recipients_reach_synthetic_pg_dump(self):
+        """Positive control: prove the negative recipient tests can detect pg_dump."""
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            commands = root / "bin"
+            commands.mkdir()
+            marker = root / "pg-dump-invoked"
+            dump = commands / "pg_dump"
+            dump.write_text("#!/bin/sh\ntouch '" + str(marker) + "'\nexit 17\n")
+            dump.chmod(0o700)
+            age = commands / "age"
+            age.write_text("#!/bin/sh\ncat >/dev/null\nexit 18\n")
+            age.chmod(0o700)
+            out = root / "clients-20261022T120000Z.dump.age"
+            env = {
+                "PATH": str(commands) + ":" + os.environ.get("PATH", ""),
+                "CLIENT_BACKUP_ENABLED": "true",
+                "CLIENT_BACKUP_SCHEMA_VERIFIED": "YES",
+                "CLIENT_BACKUP_REQUIRE_ENCRYPTION": "true",
+                "DATABASE_URL": "postgresql://synthetic@localhost/synthetic",
+                "AGE_RECIPIENT_PRIMARY": "age1" + "q" * 58,
+                "AGE_RECIPIENT_RECOVERY": "age1" + "p" * 58,
+            }
+            result = subprocess.run(["bash", str(SCRIPT), str(out)], env=env,
+                                    text=True, capture_output=True, timeout=5)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertTrue(marker.exists(), "positive control never invoked pg_dump")
+            self.assertFalse(out.exists())
+            self.assertFalse(Path(str(out) + ".partial").exists())
 
     def test_pg_dump_failure_never_publishes_archive(self):
         result, final, partial = self.run_export(dump_exit=17)

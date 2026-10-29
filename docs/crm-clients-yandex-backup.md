@@ -1,5 +1,16 @@
 # Separate encrypted customers/vehicles backup: verified status and recovery
 
+> **Update 2026-10-22 / Draft PR #13 (not deployed):** The client
+> exporter now requires two **different** public AGE recipients:
+> `AGE_RECIPIENT_PRIMARY` and `AGE_RECIPIENT_RECOVERY`.
+> The older `AGE_RECIPIENT` setting and the single-identity USB procedure
+> below describe historical rehearsals and must **not** be used to authorize
+> the new dual-key exporter. Two copies of one identity are not two independent
+> keys. CI verifies only disposable synthetic decryptions; production remains
+> NO-GO. Never place private identities in GitHub, Railway or remote storage.
+> Preserve existing full-CRM backup and restore jobs unchanged.
+
+
 Updated 2026-10-09 UTC. Repository `viking1988-hash/special-fiesta`, branch `feature/crm-personal-auth`, PR #9. **Production backup is not enabled and is not yet ready for approval.** Earlier preparation notes are superseded by this report.
 
 ## Evidence of completed tests

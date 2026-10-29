@@ -1,10 +1,12 @@
 """Private encrypted-file transfer. No plaintext, redirects or secret diagnostics."""
+import contextlib
 import datetime as dt
 import hashlib
 import json
 import os
 from pathlib import Path
 import re
+import stat
 import sys
 import tempfile
 import urllib.error
@@ -75,6 +77,29 @@ def archive_check(path):
     return p
 
 
+@contextlib.contextmanager
+def open_checked_archive(path):
+    """Keep one no-follow ciphertext descriptor for hashing and upload."""
+    p = Path(path)
+    if not NAME.fullmatch(p.name):
+        raise BackupError("INVALID_ARCHIVE")
+    if not hasattr(os, "O_NOFOLLOW"):
+        raise BackupError("NOFOLLOW_UNAVAILABLE")
+    flags = os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NONBLOCK", 0)
+    try:
+        fd = os.open(p, flags)
+    except OSError as exc:
+        raise BackupError("INVALID_ARCHIVE") from exc
+    with os.fdopen(fd, "rb") as stream:
+        info = os.fstat(stream.fileno())
+        if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= MAX_BYTES:
+            raise BackupError("INVALID_ARCHIVE_SIZE")
+        if stream.read(22) != b"age-encryption.org/v1\n":
+            raise BackupError("AGE_HEADER_REQUIRED")
+        stream.seek(0)
+        yield p, stream
+
+
 class Disk:
     def __init__(self, token, folder):
         if not token or "\n" in token or "\r" in token:
@@ -88,7 +113,7 @@ class Disk:
     def request(self, url, method="GET", data=None, authenticated=True):
         headers = {"Content-Type": "application/json"}
         if authenticated:
-            if not url.startswith(API):
+            if not (url == API or url.startswith(API + "?") or url.startswith(API + "/")):
                 raise BackupError("AUTH_DESTINATION_REFUSED")
             headers["Authorization"] = "OAuth " + self.token
         else:
@@ -137,8 +162,19 @@ class Disk:
                 or not isinstance(size, int) or not 0 < size <= MAX_BYTES):
             raise BackupError("INVALID_REMOTE_ARCHIVE")
         href = storage_url(self.api("/download", path=self.remote(name))["href"])
+        # Refuse nonprivate or symlinked destination directories before writing.
+        parent = dest.parent
+        if not hasattr(os, "getuid"):
+            raise BackupError("PRIVATE_DOWNLOAD_DIRECTORY_UNVERIFIED")
+        try:
+            info = parent.lstat()
+        except OSError as exc:
+            raise BackupError("PRIVATE_DOWNLOAD_DIRECTORY_UNVERIFIED") from exc
+        if (not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid()
+                or info.st_mode & 0o077):
+            raise BackupError("PRIVATE_DOWNLOAD_DIRECTORY_REQUIRED")
         # Exclusive temporary file in same directory; no overwrite or symlink-following.
-        fd, temp = tempfile.mkstemp(prefix=".clients-download-", dir=dest.parent)
+        fd, temp = tempfile.mkstemp(prefix=".clients-download-", dir=parent)
         try:
             h, total = hashlib.sha256(), 0
             with os.fdopen(fd, "wb") as output, self.request(href, authenticated=False) as response:
@@ -162,14 +198,19 @@ class Disk:
             os.unlink(temp)
 
     def upload(self, path):
-        p = archive_check(path)
         self.ensure_folder()
-        sha = digest(p)
-        href = storage_url(self.api("/upload", path=self.remote(p.name), overwrite="false")["href"])
-        # Encrypted file stream; OAuth header is never sent to the storage host.
-        with p.open("rb") as f, self.request(href, "PUT", f, authenticated=False) as response:
-            if response.status not in (201, 202):
-                raise BackupError("UPLOAD_STATUS_INVALID")
+        # Hash and upload the SAME already-open file descriptor.
+        with open_checked_archive(path) as (p, stream):
+            h = hashlib.sha256()
+            for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+                h.update(chunk)
+            sha = h.hexdigest()
+            stream.seek(0)
+            href = storage_url(self.api("/upload", path=self.remote(p.name), overwrite="false")["href"])
+            # OAuth credentials are never sent to the storage host.
+            with self.request(href, "PUT", stream, authenticated=False) as response:
+                if response.status not in (201, 202):
+                    raise BackupError("UPLOAD_STATUS_INVALID")
         # Read-back is required even if provider doesn't return a digest.
         with tempfile.TemporaryDirectory(prefix="clients-readback-") as work:
             self.download(p.name, Path(work) / p.name, sha)

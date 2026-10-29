@@ -3,6 +3,7 @@ import hashlib
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -81,6 +82,64 @@ class TransferTests(unittest.TestCase):
             with self.assertRaises(y.BackupError):
                 y.archive_check(link)
 
+    @unittest.skipUnless(hasattr(os, "mkfifo") and hasattr(os, "O_NONBLOCK"), "POSIX FIFO required")
+    def test_fifo_archive_rejected_without_open_blocking(self):
+        with tempfile.TemporaryDirectory() as work:
+            p = Path(work) / NAME
+            os.mkfifo(p)
+            with self.assertRaises(y.BackupError) as caught:
+                with y.open_checked_archive(p):
+                    self.fail("FIFO must never be accepted")
+            self.assertEqual(str(caught.exception), "INVALID_ARCHIVE_SIZE")
+
+    def test_upload_rejects_symlink_after_folder_preflight(self):
+        with tempfile.TemporaryDirectory() as work:
+            p = Path(work) / NAME
+            target = Path(work) / "target"
+            target.write_bytes(DATA)
+            p.write_bytes(DATA)
+            disk = FakeDisk()
+            def swap():
+                p.unlink()
+                p.symlink_to(target)
+            with patch.object(disk, "ensure_folder", side_effect=swap):
+                with self.assertRaises(y.BackupError):
+                    disk.upload(p)
+            self.assertFalse(any(call[0] == "/upload" for call in disk.calls))
+
+    def test_upload_keeps_original_inode_after_path_replacement(self):
+        with tempfile.TemporaryDirectory() as work:
+            p = Path(work) / NAME
+            p.write_bytes(DATA)
+            disk = FakeDisk()
+            original_api = disk.api
+            def swap_during_upload_url(suffix="", method="GET", payload=None, **query):
+                if suffix == "/upload":
+                    p.unlink()
+                    p.write_bytes(b"age-encryption.org/v1\\nREPLACED")
+                return original_api(suffix, method, payload, **query)
+            with patch.object(disk, "api", side_effect=swap_during_upload_url):
+                self.assertEqual(disk.upload(p), HASH)
+            self.assertEqual(disk.data, DATA)
+
+    def test_in_place_ciphertext_change_refuses_verified_marker(self):
+        with tempfile.TemporaryDirectory() as work:
+            p = Path(work) / NAME
+            p.write_bytes(DATA)
+            disk = FakeDisk()
+            original_api = disk.api
+            def mutate_before_storage_url(suffix="", method="GET", payload=None, **query):
+                if suffix == "/upload":
+                    # Mutate the same inode after hashing, before PUT reads it.
+                    with p.open("r+b") as stream:
+                        stream.seek(0)
+                        stream.write(b"age-encryption.org/v1\\n" + b"X" * (len(DATA) - 22))
+                return original_api(suffix, method, payload, **query)
+            with patch.object(disk, "api", side_effect=mutate_before_storage_url):
+                with self.assertRaises(y.BackupError):
+                    disk.upload(p)
+            self.assertFalse(any(call[1] == "PATCH" for call in disk.calls))
+
     def test_upload_readback_and_no_overwrite(self):
         with tempfile.TemporaryDirectory() as work:
             p = Path(work) / NAME
@@ -115,6 +174,35 @@ class TransferTests(unittest.TestCase):
             with self.assertRaises(y.BackupError):
                 FakeDisk().download(NAME, p, HASH)
 
+    @unittest.skipUnless(hasattr(os, "getuid"), "POSIX directory ownership required")
+    def test_download_refuses_nonprivate_directory_before_writing(self):
+        with tempfile.TemporaryDirectory() as work:
+            directory = Path(work) / "shared"
+            directory.mkdir(mode=0o700)
+            os.chmod(directory, 0o755)
+            try:
+                disk = FakeDisk()
+                destination = directory / NAME
+                with self.assertRaises(y.BackupError) as caught:
+                    disk.download(NAME, destination, HASH)
+                self.assertEqual(str(caught.exception), "PRIVATE_DOWNLOAD_DIRECTORY_REQUIRED")
+                self.assertFalse(destination.exists())
+                self.assertFalse(list(directory.iterdir()))
+            finally:
+                os.chmod(directory, 0o700)
+
+    @unittest.skipUnless(hasattr(os, "getuid"), "POSIX directory ownership required")
+    def test_download_refuses_symlink_directory(self):
+        with tempfile.TemporaryDirectory() as work:
+            private = Path(work) / "private"
+            private.mkdir(mode=0o700)
+            alias = Path(work) / "alias"
+            alias.symlink_to(private, target_is_directory=True)
+            with self.assertRaises(y.BackupError) as caught:
+                FakeDisk().download(NAME, alias / NAME, HASH)
+            self.assertEqual(str(caught.exception), "PRIVATE_DOWNLOAD_DIRECTORY_REQUIRED")
+            self.assertFalse(list(private.iterdir()))
+
     def test_wrong_hash_refused(self):
         with tempfile.TemporaryDirectory() as work:
             with self.assertRaises(y.BackupError):
@@ -134,6 +222,13 @@ class TransferTests(unittest.TestCase):
             self.assertEqual(headers["Content-length"], str(len(DATA)))
         with self.assertRaises(y.BackupError):
             disk.request("https://evil.invalid")
+
+    def test_oauth_endpoint_prefix_confusion_refused(self):
+        disk = y.Disk("fake", "app:/clients-backups")
+        for url in (y.API + ".evil?path=x", y.API + "-other?path=x",
+                    "https://cloud-api.yandex.net/v1/disk/resources-other"):
+            with self.subTest(url=url), self.assertRaises(y.BackupError):
+                disk.request(url)
 
     def test_redirect_blocked(self):
         with self.assertRaises(y.BackupError):

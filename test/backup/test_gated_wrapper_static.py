@@ -15,11 +15,25 @@ class GatedWrapperStaticTests(unittest.TestCase):
     def test_bash_syntax(self):
         subprocess.run(["bash", "-n", str(WRAPPER)], check=True, timeout=5)
 
+    def test_python_modules_resolve_from_repository_root(self):
+        script = WRAPPER.read_text()
+        self.assertIn('cd -- "$here/.."', script)
+        self.assertLess(script.index('cd -- "$here/.."'), script.index("python3 -m backup.live_export_preflight"))
+
     def test_preflight_precedes_export(self):
         script = WRAPPER.read_text()
         preflight = script.index("python3 -m backup.live_export_preflight")
-        exporter = script.index('bash scripts/crm-clients-export.sh "$@"')
+        exporter = script.index('bash "$here/crm-clients-export.sh" "$@"')
         self.assertLess(preflight, exporter)
+
+    def test_scheduled_job_must_use_gated_wrapper(self):
+        job = (ROOT / "scripts/crm-clients-backup-job.sh").read_text()
+        self.assertIn('bash "$here/crm-clients-live-export-gated.sh" "$archive"', job)
+        self.assertNotIn('bash "$here/crm-clients-export.sh" "$archive"', job)
+        self.assertIn('export CLIENT_BACKUP_OUTPUT_DIR="$workdir"', job)
+        self.assertIn('bash "$here/crm-clients-yandex-upload.sh" "$archive"', job)
+        self.assertLess(job.index('bash "$here/crm-clients-live-export-gated.sh" "$archive"'),
+                        job.index('bash "$here/crm-clients-yandex-upload.sh" "$archive"'))
 
     def test_no_silent_preflight_bypass(self):
         script = WRAPPER.read_text()
