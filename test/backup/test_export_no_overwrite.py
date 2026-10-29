@@ -150,6 +150,45 @@ class ExistingArchiveTests(unittest.TestCase):
             self.assertIn("CLIENT_BACKUP_PUBLISHED_INODE_MISMATCH", result.stderr)
             self.assertNotIn("CLIENT_BACKUP_ENCRYPTED_OK", result.stdout)
 
+    def test_swapped_partial_before_hardlink_refuses_success(self):
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            bin_dir = root / "bin"
+            bin_dir.mkdir()
+            output = root / "clients-20261016T120003Z.dump.age"
+            dump = bin_dir / "pg_dump"
+            dump.write_text("#!/bin/sh\\nprintf 'synthetic'\\n".replace("\\n", "\n"))
+            dump.chmod(0o700)
+            age = bin_dir / "age"
+            age.write_text(
+                "#!/bin/sh\n"
+                "while [ \"$1\" != \"-o\" ]; do shift; done\n"
+                "shift\n"
+                "printf 'age-encryption.org/v1\\nORIGINAL' > \"$1\"\n"
+            )
+            age.chmod(0o700)
+            link = bin_dir / "ln"
+            link.write_text(
+                "#!/bin/sh\n"
+                "printf 'age-encryption.org/v1\\nSWAPPED' > \"$2\"\n"
+                "/bin/ln \"$@\"\n"
+            )
+            link.chmod(0o700)
+            env = {
+                "PATH": str(bin_dir) + ":" + os.environ.get("PATH", ""),
+                "CLIENT_BACKUP_ENABLED": "true",
+                "CLIENT_BACKUP_SCHEMA_VERIFIED": "YES",
+                "CLIENT_BACKUP_REQUIRE_ENCRYPTION": "true",
+                "DATABASE_URL": "postgresql://synthetic@localhost/synthetic",
+                "AGE_RECIPIENT_PRIMARY": "age1" + "q" * 58,
+                "AGE_RECIPIENT_RECOVERY": "age1" + "p" * 58,
+            }
+            result = subprocess.run(["bash", str(SCRIPT), str(output)], env=env,
+                                    capture_output=True, text=True, timeout=5)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("CLIENT_BACKUP_PUBLISHED_DIGEST_MISMATCH", result.stderr)
+            self.assertNotIn("CLIENT_BACKUP_ENCRYPTED_OK", result.stdout)
+
     def test_existing_archive_preserved(self):
         self.run_case("archive")
 
