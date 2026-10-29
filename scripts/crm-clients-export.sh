@@ -34,6 +34,12 @@ fi
   echo "CLIENT_BACKUP_INVALID_ENCRYPTED_HEADER" >&2
   exit 1
 }
+# Record the ciphertext digest before publication; compare the published bytes.
+# This detects a swapped .partial during publication, but cannot protect
+# against a malicious process with write access to the private directory.
+command -v sha256sum >/dev/null
+expected_sha256="$(sha256sum -- "$partial")"
+expected_sha256="${expected_sha256%% *}"
 # Atomic no-clobber publication: hard-link creation fails if output already exists.
 # Both names are in the same private directory/filesystem.
 [[ -f "$partial" && ! -L "$partial" ]] || exit 1
@@ -46,6 +52,12 @@ fi
 # isolation remain mandatory because inode checks alone cannot eliminate TOCTOU.
 if [[ ! -f "$output" || -L "$output" || ! "$partial" -ef "$output" ]]; then
   echo "CLIENT_BACKUP_PUBLISHED_INODE_MISMATCH" >&2
+  exit 1
+fi
+published_sha256="$(sha256sum -- "$output")"
+published_sha256="${published_sha256%% *}"
+if [[ "$expected_sha256" != "$published_sha256" ]]; then
+  echo "CLIENT_BACKUP_PUBLISHED_DIGEST_MISMATCH" >&2
   exit 1
 fi
 rm -- "$partial"
