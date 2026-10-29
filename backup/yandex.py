@@ -162,8 +162,19 @@ class Disk:
                 or not isinstance(size, int) or not 0 < size <= MAX_BYTES):
             raise BackupError("INVALID_REMOTE_ARCHIVE")
         href = storage_url(self.api("/download", path=self.remote(name))["href"])
+        # Refuse nonprivate or symlinked destination directories before writing.
+        parent = dest.parent
+        if not hasattr(os, "getuid"):
+            raise BackupError("PRIVATE_DOWNLOAD_DIRECTORY_UNVERIFIED")
+        try:
+            info = parent.lstat()
+        except OSError as exc:
+            raise BackupError("PRIVATE_DOWNLOAD_DIRECTORY_UNVERIFIED") from exc
+        if (not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid()
+                or info.st_mode & 0o077):
+            raise BackupError("PRIVATE_DOWNLOAD_DIRECTORY_REQUIRED")
         # Exclusive temporary file in same directory; no overwrite or symlink-following.
-        fd, temp = tempfile.mkstemp(prefix=".clients-download-", dir=dest.parent)
+        fd, temp = tempfile.mkstemp(prefix=".clients-download-", dir=parent)
         try:
             h, total = hashlib.sha256(), 0
             with os.fdopen(fd, "wb") as output, self.request(href, authenticated=False) as response:
