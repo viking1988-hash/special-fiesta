@@ -3,6 +3,7 @@ import hashlib
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -80,6 +81,16 @@ class TransferTests(unittest.TestCase):
             link.symlink_to(p)
             with self.assertRaises(y.BackupError):
                 y.archive_check(link)
+
+    @unittest.skipUnless(hasattr(os, "mkfifo") and hasattr(os, "O_NONBLOCK"), "POSIX FIFO required")
+    def test_fifo_archive_rejected_without_open_blocking(self):
+        with tempfile.TemporaryDirectory() as work:
+            p = Path(work) / NAME
+            os.mkfifo(p)
+            with self.assertRaises(y.BackupError) as caught:
+                with y.open_checked_archive(p):
+                    self.fail("FIFO must never be accepted")
+            self.assertEqual(str(caught.exception), "INVALID_ARCHIVE_SIZE")
 
     def test_upload_rejects_symlink_after_folder_preflight(self):
         with tempfile.TemporaryDirectory() as work:
