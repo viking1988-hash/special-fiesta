@@ -174,6 +174,35 @@ class TransferTests(unittest.TestCase):
             with self.assertRaises(y.BackupError):
                 FakeDisk().download(NAME, p, HASH)
 
+    @unittest.skipUnless(hasattr(os, "getuid"), "POSIX directory ownership required")
+    def test_download_refuses_nonprivate_directory_before_writing(self):
+        with tempfile.TemporaryDirectory() as work:
+            directory = Path(work) / "shared"
+            directory.mkdir(mode=0o700)
+            os.chmod(directory, 0o755)
+            try:
+                disk = FakeDisk()
+                destination = directory / NAME
+                with self.assertRaises(y.BackupError) as caught:
+                    disk.download(NAME, destination, HASH)
+                self.assertEqual(str(caught.exception), "PRIVATE_DOWNLOAD_DIRECTORY_REQUIRED")
+                self.assertFalse(destination.exists())
+                self.assertFalse(list(directory.iterdir()))
+            finally:
+                os.chmod(directory, 0o700)
+
+    @unittest.skipUnless(hasattr(os, "getuid"), "POSIX directory ownership required")
+    def test_download_refuses_symlink_directory(self):
+        with tempfile.TemporaryDirectory() as work:
+            private = Path(work) / "private"
+            private.mkdir(mode=0o700)
+            alias = Path(work) / "alias"
+            alias.symlink_to(private, target_is_directory=True)
+            with self.assertRaises(y.BackupError) as caught:
+                FakeDisk().download(NAME, alias / NAME, HASH)
+            self.assertEqual(str(caught.exception), "PRIVATE_DOWNLOAD_DIRECTORY_REQUIRED")
+            self.assertFalse(list(private.iterdir()))
+
     def test_wrong_hash_refused(self):
         with tempfile.TemporaryDirectory() as work:
             with self.assertRaises(y.BackupError):
