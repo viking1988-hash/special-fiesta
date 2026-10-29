@@ -85,7 +85,7 @@ def open_checked_archive(path):
         raise BackupError("INVALID_ARCHIVE")
     if not hasattr(os, "O_NOFOLLOW"):
         raise BackupError("NOFOLLOW_UNAVAILABLE")
-    flags = os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0)
+    flags = os.O_RDONLY | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0) | getattr(os, "O_NONBLOCK", 0)
     try:
         fd = os.open(p, flags)
     except OSError as exc:
