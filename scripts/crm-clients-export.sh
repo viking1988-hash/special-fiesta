@@ -41,5 +41,12 @@ if ! ln -- "$partial" "$output"; then
   echo "CLIENT_BACKUP_OUTPUT_ALREADY_EXISTS" >&2
   exit 1
 fi
+# Verify both hard-link names still reference the same inode after publication.
+# This detects a swapped partial path at this point; directory ownership and
+# isolation remain mandatory because inode checks alone cannot eliminate TOCTOU.
+if [[ ! -f "$output" || -L "$output" || ! "$partial" -ef "$output" ]]; then
+  echo "CLIENT_BACKUP_PUBLISHED_INODE_MISMATCH" >&2
+  exit 1
+fi
 rm -- "$partial"
 echo "CLIENT_BACKUP_ENCRYPTED_OK"
