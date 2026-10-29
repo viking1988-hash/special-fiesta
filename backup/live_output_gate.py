@@ -43,6 +43,10 @@ def validate(directory, output):
         mode = root.stat().st_mode
         if not stat.S_ISDIR(mode) or mode & 0o077:
             return False
+        # Mode 0700 alone is insufficient when a different UID owns the root.
+        # Refuse an attacker-owned private directory before any export.
+        if hasattr(os, "getuid") and root.stat().st_uid != os.getuid():
+            return False
         if (target.exists() or target.is_symlink() or target.with_name(target.name + ".partial").exists()
                 or target.with_name(target.name + ".partial").is_symlink()):
             return False
