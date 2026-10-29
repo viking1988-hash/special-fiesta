@@ -81,6 +81,36 @@ class TransferTests(unittest.TestCase):
             with self.assertRaises(y.BackupError):
                 y.archive_check(link)
 
+    def test_upload_rejects_symlink_after_folder_preflight(self):
+        with tempfile.TemporaryDirectory() as work:
+            p = Path(work) / NAME
+            target = Path(work) / "target"
+            target.write_bytes(DATA)
+            p.write_bytes(DATA)
+            disk = FakeDisk()
+            def swap():
+                p.unlink()
+                p.symlink_to(target)
+            with patch.object(disk, "ensure_folder", side_effect=swap):
+                with self.assertRaises(y.BackupError):
+                    disk.upload(p)
+            self.assertFalse(any(call[0] == "/upload" for call in disk.calls))
+
+    def test_upload_keeps_original_inode_after_path_replacement(self):
+        with tempfile.TemporaryDirectory() as work:
+            p = Path(work) / NAME
+            p.write_bytes(DATA)
+            disk = FakeDisk()
+            original_api = disk.api
+            def swap_during_upload_url(suffix="", method="GET", payload=None, **query):
+                if suffix == "/upload":
+                    p.unlink()
+                    p.write_bytes(b"age-encryption.org/v1\\nREPLACED")
+                return original_api(suffix, method, payload, **query)
+            with patch.object(disk, "api", side_effect=swap_during_upload_url):
+                self.assertEqual(disk.upload(p), HASH)
+            self.assertEqual(disk.data, DATA)
+
     def test_upload_readback_and_no_overwrite(self):
         with tempfile.TemporaryDirectory() as work:
             p = Path(work) / NAME
