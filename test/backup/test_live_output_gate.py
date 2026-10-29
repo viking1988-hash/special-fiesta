@@ -1,4 +1,6 @@
 import tempfile
+import os
+from unittest.mock import patch
 import unittest
 from pathlib import Path
 from backup.live_output_gate import validate
@@ -69,6 +71,13 @@ class LiveOutputGateTests(unittest.TestCase):
             nested.mkdir(mode=0o700)
             p = nested / "clients-20261012T120000Z.dump.age"
             self.assertFalse(validate(str(nested), str(p)))
+
+    @unittest.skipUnless(hasattr(os, "getuid"), "POSIX ownership check")
+    def test_private_directory_owned_by_other_uid_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "clients-20261012T120000Z.dump.age"
+            with patch("backup.live_output_gate.os.getuid", return_value=os.getuid() + 1):
+                self.assertFalse(validate(d, str(p)))
 
     def test_public_directory_rejected(self):
         with tempfile.TemporaryDirectory() as d:
