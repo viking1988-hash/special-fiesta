@@ -1,5 +1,6 @@
 """Offline tests of the schema-only archive inspector; no PostgreSQL needed."""
 import importlib.util
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -92,6 +93,36 @@ class SchemaArchiveInspectorTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "ARCHIVE_MUST_BE_REGULAR_FILE"):
                     module.inspect(linked)
                 runner.assert_not_called()
+
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "FIFO unavailable")
+    def test_rejects_fifo_without_blocking(self):
+        with tempfile.TemporaryDirectory() as folder:
+            fifo = Path(folder) / "archive.dump"
+            os.mkfifo(fifo)
+            with patch.object(module.subprocess, "run") as runner:
+                with self.assertRaisesRegex(ValueError, "ARCHIVE_MUST_BE_REGULAR_FILE"):
+                    module.inspect(fifo)
+                runner.assert_not_called()
+
+    def test_pg_restore_reads_private_snapshot_not_mutable_input(self):
+        with tempfile.TemporaryDirectory() as folder:
+            archive = Path(folder) / "sample.dump"
+            original = b"PGDMP" + b"A" * 2048
+            archive.write_bytes(original)
+            toc = "123; 0 456 TABLE public customers postgres\\n124; 0 457 TABLE public vehicles postgres\\n"
+
+            def verify_snapshot(args, **kwargs):
+                snapshot = Path(args[-1])
+                self.assertNotEqual(snapshot, archive)
+                self.assertEqual(snapshot.read_bytes(), original)
+                archive.write_bytes(b"PGDMP" + b"B" * 2048)
+                self.assertEqual(snapshot.read_bytes(), original)
+                return subprocess.CompletedProcess(args, 0, toc, "")
+
+            with patch.object(module.subprocess, "run", side_effect=verify_snapshot) as runner:
+                output = module.inspect(archive)
+            self.assertIn("SCHEMA_ONLY_TOC_PASS", output)
+            runner.assert_called_once()
 
     def test_rejects_bad_magic_without_invoking_pg_restore(self):
         with tempfile.TemporaryDirectory() as folder:
