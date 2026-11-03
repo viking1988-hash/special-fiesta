@@ -237,9 +237,10 @@ class TransferTests(unittest.TestCase):
                 return original_request(*args, **kwargs)
 
             with patch.object(disk, "request", side_effect=swap_on_request):
-                disk.download(NAME, destination, HASH)
+                with self.assertRaisesRegex(y.BackupError, "DOWNLOAD_DIRECTORY_CHANGED"):
+                    disk.download(NAME, destination, HASH)
             self.assertFalse((private / NAME).exists())
-            self.assertEqual((moved / NAME).read_bytes(), DATA)
+            self.assertFalse((moved / NAME).exists())
             self.assertFalse(list(private.iterdir()))
             self.assertFalse(list(moved.glob(".clients-download-*")))
 
