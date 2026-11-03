@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 import stat
 import sys
 import tempfile
@@ -156,40 +157,64 @@ class Disk:
                 or not isinstance(size, int) or not 0 < size <= MAX_BYTES):
             raise BackupError("INVALID_REMOTE_ARCHIVE")
         href = storage_url(self.api("/download", path=self.remote(name))["href"])
-        # Refuse nonprivate or symlinked destination directories before writing.
+        # Pin the private directory inode: never resolve its pathname again
+        # after checking permissions (prevents parent-directory swap TOCTOU).
         parent = dest.parent
-        if not hasattr(os, "getuid"):
+        if (not hasattr(os, "getuid") or not hasattr(os, "O_DIRECTORY")
+                or not hasattr(os, "O_NOFOLLOW") or not hasattr(os, "O_NONBLOCK")
+                or os.open not in os.supports_dir_fd
+                or os.link not in os.supports_dir_fd
+                or os.unlink not in os.supports_dir_fd):
             raise BackupError("PRIVATE_DOWNLOAD_DIRECTORY_UNVERIFIED")
         try:
-            info = parent.lstat()
+            dirfd = os.open(parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
         except OSError as exc:
-            raise BackupError("PRIVATE_DOWNLOAD_DIRECTORY_UNVERIFIED") from exc
-        if (not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid()
-                or info.st_mode & 0o077):
-            raise BackupError("PRIVATE_DOWNLOAD_DIRECTORY_REQUIRED")
-        # Exclusive temporary file in same directory; no overwrite or symlink-following.
-        fd, temp = tempfile.mkstemp(prefix=".clients-download-", dir=parent)
+            raise BackupError("PRIVATE_DOWNLOAD_DIRECTORY_REQUIRED") from exc
         try:
-            h, total = hashlib.sha256(), 0
-            with os.fdopen(fd, "wb") as output, self.request(href, authenticated=False) as response:
-                while True:
-                    chunk = response.read(1024 * 1024)
-                    if not chunk:
-                        break
-                    total += len(chunk)
-                    if total > size:
-                        raise BackupError("DOWNLOAD_SIZE_MISMATCH")
-                    h.update(chunk)
-                    output.write(chunk)
-            if total != size or h.hexdigest() != expected_hash:
-                raise BackupError("DOWNLOAD_INTEGRITY_FAILED")
-            # Check header separately: temp name intentionally differs from archive name.
-            with open(temp, "rb") as f:
-                if f.read(22) != b"age-encryption.org/v1\n":
-                    raise BackupError("AGE_HEADER_REQUIRED")
-            os.link(temp, dest)  # atomic, fails if another writer created dest
+            info = os.fstat(dirfd)
+            if (not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid()
+                    or info.st_mode & 0o077):
+                raise BackupError("PRIVATE_DOWNLOAD_DIRECTORY_REQUIRED")
+            # Reject existing targets within the pinned directory; os.link is
+            # also exclusive and will fail if another writer races us.
+            if dest.name in ("", ".", "..") or "/" in dest.name or "\\\\" in dest.name:
+                raise BackupError("INVALID_DOWNLOAD_DESTINATION")
+            try:
+                os.stat(dest.name, dir_fd=dirfd, follow_symlinks=False)
+            except FileNotFoundError:
+                pass
+            else:
+                raise BackupError("EXISTING_DESTINATION_REFUSED")
+            temp_name = ".clients-download-" + secrets.token_hex(16)
+            fd = os.open(temp_name, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                         0o600, dir_fd=dirfd)
+            try:
+                h, total = hashlib.sha256(), 0
+                with os.fdopen(fd, "wb") as output, self.request(href, authenticated=False) as response:
+                    while True:
+                        chunk = response.read(1024 * 1024)
+                        if not chunk:
+                            break
+                        total += len(chunk)
+                        if total > size:
+                            raise BackupError("DOWNLOAD_SIZE_MISMATCH")
+                        h.update(chunk)
+                        output.write(chunk)
+                    output.flush()
+                if total != size or h.hexdigest() != expected_hash:
+                    raise BackupError("DOWNLOAD_INTEGRITY_FAILED")
+                headerfd = os.open(temp_name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=dirfd)
+                try:
+                    if os.read(headerfd, 22) != b"age-encryption.org/v1\\n":
+                        raise BackupError("AGE_HEADER_REQUIRED")
+                finally:
+                    os.close(headerfd)
+                os.link(temp_name, dest.name, src_dir_fd=dirfd, dst_dir_fd=dirfd,
+                        follow_symlinks=False)
+            finally:
+                os.unlink(temp_name, dir_fd=dirfd)
         finally:
-            os.unlink(temp)
+            os.close(dirfd)
 
     def upload(self, path):
         self.ensure_folder()
