@@ -65,6 +65,12 @@ def main():
         cluster_id = query("postgres", "SELECT system_identifier FROM pg_control_system()")
         if not re.fullmatch(r"[0-9]{10,20}", cluster_id):
             raise RuntimeError("DISPOSABLE_POSTGRES_CLUSTER_ID_INVALID")
+        # Compare SQL server identity with the physical cluster we just initialized.
+        # Checking only the format would accept an unrelated localhost PostgreSQL.
+        control = run(["pg_controldata", os.environ["PGDATA"]])
+        match = re.search(r"(?m)^Database system identifier:\s*([0-9]+)\\s*$", control)
+        if match is None or match.group(1) != cluster_id:
+            raise RuntimeError("DISPOSABLE_POSTGRES_CLUSTER_ID_MISMATCH")
         print("DISPOSABLE_POSTGRES_ENDPOINT_OK port=DEDICATED cluster_id_verified=YES", flush=True)
         # Fail closed on malformed reviewed-source selectors before storage access.
         import importlib.util
