@@ -25,6 +25,17 @@ class RealSchemaRehearsalContract(unittest.TestCase):
         self.assertIn("if recipient == recovery_recipient:", self.source)
         self.assertIn('str(recovery_identity), "-o", os.devnull, str(encrypted)', self.source)
 
+    def test_offline_key_custody_is_not_mistaken_for_two_recipients(self):
+        handoff = (ROOT / "docs/client-backup-schema-only-handoff.md").read_text(encoding="utf-8")
+        key_setup = (ROOT / "backup/offline-key-setup.ps1").read_text(encoding="utf-8")
+        self.assertIn("two encrypted copies of that same identity", handoff)
+        self.assertIn("two **distinct** identities", handoff)
+        self.assertIn("same artificial-data payload", handoff)
+        self.assertIn("AGE_RECIPIENT_PRIMARY", handoff)
+        self.assertIn("AGE_RECIPIENT_RECOVERY", handoff)
+        self.assertIn("foreach ($dir in $copyDirs)", key_setup)
+        self.assertIn("Copy-Item -LiteralPath $sealed -Destination $destination", key_setup)
+
     def test_cluster_identity_bound_to_local_postgres(self):
         self.assertIn('CLIENT_BACKUP_EXPECTED_CLUSTER_ID=query("postgres", "SELECT system_identifier FROM pg_control_system()")', self.source)
         self.assertIn("CLIENT_BACKUP_EXPECTED_TEST_DB=target", self.source)
