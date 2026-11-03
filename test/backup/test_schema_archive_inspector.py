@@ -109,7 +109,7 @@ class SchemaArchiveInspectorTests(unittest.TestCase):
             archive = Path(folder) / "sample.dump"
             original = b"PGDMP" + b"A" * 2048
             archive.write_bytes(original)
-            toc = "123; 0 456 TABLE public customers postgres\\n124; 0 457 TABLE public vehicles postgres\\n"
+            toc = "123; 0 456 TABLE public customers postgres\n124; 0 457 TABLE public vehicles postgres\n"
 
             def verify_snapshot(args, **kwargs):
                 snapshot = Path(args[-1])
