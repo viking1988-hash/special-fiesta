@@ -122,6 +122,32 @@ jobs:
           grep -Fxq 'DISPOSABLE_POSTGRES_ENDPOINT_OK port=DEDICATED cluster_id_verified=YES' /tmp/schema-endpoint-smoke.log
           grep -Fxq 'SCHEMA_REHEARSAL_FAILED' /tmp/schema-endpoint-smoke.log
           rm -f /tmp/schema-endpoint-smoke.log
+      - name: Reject mismatched disposable PostgreSQL cluster identity
+        run: |
+          # Simulate a mismatched local control-file identity. No archive,
+          # network, customer records or external database are accessible.
+          mkdir -p /tmp/schema-identity-override
+          cat > /tmp/schema-identity-override/pg_controldata <<'SH'
+          #!/bin/sh
+          echo 'Database system identifier: 1111111111111111111'
+          SH
+          chmod 755 /tmp/schema-identity-override/pg_controldata
+          set +e
+          docker run --rm --network none \
+            -v /tmp/schema-identity-override:/tmp/schema-identity-override:ro \
+            -e PATH=/tmp/schema-identity-override:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+            -e CLIENT_BACKUP_SCHEMA_REHEARSAL=true \
+            -e CLIENT_BACKUP_SCHEMA_ONLY_SOURCE_REVIEWED=YES \
+            crm-schema-rehearsal:test > /tmp/schema-identity-negative.log 2>&1
+          status=$?
+          set -e
+          test "$status" -ne 0
+          grep -Fxq 'DISPOSABLE_POSTGRES_CLUSTER_ID_MISMATCH' /tmp/schema-identity-negative.log
+          if grep -Fq 'DISPOSABLE_POSTGRES_ENDPOINT_OK' /tmp/schema-identity-negative.log; then
+            echo 'Mismatched cluster identity was accepted'
+            exit 1
+          fi
+          rm -rf /tmp/schema-identity-override /tmp/schema-identity-negative.log
       - name: Verify separate monitor is disabled by default
         run: |
           docker build -f backup/Dockerfile.watchdog -t crm-client-watchdog:test .
