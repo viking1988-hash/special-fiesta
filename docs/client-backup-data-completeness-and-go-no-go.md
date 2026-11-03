@@ -26,9 +26,13 @@ does **not** establish that customer records are independently recoverable.
   recipient. Missing, malformed, or identical recipients fail before `pg_dump`.
 - The same ciphertext is encrypted to both public recipients; disposable CI
   identities independently decrypt it. No real offline private key is used in CI.
-- Two independently held USB keys were verified in an owner-side **synthetic**
-  recovery exercise; this does not prove real client archive recoverability,
-  key custody durability, or authorization for production use.
+- Historical notes described an owner-side **synthetic** USB recovery exercise,
+  but the repository does not contain independently authenticated evidence that
+  **two distinct** production AGE identities were verified. Two USB copies of
+  one encrypted identity are not two different recipients. The dual-identity
+  owner recovery gate remains **HOLD** pending redacted, independently reviewed
+  evidence; neither client archive recoverability nor production authorization
+  is established.
 - Legacy `AGE_RECIPIENT` is **not** an accepted replacement for either variable
   in this export path. Historical instructions mentioning it are superseded.
 - GitHub CI PASS means synthetic code paths passed, not that a live service is
