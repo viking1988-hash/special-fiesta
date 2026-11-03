@@ -148,6 +148,23 @@ jobs:
             exit 1
           fi
           rm -rf /tmp/schema-identity-override /tmp/schema-identity-negative.log
+      - name: Reject live alert configuration in isolated schema rehearsal
+        run: |
+          set +e
+          docker run --rm --network none \
+            -e CLIENT_BACKUP_SCHEMA_REHEARSAL=true \
+            -e CLIENT_BACKUP_SCHEMA_ONLY_SOURCE_REVIEWED=YES \
+            -e CLIENT_BACKUP_LIVE_ALERT_TEST=true \
+            crm-schema-rehearsal:test > /tmp/schema-live-alert-negative.log 2>&1
+          status=$?
+          set -e
+          test "$status" -ne 0
+          grep -Fxq 'SCHEMA_REHEARSAL_LIVE_ALERT_FORBIDDEN' /tmp/schema-live-alert-negative.log
+          if grep -Fq 'DISPOSABLE_POSTGRES_ENDPOINT_OK' /tmp/schema-live-alert-negative.log; then
+            echo 'Live-alert guard executed too late'
+            exit 1
+          fi
+          rm -f /tmp/schema-live-alert-negative.log
       - name: Verify separate monitor is disabled by default
         run: |
           docker build -f backup/Dockerfile.watchdog -t crm-client-watchdog:test .
