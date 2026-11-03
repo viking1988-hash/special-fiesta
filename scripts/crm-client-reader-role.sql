@@ -9,7 +9,8 @@ SELECT set_config('client_backup.expected_database', :'expected_database', true)
 SELECT set_config('client_backup.role_install', :'reader_role_install', true);
 DO $guard$
 BEGIN
- IF current_database() <> current_setting('client_backup.expected_database')
+ IF current_database() !~ '^crm_test_[a-zA-Z0-9_]+$'
+    OR current_database() <> current_setting('client_backup.expected_database')
     OR current_setting('client_backup.role_install') <> 'REVIEWED_ROLE_ONLY' THEN
   RAISE EXCEPTION 'ROLE_INSTALL_TARGET_UNCONFIRMED';
  END IF;

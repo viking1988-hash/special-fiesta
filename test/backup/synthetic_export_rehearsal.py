@@ -26,21 +26,30 @@ def main():
     os.umask(0o077)
     with tempfile.TemporaryDirectory(prefix="client-synthetic-export-") as temp:
         directory = Path(temp)
-        identity = directory / "identity.agekey"
+        identity = directory / "primary.agekey"
+        recovery_identity = directory / "recovery.agekey"
         encrypted = directory / "clients-synthetic.age"
         run(["age-keygen", "-o", str(identity)])
+        run(["age-keygen", "-o", str(recovery_identity)])
         recipient = run(["age-keygen", "-y", str(identity)]).stdout.decode().strip()
+        recovery_recipient = run(["age-keygen", "-y", str(recovery_identity)]).stdout.decode().strip()
+        if recipient == recovery_recipient:
+            raise SystemExit("RECIPIENTS_NOT_DISTINCT")
         synthetic = b"organization_id,customer_id,vehicle_id\n1,101,201\n2,102,202\n"
-        run(["age", "-r", recipient, "-o", str(encrypted)], input_data=synthetic)
+        run(["age", "-r", recipient, "-r", recovery_recipient, "-o", str(encrypted)], input_data=synthetic)
         if not encrypted.read_bytes().startswith(b"age-encryption.org/v1\n"):
             raise SystemExit("ENCRYPTION_HEADER_INVALID")
         recovered = run(["age", "-d", "-i", str(identity), str(encrypted)]).stdout
         if recovered != synthetic:
             raise SystemExit("SYNTHETIC_RECOVERY_MISMATCH")
-        if identity.stat().st_mode & 0o077:
+        recovered_backup = run(["age", "-d", "-i", str(recovery_identity), str(encrypted)]).stdout
+        if recovered_backup != synthetic:
+            raise SystemExit("SYNTHETIC_RECOVERY_KEY_MISMATCH")
+        if identity.stat().st_mode & 0o077 or recovery_identity.stat().st_mode & 0o077:
             raise SystemExit("KEY_PERMISSIONS_UNSAFE")
         print("SYNTHETIC_CLIENT_EXPORT_ENCRYPTED_OK")
-        print("SYNTHETIC_CLIENT_EXPORT_RECOVERY_OK")
+        print("SYNTHETIC_CLIENT_EXPORT_PRIMARY_RECOVERY_OK")
+        print("SYNTHETIC_CLIENT_EXPORT_SECONDARY_RECOVERY_OK")
         print("LIVE_DATABASE_CONNECTIONS=0 YANDEX_UPLOADS=0")
 
 

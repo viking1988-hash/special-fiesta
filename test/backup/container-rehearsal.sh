@@ -9,7 +9,7 @@ export SYNTHETIC_REHEARSAL_ONLY=YES
 export PGDATA=/tmp/synthetic-pgdata PGHOST=127.0.0.1 PGUSER=postgres
 initdb -D "$PGDATA" -A trust >/dev/null
 pg_ctl -D "$PGDATA" -o '-c listen_addresses=127.0.0.1' -w start >/dev/null
-trap 'pg_ctl -D "$PGDATA" -m immediate stop >/dev/null 2>&1 || true; rm -rf /tmp/identity /tmp/clients-*.dump.age /tmp/readback' EXIT
+trap 'pg_ctl -D "$PGDATA" -m immediate stop >/dev/null 2>&1 || true; rm -rf /tmp/identity /tmp/recovery-identity /tmp/clients-*.dump.age /tmp/readback' EXIT
 psql -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE crm_test_container_source' >/dev/null
 psql -d postgres -v ON_ERROR_STOP=1 -c 'CREATE DATABASE crm_test_container_restore' >/dev/null
 for db in crm_test_container_source crm_test_container_restore; do
@@ -17,13 +17,17 @@ for db in crm_test_container_source crm_test_container_restore; do
 done
 psql -d crm_test_container_source -v ON_ERROR_STOP=1 -c 'INSERT INTO customers VALUES(1,1,$$ARTIFICIAL ONLY$$),(2,2,NULL); INSERT INTO vehicles VALUES(1,1,1),(2,2,2);' >/dev/null
 age-keygen -o /tmp/identity 2>/dev/null
-export AGE_RECIPIENT
-AGE_RECIPIENT="$(age-keygen -y /tmp/identity)"
+age-keygen -o /tmp/recovery-identity 2>/dev/null
+AGE_RECIPIENT_PRIMARY="$(age-keygen -y /tmp/identity)"
+AGE_RECIPIENT_RECOVERY="$(age-keygen -y /tmp/recovery-identity)"
+test "$AGE_RECIPIENT_PRIMARY" != "$AGE_RECIPIENT_RECOVERY"
+export AGE_RECIPIENT_PRIMARY AGE_RECIPIENT_RECOVERY
 export CLIENT_BACKUP_ENABLED=true CLIENT_BACKUP_SCHEMA_VERIFIED=YES
 export DATABASE_URL=postgresql://postgres@127.0.0.1/crm_test_container_source
 archive="/tmp/clients-$(date -u +%Y%m%dT%H%M%SZ).dump.age"
 readback="/tmp/readback/$(basename -- "$archive")"
 bash scripts/crm-clients-export.sh "$archive"
+age -d -i /tmp/recovery-identity "$archive" | pg_restore -l >/dev/null
 if [[ "${CLIENT_BACKUP_LIVE_YANDEX_TEST:-false}" == true ]]; then
   python3 test/backup/live-roundtrip.py "$archive" "$readback"
 else
@@ -32,6 +36,9 @@ fi
 export CLIENT_BACKUP_ARCHIVE="$readback"
 export AGE_IDENTITY_FILE=/tmp/identity TEST_DATABASE_URL=postgresql://postgres@127.0.0.1/crm_test_container_restore
 export CLIENT_BACKUP_TEST_CONFIRM=ISOLATED CLIENT_BACKUP_TEST_DB_EMPTY_CONFIRMED=YES CLIENT_BACKUP_EXPECTED_TEST_DB=crm_test_container_restore
+CLIENT_BACKUP_EXPECTED_CLUSTER_ID="$(psql -d postgres -X -v ON_ERROR_STOP=1 -Atqc 'SELECT system_identifier FROM pg_control_system()')"
+export CLIENT_BACKUP_EXPECTED_CLUSTER_ID
+test -n "$CLIENT_BACKUP_EXPECTED_CLUSTER_ID"
 bash scripts/crm-client-backup-verify.sh
 test "$(psql -d crm_test_container_restore -Atqc 'SELECT count(*) FROM customers')" = 2
 test "$(psql -d crm_test_container_restore -Atqc 'SELECT count(*) FROM vehicles v JOIN customers c ON c.id=v.customer_id AND c.organization_id=v.organization_id')" = 2

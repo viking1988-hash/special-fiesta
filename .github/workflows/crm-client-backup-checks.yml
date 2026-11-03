@@ -18,12 +18,13 @@ jobs:
       - name: Install shellcheck
         run: sudo apt-get update -qq && sudo apt-get install -y shellcheck
       - name: Static analysis of backup scripts
-        run: shellcheck -S warning scripts/crm-clients-export.sh scripts/crm-clients-yandex-upload.sh scripts/crm-clients-backup-job.sh scripts/crm-client-backup-verify.sh
+        run: shellcheck -S warning scripts/crm-clients-export.sh scripts/crm-clients-yandex-upload.sh scripts/crm-clients-backup-job.sh scripts/crm-clients-live-export-gated.sh scripts/crm-client-backup-verify.sh
       - name: Validate shell syntax
         run: |
           bash -n scripts/crm-clients-export.sh
           bash -n scripts/crm-clients-yandex-upload.sh
           bash -n scripts/crm-clients-backup-job.sh
+          bash -n scripts/crm-clients-live-export-gated.sh
           bash -n scripts/crm-client-backup-verify.sh
       - name: Verify age encryption tooling
         run: |
@@ -40,11 +41,11 @@ jobs:
           pg_restore --version
       - name: Verify child scripts are launched through bash
         run: |
-          grep -Fq 'bash "$here/crm-clients-export.sh" "$archive"' scripts/crm-clients-backup-job.sh
+          grep -Fq 'bash "$here/crm-clients-live-export-gated.sh" "$archive"' scripts/crm-clients-backup-job.sh
           grep -Fq 'bash "$here/crm-clients-yandex-upload.sh" "$archive"' scripts/crm-clients-backup-job.sh
       - name: Verify invalid encryption policy fails closed
         run: |
-          if CLIENT_BACKUP_ENABLED=true CLIENT_BACKUP_SCHEMA_VERIFIED=YES CLIENT_BACKUP_RESTORE_VERIFIED=YES CLIENT_BACKUP_REQUIRE_ENCRYPTION=false DATABASE_URL=invalid AGE_RECIPIENT=invalid YANDEX_DISK_TOKEN=invalid bash scripts/crm-clients-backup-job.sh >/dev/null 2>&1; then
+          if CLIENT_BACKUP_ENABLED=true CLIENT_BACKUP_SCHEMA_VERIFIED=YES CLIENT_BACKUP_RESTORE_VERIFIED=YES CLIENT_BACKUP_REQUIRE_ENCRYPTION=false DATABASE_URL=invalid AGE_RECIPIENT_PRIMARY=invalid AGE_RECIPIENT_RECOVERY=invalid YANDEX_DISK_TOKEN=invalid bash scripts/crm-clients-backup-job.sh >/dev/null 2>&1; then
             echo 'Backup accepted disabled encryption'; exit 1
           fi
       - name: Verify missing safety gates fail closed
@@ -102,6 +103,68 @@ jobs:
           docker build -f backup/Dockerfile.schema-rehearsal -t crm-schema-rehearsal:test .
           test "$(docker run --rm --network none crm-schema-rehearsal:test)" = SCHEMA_REHEARSAL_DISABLED
           docker run --rm --network none --entrypoint bash crm-schema-rehearsal:test test/backup/reader-ci.sh
+      - name: Exercise disposable PostgreSQL endpoint guard without archive or storage access
+        run: |
+          # Enable the one-shot runner only with an intentionally invalid source
+          # selector. It must start and attest its own PostgreSQL, then fail
+          # closed before any object-storage operation or schema restore.
+          set +e
+          docker run --rm --network none \
+            -e CLIENT_BACKUP_SCHEMA_REHEARSAL=true \
+            -e CLIENT_BACKUP_SCHEMA_ONLY_SOURCE_REVIEWED=YES \
+            crm-schema-rehearsal:test > /tmp/schema-endpoint-smoke.log 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo 'Gated rehearsal unexpectedly accepted missing archive selector'
+            exit 1
+          fi
+          grep -Fxq 'DISPOSABLE_POSTGRES_ENDPOINT_OK port=DEDICATED cluster_id_verified=YES' /tmp/schema-endpoint-smoke.log
+          grep -Fxq 'SCHEMA_REHEARSAL_FAILED' /tmp/schema-endpoint-smoke.log
+          rm -f /tmp/schema-endpoint-smoke.log
+      - name: Reject mismatched disposable PostgreSQL cluster identity
+        run: |
+          # Simulate a mismatched local control-file identity. No archive,
+          # network, customer records or external database are accessible.
+          mkdir -p /tmp/schema-identity-override
+          cat > /tmp/schema-identity-override/pg_controldata <<'SH'
+          #!/bin/sh
+          echo 'Database system identifier: 1111111111111111111'
+          SH
+          chmod 755 /tmp/schema-identity-override/pg_controldata
+          set +e
+          docker run --rm --network none \
+            -v /tmp/schema-identity-override:/tmp/schema-identity-override:ro \
+            -e PATH=/tmp/schema-identity-override:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
+            -e CLIENT_BACKUP_SCHEMA_REHEARSAL=true \
+            -e CLIENT_BACKUP_SCHEMA_ONLY_SOURCE_REVIEWED=YES \
+            crm-schema-rehearsal:test > /tmp/schema-identity-negative.log 2>&1
+          status=$?
+          set -e
+          test "$status" -ne 0
+          grep -Fxq 'DISPOSABLE_POSTGRES_CLUSTER_ID_MISMATCH' /tmp/schema-identity-negative.log
+          if grep -Fq 'DISPOSABLE_POSTGRES_ENDPOINT_OK' /tmp/schema-identity-negative.log; then
+            echo 'Mismatched cluster identity was accepted'
+            exit 1
+          fi
+          rm -rf /tmp/schema-identity-override /tmp/schema-identity-negative.log
+      - name: Reject live alert configuration in isolated schema rehearsal
+        run: |
+          set +e
+          docker run --rm --network none \
+            -e CLIENT_BACKUP_SCHEMA_REHEARSAL=true \
+            -e CLIENT_BACKUP_SCHEMA_ONLY_SOURCE_REVIEWED=YES \
+            -e CLIENT_BACKUP_LIVE_ALERT_TEST=true \
+            crm-schema-rehearsal:test > /tmp/schema-live-alert-negative.log 2>&1
+          status=$?
+          set -e
+          test "$status" -ne 0
+          grep -Fxq 'SCHEMA_REHEARSAL_LIVE_ALERT_FORBIDDEN' /tmp/schema-live-alert-negative.log
+          if grep -Fq 'DISPOSABLE_POSTGRES_ENDPOINT_OK' /tmp/schema-live-alert-negative.log; then
+            echo 'Live-alert guard executed too late'
+            exit 1
+          fi
+          rm -f /tmp/schema-live-alert-negative.log
       - name: Verify separate monitor is disabled by default
         run: |
           docker build -f backup/Dockerfile.watchdog -t crm-client-watchdog:test .

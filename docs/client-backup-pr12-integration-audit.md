@@ -3,6 +3,15 @@
 Status: **DRAFT / NOT DEPLOYABLE**. This PR adds checks and synthetic tests,
 not a production client-backup service.
 
+## Follow-up in Draft PR #13 (2026-10-22)
+
+The client exporter, backup job, preflight and isolated rehearsals now use
+two distinct public age recipients, with fail-closed validation before export.
+The old single-recipient workflow is superseded for this path. Synthetic CI
+verifies both independent decryptions; this does **not** close the production
+ACL, genuine-archive restore, evidence-authenticity or privacy blockers below.
+This is still **DRAFT / NOT DEPLOYABLE**.
+
 ## Verified by CI
 - Synthetic age encryption/decryption with temporary artificial records.
 - Synthetic PostgreSQL export and isolated restore.

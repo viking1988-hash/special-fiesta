@@ -9,6 +9,23 @@ Status: **NOT ENABLED**. This is a review checklist, not deployment approval.
 - The existing full-CRM backup to S3 and Yandex mirror is a **separate working path**. Do not change it while building this optional customer-data backup.
 - Tests of encryption, isolated restore, row digests, sequences, and Telegram outage simulation use artificial data and do **not** establish production readiness.
 
+## 2026-10-22 follow-up: dual independent recipients
+
+Draft PR #13 requires both `AGE_RECIPIENT_PRIMARY` and
+`AGE_RECIPIENT_RECOVERY`, distinct syntactically valid public AGE keys.
+Synthetic tests independently decrypt the same ciphertext with two ephemeral
+identities. A single identity copied onto two USB drives is **not** sufficient.
+The existing owner-only script and older documentation describe copies of
+one identity and are historical; do not overwrite previously tested keys.
+
+**Outstanding live evidence:** production database reader effective ACLs
+verified independently; source schema/tenant/sequence compatibility;
+actual encrypted archive retrieved from approved private storage and restored
+into a fresh isolated database; hash-bound authenticated recovery evidence;
+privacy/retention approval and explicit owner production authorization.
+Until then keep `CLIENT_BACKUP_ENABLED=false`, cron absent, existing full-CRM
+backup untouched, and the launch gate at `NOT_AUTHORIZED`.
+
 ## Required implementation and evidence before enablement
 1. Define exact scope: `customers`, `vehicles`, their relationships, organization tenancy, and sequence state. Avoid exporting unrelated CRM records.
 2. Create a dedicated read-only DB principal with `SELECT` only on the approved tables and sequences. Review grants and revoke inherited privileges. Never use production superuser credentials in the exporter.
@@ -31,3 +48,24 @@ Status: **NOT ENABLED**. This is a review checklist, not deployment approval.
 
 ## Stop conditions
 Missing read-only role, missing independently recoverable key, any plaintext upload, unverifiable remote archive, incorrect tenancy, failed isolated restore, or unverified alert delivery => **NO GO**.
+
+## Verified PR #13 checkpoint — 2026-10-26
+
+- PR head checked: `c91ace67b29249870d0ccee78e61e3fd45768b22` (Draft, unmerged).
+- All five GitHub Actions runs on that **exact HEAD** finished successfully: CRM auth checks, CRM PostgreSQL integration, CRM client export preflight tests, CRM synthetic client restore rehearsal, and CRM client backup checks.
+- Code inspection confirms the scheduled backup job invokes `scripts/crm-clients-live-export-gated.sh`; the wrapper requires an explicit live flag, executes configuration and output preflight, and uses an exclusive output lock. These guards do not independently authenticate an operator or verify production ACLs.
+- The source-completeness document confirms the client export is a `pg_dump --data-only` subset of `public.customers` and `public.vehicles`, **not** a standalone complete CRM backup. A compatible schema, parent/tenant records, sequences and integrity checks are required for restoration.
+
+### Evidence matrix: current release blockers
+
+| Gate | Evidence required | Current result |
+| --- | --- | --- |
+| CI on exact PR HEAD | Five successful workflows | PASS (synthetic/code-level only) |
+| Independent schema-only source | Trusted provenance, offline TOC/SQL inspection, independently pinned SHA-256, private approved object | NOT VERIFIED |
+| Isolated real-schema rehearsal | Independently attested disposable cluster, artificial rows, both distinct offline decryption identities, tenant/FK/sequence/digest checks | NOT VERIFIED |
+| Effective production reader privileges | Independent role membership, PUBLIC/inherited/SECURITY DEFINER/RLS and least-privilege review | NOT VERIFIED |
+| Actual client archive recoverability | Approved provenance, authentic encrypted archive and independently evidenced fresh isolated restore | NOT VERIFIED |
+| Key custody and privacy | Separate offline primary/recovery custody, key recovery, retention/privacy decision | NOT VERIFIED |
+| Launch authorization | Owner approval bound to reviewed SHA and evidence | NOT AUTHORIZED |
+
+**Decision: Production NO-GO.** This checkpoint changes documentation only; no access to production database/storage, no customer records, no deployment, no cron and no changes to existing full-CRM backups are authorized. Green CI must never be described as independent actual-client recovery proof.

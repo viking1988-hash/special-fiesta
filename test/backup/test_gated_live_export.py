@@ -14,6 +14,17 @@ class GatedLiveExportTests(unittest.TestCase):
         return subprocess.run(["bash", str(SCRIPT), "/tmp/unused.age"],
                               env=clean, capture_output=True, text=True, timeout=5)
 
+    def test_missing_configuration_from_unrelated_working_directory(self):
+        clean = {"PATH": os.environ.get("PATH", ""),
+                 "CLIENT_BACKUP_LIVE_RUN_APPROVED": "YES",
+                 "CLIENT_BACKUP_ENABLED": "true"}
+        result = subprocess.run(["bash", str(SCRIPT), "/tmp/unused.age"],
+                                cwd="/tmp", env=clean, capture_output=True,
+                                text=True, timeout=5)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("CLIENT_EXPORT_PREFLIGHT_", result.stderr)
+        self.assertNotIn("No module named backup", result.stderr)
+
     def test_default_refuses_without_approval(self):
         result = self.run_script({})
         self.assertNotEqual(result.returncode, 0)

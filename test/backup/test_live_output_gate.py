@@ -1,4 +1,6 @@
 import tempfile
+import os
+from unittest.mock import patch
 import unittest
 from pathlib import Path
 from backup.live_output_gate import validate
@@ -25,6 +27,11 @@ class LiveOutputGateTests(unittest.TestCase):
             self.assertFalse(validate(d, target))
             self.assertFalse(validate(str(root / "nested" / ".."), str(root / filename)))
 
+    def test_wrong_prefix_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "archive-20261012T120000Z.dump.age"
+            self.assertFalse(validate(d, str(p)))
+
     def test_impossible_calendar_timestamp_rejected(self):
         with tempfile.TemporaryDirectory() as d:
             for stamp in ("20260230T120000Z", "20261301T120000Z", "20261012T256100Z"):
@@ -47,6 +54,12 @@ class LiveOutputGateTests(unittest.TestCase):
             Path(str(p) + ".partial").symlink_to(Path(d) / "missing-target")
             self.assertFalse(validate(d, str(p)))
 
+    def test_dangling_final_symlink_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "clients-20261012T120000Z.dump.age"
+            p.symlink_to(Path(d) / "missing-target")
+            self.assertFalse(validate(d, str(p)))
+
     def test_symlinked_parent_directory_rejected(self):
         with tempfile.TemporaryDirectory() as d:
             base = Path(d)
@@ -58,6 +71,13 @@ class LiveOutputGateTests(unittest.TestCase):
             nested.mkdir(mode=0o700)
             p = nested / "clients-20261012T120000Z.dump.age"
             self.assertFalse(validate(str(nested), str(p)))
+
+    @unittest.skipUnless(hasattr(os, "getuid"), "POSIX ownership check")
+    def test_private_directory_owned_by_other_uid_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            p = Path(d) / "clients-20261012T120000Z.dump.age"
+            with patch("backup.live_output_gate.os.getuid", return_value=os.getuid() + 1):
+                self.assertFalse(validate(d, str(p)))
 
     def test_public_directory_rejected(self):
         with tempfile.TemporaryDirectory() as d:

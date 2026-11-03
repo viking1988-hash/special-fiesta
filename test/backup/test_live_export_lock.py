@@ -30,7 +30,7 @@ class LiveExportLockTests(unittest.TestCase):
             self.assertIn('if ! mkdir -m 700 -- "$lock"', source)
             self.assertIn("CLIENT_BACKUP_CONCURRENT_EXPORT_REFUSED", source)
             self.assertLess(source.index('if ! mkdir -m 700 -- "$lock"'),
-                            source.index('bash scripts/crm-clients-export.sh "$@"'))
+                            source.index('bash "$here/crm-clients-export.sh" "$@"'))
 
     def test_shell_syntax(self):
         subprocess.run(["bash", "-n", str(WRAPPER)], check=True, timeout=5)

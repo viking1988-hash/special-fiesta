@@ -20,12 +20,14 @@ trap on_exit EXIT
 [[ "${CLIENT_BACKUP_RESTORE_VERIFIED:-}" == "YES" ]] || { echo "CLIENT_BACKUP_RESTORE_UNVERIFIED" >&2; exit 1; }
 [[ "${CLIENT_BACKUP_REQUIRE_ENCRYPTION:-true}" == "true" ]] || { echo "CLIENT_BACKUP_ENCRYPTION_REQUIRED" >&2; exit 1; }
 : "${DATABASE_URL:?}"
-: "${AGE_RECIPIENT:?}"
+: "${AGE_RECIPIENT_PRIMARY:?}"
+: "${AGE_RECIPIENT_RECOVERY:?}"
 : "${YANDEX_DISK_TOKEN:?}"
 workdir="$(mktemp -d)"
 stamp="$(date -u +%Y%m%dT%H%M%SZ)"
 archive="$workdir/clients-$stamp.dump.age"
-bash "$here/crm-clients-export.sh" "$archive"
+export CLIENT_BACKUP_OUTPUT_DIR="$workdir"
+bash "$here/crm-clients-live-export-gated.sh" "$archive"
 [[ -s "$archive" ]] || { echo "CLIENT_BACKUP_EMPTY" >&2; exit 1; }
 bash "$here/crm-clients-yandex-upload.sh" "$archive"
 python3 "$here/../backup/yandex.py" retention-plan
