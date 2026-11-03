@@ -218,6 +218,31 @@ class TransferTests(unittest.TestCase):
             self.assertEqual(str(caught.exception), "PRIVATE_DOWNLOAD_DIRECTORY_REQUIRED")
             self.assertFalse(list(private.iterdir()))
 
+    @unittest.skipUnless(hasattr(os, "O_DIRECTORY") and hasattr(os, "O_NOFOLLOW"), "POSIX dirfd required")
+    def test_download_directory_swap_cannot_write_to_replacement(self):
+        with tempfile.TemporaryDirectory() as work:
+            root = Path(work)
+            private = root / "private"
+            private.mkdir(mode=0o700)
+            moved = root / "moved-private"
+            replacement = root / "replacement"
+            replacement.mkdir(mode=0o700)
+            destination = private / NAME
+            disk = FakeDisk()
+            original_request = disk.request
+
+            def swap_on_request(*args, **kwargs):
+                private.rename(moved)
+                replacement.rename(private)
+                return original_request(*args, **kwargs)
+
+            with patch.object(disk, "request", side_effect=swap_on_request):
+                disk.download(NAME, destination, HASH)
+            self.assertFalse((private / NAME).exists())
+            self.assertEqual((moved / NAME).read_bytes(), DATA)
+            self.assertFalse(list(private.iterdir()))
+            self.assertFalse(list(moved.glob(".clients-download-*")))
+
     def test_wrong_hash_refused(self):
         with tempfile.TemporaryDirectory() as work:
             with self.assertRaises(y.BackupError):
