@@ -11,6 +11,7 @@ import re
 import stat
 import runpy
 import shutil
+import socket
 import subprocess
 import tempfile
 
@@ -42,9 +43,29 @@ def main():
     os.environ.update(PGDATA=str(work / "pgdata"), PGHOST="127.0.0.1", PGUSER="postgres")
     started = False
     try:
+        # Choose a non-default loopback port for this disposable cluster.
+        # The socket reservation is released immediately before pg_ctl starts;
+        # a competing bind makes startup fail closed rather than use another server.
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as reservation:
+            reservation.bind(("127.0.0.1", 0))
+            isolated_port = reservation.getsockname()[1]
+        os.environ["PGPORT"] = str(isolated_port)
         run(["initdb", "-D", os.environ["PGDATA"], "-A", "trust"])
-        run(["pg_ctl", "-D", os.environ["PGDATA"], "-l", str(work / "pg.log"), "-o", "-c listen_addresses=127.0.0.1", "-w", "start"])
+        run(["pg_ctl", "-D", os.environ["PGDATA"], "-l", str(work / "pg.log"),
+             "-o", f"-c listen_addresses=127.0.0.1 -c port={isolated_port}", "-w", "start"])
         started = True
+        # Check the actual SQL endpoint before creating/restoring any database.
+        endpoint = query("postgres",
+                         "SELECT current_setting('data_directory') || '|' || "
+                         "coalesce(host(inet_server_addr()), '') || '|' || "
+                         "inet_server_port()::text")
+        expected_endpoint = str(Path(os.environ["PGDATA"]).resolve()) + "|127.0.0.1|" + str(isolated_port)
+        if os.path.normcase(endpoint.split("|")[0]) != os.path.normcase(expected_endpoint.split("|")[0]) or endpoint.split("|")[1:] != expected_endpoint.split("|")[1:]:
+            raise RuntimeError("DISPOSABLE_POSTGRES_ENDPOINT_MISMATCH")
+        cluster_id = query("postgres", "SELECT system_identifier FROM pg_control_system()")
+        if not re.fullmatch(r"[0-9]{10,20}", cluster_id):
+            raise RuntimeError("DISPOSABLE_POSTGRES_CLUSTER_ID_INVALID")
+        print("DISPOSABLE_POSTGRES_ENDPOINT_OK port=DEDICATED cluster_id_verified=YES", flush=True)
         # Fail closed on malformed reviewed-source selectors before storage access.
         import importlib.util
         validator_path = Path(__file__).with_name("schema_source_preflight.py")
