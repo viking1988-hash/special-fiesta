@@ -37,8 +37,10 @@ def main():
     os.umask(0o077)
     for key in ("DATABASE_URL", "TEST_DATABASE_URL", "PGDATABASE", "PGSERVICE", "PGSERVICEFILE", "PGHOSTADDR", "PGPORT", "PGPASSWORD", "PGOPTIONS"):
         os.environ.pop(key, None)
-    if os.environ.get("CLIENT_BACKUP_LIVE_ALERT_TEST") == "true":
-        print(run(["python3", "test/backup/live-alert.py"]).strip(), flush=True)
+    # A schema rehearsal must never dispatch live alerts, even if an inherited
+    # environment accidentally enables the separate notification test.
+    if os.environ.get("CLIENT_BACKUP_LIVE_ALERT_TEST", "false").lower() != "false":
+        raise RuntimeError("SCHEMA_REHEARSAL_LIVE_ALERT_FORBIDDEN")
     work = Path(tempfile.mkdtemp(prefix="schema-rehearsal-"))
     os.environ.update(PGDATA=str(work / "pgdata"), PGHOST="127.0.0.1", PGUSER="postgres")
     started = False
