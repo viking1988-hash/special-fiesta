@@ -103,6 +103,25 @@ jobs:
           docker build -f backup/Dockerfile.schema-rehearsal -t crm-schema-rehearsal:test .
           test "$(docker run --rm --network none crm-schema-rehearsal:test)" = SCHEMA_REHEARSAL_DISABLED
           docker run --rm --network none --entrypoint bash crm-schema-rehearsal:test test/backup/reader-ci.sh
+      - name: Exercise disposable PostgreSQL endpoint guard without archive or storage access
+        run: |
+          # Enable the one-shot runner only with an intentionally invalid source
+          # selector. It must start and attest its own PostgreSQL, then fail
+          # closed before any object-storage operation or schema restore.
+          set +e
+          docker run --rm --network none \
+            -e CLIENT_BACKUP_SCHEMA_REHEARSAL=true \
+            -e CLIENT_BACKUP_SCHEMA_ONLY_SOURCE_REVIEWED=YES \
+            crm-schema-rehearsal:test > /tmp/schema-endpoint-smoke.log 2>&1
+          status=$?
+          set -e
+          if [ "$status" -eq 0 ]; then
+            echo 'Gated rehearsal unexpectedly accepted missing archive selector'
+            exit 1
+          fi
+          grep -Fxq 'DISPOSABLE_POSTGRES_ENDPOINT_OK port=DEDICATED cluster_id_verified=YES' /tmp/schema-endpoint-smoke.log
+          grep -Fxq 'SCHEMA_REHEARSAL_FAILED' /tmp/schema-endpoint-smoke.log
+          rm -f /tmp/schema-endpoint-smoke.log
       - name: Verify separate monitor is disabled by default
         run: |
           docker build -f backup/Dockerfile.watchdog -t crm-client-watchdog:test .
