@@ -209,6 +209,18 @@ class Disk:
                         raise BackupError("AGE_HEADER_REQUIRED")
                 finally:
                     os.close(headerfd)
+                # Fail closed if the named destination directory was replaced
+                # while the ciphertext was streaming. The pinned fd protects
+                # writes; this check also prevents reporting a displaced file
+                # as a successful download.
+                try:
+                    current_parent = os.stat(parent, follow_symlinks=False)
+                except OSError as exc:
+                    raise BackupError("DOWNLOAD_DIRECTORY_CHANGED") from exc
+                if (not stat.S_ISDIR(current_parent.st_mode)
+                        or (current_parent.st_dev, current_parent.st_ino)
+                        != (info.st_dev, info.st_ino)):
+                    raise BackupError("DOWNLOAD_DIRECTORY_CHANGED")
                 os.link(temp_name, dest.name, src_dir_fd=dirfd, dst_dir_fd=dirfd,
                         follow_symlinks=False)
             finally:
