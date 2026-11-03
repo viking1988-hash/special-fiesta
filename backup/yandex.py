@@ -66,15 +66,9 @@ def digest(path):
 
 
 def archive_check(path):
-    p = Path(path)
-    if p.is_symlink() or not p.is_file() or not NAME.fullmatch(p.name):
-        raise BackupError("INVALID_ARCHIVE")
-    if not 0 < p.stat().st_size <= MAX_BYTES:
-        raise BackupError("INVALID_ARCHIVE_SIZE")
-    with p.open("rb") as f:
-        if f.read(22) != b"age-encryption.org/v1\n":
-            raise BackupError("AGE_HEADER_REQUIRED")
-    return p
+    """Validate via the same no-follow descriptor path used for upload."""
+    with open_checked_archive(path) as (checked_path, _stream):
+        return checked_path
 
 
 @contextlib.contextmanager
