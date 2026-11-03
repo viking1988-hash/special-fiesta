@@ -47,3 +47,12 @@ This checklist is for an independently authorized operator, not a claim that a r
 7. Do not substitute this synthetic rehearsal for an authenticated restore of a separately approved genuine encrypted client archive; that is a distinct production release gate requiring privacy and owner authorization.
 
 **Execution status at this checkpoint: NOT RUN — no independently verified schema-only archive or disposable runner attestation was available. Production remains NO-GO.**
+
+
+## Two-recipient custody clarification
+
+The owner-only `backup/offline-key-setup.ps1` creates **one** AGE identity and stores **two encrypted copies of that same identity** on separate USB disks. This proves redundant offline custody and recovery for one recipient only. It does **not** prove the two **distinct** identities required by `AGE_RECIPIENT_PRIMARY` and `AGE_RECIPIENT_RECOVERY`.
+
+Before the release gate can pass, an authorized owner on the trusted offline workstation must independently establish two distinct private identities and verify that their derived public recipients differ. Encrypt the **same artificial-data payload** to both recipients, then separately decrypt that ciphertext with each private identity and compare the result to the original digest. The backup workflow must be shown to use those same two public recipients; a duplicate recipient is a failure. Keep both identities and passphrases out of GitHub, CI, logs, chat, and networked runners. Record only a redacted signed attestation of distinct recipient fingerprints, ciphertext digest, per-key recovery outcome, workstation encryption/ACL checks and UTC date. Never publish the keys or plaintext.
+
+**Release status remains HOLD until the above owner-operated proof and independent real-schema/genuine-archive recovery gates are recorded.**
