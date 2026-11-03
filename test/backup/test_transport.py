@@ -92,6 +92,21 @@ class TransferTests(unittest.TestCase):
                     self.fail("FIFO must never be accepted")
             self.assertEqual(str(caught.exception), "INVALID_ARCHIVE_SIZE")
 
+    @unittest.skipUnless(hasattr(os, "mkfifo") and hasattr(os, "O_NONBLOCK"), "POSIX FIFO required")
+    def test_legacy_archive_check_rejects_fifo_without_blocking(self):
+        with tempfile.TemporaryDirectory() as work:
+            p = Path(work) / NAME
+            os.mkfifo(p)
+            with self.assertRaises(y.BackupError) as caught:
+                y.archive_check(p)
+            self.assertEqual(str(caught.exception), "INVALID_ARCHIVE_SIZE")
+
+    def test_legacy_archive_check_accepts_regular_ciphertext(self):
+        with tempfile.TemporaryDirectory() as work:
+            p = Path(work) / NAME
+            p.write_bytes(DATA)
+            self.assertEqual(y.archive_check(p), p)
+
     def test_upload_rejects_symlink_after_folder_preflight(self):
         with tempfile.TemporaryDirectory() as work:
             p = Path(work) / NAME
