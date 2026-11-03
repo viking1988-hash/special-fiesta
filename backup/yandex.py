@@ -205,7 +205,7 @@ class Disk:
                     raise BackupError("DOWNLOAD_INTEGRITY_FAILED")
                 headerfd = os.open(temp_name, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=dirfd)
                 try:
-                    if os.read(headerfd, 22) != b"age-encryption.org/v1\\n":
+                    if os.read(headerfd, 22) != b"age-encryption.org/v1\n":
                         raise BackupError("AGE_HEADER_REQUIRED")
                 finally:
                     os.close(headerfd)
